@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import re
 
 # ==============================================================================
 # 0. WEB PAGE CONFIG & STYLING
@@ -15,7 +14,7 @@ st.markdown("""
     .stButton>button:hover {background-color: #3B82F6; color: white;}
     div[data-testid="stMetricValue"] {font-size: 24px; color: #10B981;}
     </style>
-""", unsafe_index=True)
+""", unsafe_allow_html=True)
 
 # Title & Description for Stakeholders
 st.title("🎓 School Placement & Financial Calculator")
@@ -26,7 +25,6 @@ st.hr()
 # ==============================================================================
 # 1. APPLICATION STATE / EMULATED DATABASE
 # ==============================================================================
-# Mocking a subset of the 'Results' and 'Schools' spreadsheet tabs for the data matrix engine
 if 'mock_schools' not in st.session_state:
     st.session_state.mock_schools = pd.DataFrame([
         {"School Name": "Alpha University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 5, "Reentry Requirement": "Yes"},
@@ -40,7 +38,6 @@ if 'mock_schools' not in st.session_state:
 # ==============================================================================
 st.sidebar.header("📋 Lead Inputs")
 
-# Sync reset button matching 'resetLeadInputs()' Google Script logic
 if st.sidebar.button("🔄 Reset Form & Inputs"):
     st.rerun()
 
@@ -54,7 +51,6 @@ dismissal_y = st.sidebar.checkbox("Has Prior Dismissal? (C2 Trigger)", value=Fal
 entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep? (AB2 Trigger)", value=False)
 has_addons = st.sidebar.checkbox("Add-ons Selected? (Z2:AB2 Trigger)", value=False)
 
-# Transcript Needs Checklist (Emulating the dynamic BYROW/LAMBDA transcript block in A2)
 st.sidebar.markdown("---")
 st.sidebar.subheader("📚 Transcript Deficiencies ('Need')")
 needs_list = ["Anatomy & Phys", "Microbiology", "Statistics", "English Comp", "Psychology"]
@@ -69,11 +65,9 @@ col_calc_input, col_calc_output = st.columns([1, 1])
 
 with col_calc_input:
     st.subheader("Financial Adjustments")
-    # Simulation inputs for W2 and Z2 cells
     deposit_input = st.number_input("Deposit Paid ($) [W2 Input]", min_value=0.0, value=0.0, step=50.0)
     grant_input = st.number_input("Discount Grant Amount ($) [Z2 Input]", min_value=0.0, value=0.0, step=50.0)
     
-    # Checkbox group representing Excel's multi-text REGEXMATCH in cell X2
     st.markdown("**Discounts Selected [X2 Array Logic]:**")
     discount_match = st.checkbox("Deposit Match")
     discount_referral = st.checkbox("Referral")
@@ -83,20 +77,17 @@ with col_calc_input:
 with col_calc_output:
     st.subheader("Live Ledger Math (Formulas AA2 / V2 / T2)")
     
-    # Core variables for logic
-    base_classes = 6 # Baseline assumption for demo calculator
+    base_classes = 6 
     if entrance_exam:
         base_classes += 1
         
     addons_count = 2 if has_addons else 0
     total_classes = base_classes + addons_count
     
-    # --- Matrix Math Emulating AA2 ---
     main_price = 1179 if base_classes >= 10 else (1229 if base_classes >= 4 else 1289)
     addon_price = 749 if total_classes >= 10 else (799 if total_classes >= 4 else 859)
     base_total = (base_classes * main_price) + (addons_count * addon_price)
     
-    # Deductions
     dep_min = 150 if is_cna == "CNA/CMA" else 300
     calc_dep_match = min(deposit_input, 1000.0) if (discount_match and deposit_input >= dep_min) else 0.0
     calc_referral = 50.0 if discount_referral else 0.0
@@ -105,18 +96,15 @@ with col_calc_output:
     
     final_total = max(0.0, base_total - calc_dep_match - calc_referral - calc_military - calc_free_course - grant_input)
     
-    # --- Matrix Math Emulating V2 (Registration Fees) ---
     if is_cna == "CNA/CMA":
         reg_fee = 150 if total_classes <= 2 else (175 if total_classes <= 7 else (200 if total_classes <= 10 else (250 if total_classes <= 15 else 300)))
     else:
         reg_fee = 300 if total_classes <= 2 else (325 if total_classes <= 7 else (375 if total_classes <= 10 else (475 if total_classes <= 15 else 600)))
         
-    # --- Matrix Math Emulating T2 (Room Left for Add-ons) ---
     room_left = 14500 - final_total
     max_additional_addons = max(0, int(room_left // 749))
     projected_addons = addons_count + max_additional_addons
 
-    # Metrics Display Grid
     m1, m2 = st.columns(2)
     m1.metric("Base Total (Before Credits)", f"${base_total:,.2f}")
     m2.metric("Registration Fee (V2 Formula)", f"${reg_fee}")
@@ -135,40 +123,32 @@ st.hr()
 st.header("🏫 Ranked Schools Result Output Matrix")
 st.caption("Replicates the nested multi-criteria sorting from Excel cell A2 + Apps Script responsive view handlers.")
 
-# Emulating the Excel Formula A2 engine: Filter rows based on interest track inputs
 filtered_df = st.session_state.mock_schools[st.session_state.mock_schools["Program"] == program_interest].copy()
 
-# Add columns calculated programmatically via the mock loop
 filtered_df["Transcript Deficiencies Fixed"] = ", ".join(selected_needs) if selected_needs else "None"
 filtered_df["Injected Modules"] = "Entrance Exam Prep" if entrance_exam else "Standard Entry"
 
-# Apply Apps Script visibility rules seamlessly using Python conditions
 columns_to_show = ["School Name", "Program", "Status", "Base Classes", "Transcript Deficiencies Fixed", "Injected Modules"]
 
-# Apps Script Rule 1: hideDismissalColumn/showDismissalColumn (Column 14 / N)
 if dismissal_y:
-    # Only shows column if school requires real re-entry review criteria
     filtered_df["Reentry Review Req."] = filtered_df["Reentry Requirement"]
     columns_to_show.append("Reentry Review Req.")
     st.info("💡 Apps Script Trigger Active: 'Reentry Review' Column N made visible due to selection updates.")
 
-# Apps Script Rule 2: hideAddOnsSelectedColumn (Column 18 / R)
 if has_addons:
     filtered_df["Add-ons Active"] = "Yes - Multi-Tier Pricing"
     columns_to_show.append("Add-ons Active")
     st.info("💡 Apps Script Trigger Active: 'Add-ons' Column R made visible dynamically.")
 
-# Apps Script Rule 3: hideFreeCourseCodeColumn (Column 25 / Y)
 if discount_free_course:
     filtered_df["Free Course Token Allocation"] = "FREE COURSE CONVERTED"
     columns_to_show.append("Free Course Token Allocation")
     st.info("💡 Apps Script Trigger Active: 'Free Course Code' Column Y unhidden.")
 
-# Render final dynamic table representation
 st.dataframe(filtered_df[columns_to_show], use_container_width=True)
 
 # ==============================================================================
-# 5. DEVELOPER HANDOFF INSTRUCTIONS (Hidden from view by default)
+# 5. DEVELOPER HANDOFF INSTRUCTIONS
 # ==============================================================================
 with st.expander("🛠️ Developer Architecture Blueprint & Code Mapping Notes"):
     st.markdown("""
