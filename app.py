@@ -22,16 +22,19 @@ st.caption("This interactive prototype maps Google Sheet matrix formulas and App
 st.divider()
 
 # ==============================================================================
-# 1. ACTUAL PARTNER DATABASE MATRIX (Now containing BSN & ASN Tracks)
+# 1. ACTUAL PARTNER DATABASE MATRIX (Now with State Mapping Logic!)
 # ==============================================================================
 if 'mock_schools' not in st.session_state:
     st.session_state.mock_schools = pd.DataFrame([
-        {"School Name": "Western Governors University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 4, "Reentry Requirement": "None"},
-        {"School Name": "Herzing University BSN", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 6, "Reentry Requirement": "None"},
-        {"School Name": "Capella University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 5, "Reentry Requirement": "None"},
-        {"School Name": "Chamberlain University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 7, "Reentry Requirement": "None"},
-        {"School Name": "Herzing University ASN", "Program": "ASN", "Status": "ACCEPTS", "Base Classes": 5, "Reentry Requirement": "None"},
-        {"School Name": "Excelsior University", "Program": "ASN", "Status": "ACCEPTS", "Base Classes": 6, "Reentry Requirement": "None"}
+        # BSN Schools (Accepts KY, Y, and general states)
+        {"School Name": "Western Governors University", "Program": "BSN", "State": "KY, Y", "Status": "ACCEPTS", "Base Classes": 4, "Reentry Requirement": "None"},
+        {"School Name": "Herzing University BSN", "Program": "BSN", "State": "KY, Y", "Status": "ACCEPTS", "Base Classes": 6, "Reentry Requirement": "None"},
+        {"School Name": "Capella University", "Program": "BSN", "State": "KY, Y", "Status": "ACCEPTS", "Base Classes": 5, "Reentry Requirement": "None"},
+        {"School Name": "Chamberlain University", "Program": "BSN", "State": "KY, Y", "Status": "ACCEPTS", "Base Classes": 7, "Reentry Requirement": "None"},
+        
+        # ASN Schools mapped strictly to specific states
+        {"School Name": "Herzing University ASN", "Program": "ASN", "State": "KY, Y", "Status": "ACCEPTS", "Base Classes": 5, "Reentry Requirement": "None"},
+        {"School Name": "Excelsior University", "Program": "ASN", "State": "NY, KY, Y", "Status": "ACCEPTS", "Base Classes": 6, "Reentry Requirement": "None"}
     ])
 
 # ==============================================================================
@@ -44,9 +47,9 @@ if st.sidebar.button("🔄 Reset Form & Inputs"):
 
 student_name = st.sidebar.text_input("Student Name", value="Jane Doe")
 
-# 1. Student State (Added "Y" to match your specific sheet input test case)
+# 1. Student State
 student_state = st.sidebar.selectbox("Student State", [
-    "KY", "Y", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
+    "NY", "KY", "Y", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
     "HI", "ID", "IL", "IN", "IA", "KS", "LA", "ME", "MD", 
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
     "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
@@ -60,7 +63,7 @@ gpa_input = st.sidebar.text_input("GPA (Leave Blank if unsure)", value="4.00")
 dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["No", "Yes"])
 dismissal_y = True if dismissal_selection == "Yes" else False
 
-# 4. LPN or CNA/CMA License? (Defaulted to LPN based on your test case)
+# 4. LPN or CNA/CMA License?
 license_type = st.sidebar.selectbox("LPN or CNA/CMA License?", ["LPN", "CNA/CMA", "None"])
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
@@ -72,7 +75,7 @@ if license_type == "LPN":
 # 6. Travel for Clinicals ok?
 travel_ok = st.sidebar.selectbox("Travel for Clinicals ok?", ["Yes", "No"])
 
-# 7. ASN or BSN (Defaulted to ASN to match your test case execution)
+# 7. ASN or BSN
 program_interest = st.sidebar.selectbox("Program Track: ASN or BSN (A2/G2 Logic)", ["ASN", "BSN"])
 
 st.sidebar.markdown("---")
@@ -163,15 +166,22 @@ with col_calc_output:
 st.divider()
 
 # ==============================================================================
-# 4. MULTI-SCHOOL RANKED OUTPUT GRID (Emulates Matrix Array Engine Formula A2)
+# 4. MULTI-SCHOOL RANKED OUTPUT GRID (With Multi-Parameter State + Track Filters)
 # ==============================================================================
 st.header("🏫 Ranked Schools Result Output Matrix")
 st.caption("Emulates full nested sorting options from your complex A2 Array Filter formula.")
 
-# Normalize capitalization for stable array parsing
+# 1. First Filter: Match Program Track (ASN/BSN)
 selected_track = str(program_interest).strip().upper()
-filtered_df = st.session_state.mock_schools[st.session_state.mock_schools["Program"].str.upper() == selected_track].copy()
+track_mask = st.session_state.mock_schools["Program"].str.upper() == selected_track
+filtered_df = st.session_state.mock_schools[track_mask].copy()
 
+# 2. Second Filter: Match Selected State dynamically
+selected_state = str(student_state).strip().upper()
+state_mask = filtered_df["State"].str.upper().str.contains(selected_state)
+filtered_df = filtered_df[state_mask]
+
+# Inject metadata properties
 filtered_df["Transcript Deficiencies Fixed"] = ", ".join(needed_courses) if needed_courses else "None (All Cleared)"
 filtered_df["Injected Modules"] = "Entrance Exam Prep" if entrance_exam else "Standard Entry"
 filtered_df["Base Classes"] = filtered_df["Base Classes"].apply(lambda x: max(1, x + len(needed_courses)))
@@ -193,10 +203,11 @@ if discount_free_course:
     columns_to_show.append("Free Course Token Allocation")
     st.info("💡 Apps Script Trigger Active: 'Free Course Code' Column Y unhidden.")
 
+# Display filtered view
 if not filtered_df.empty:
     st.dataframe(filtered_df[columns_to_show].sort_values(by="Base Classes", ascending=True), use_container_width=True, hide_index=True)
 else:
-    st.warning("No schools match the current filtration parameters. Please adjust Lead Inputs.")
+    st.warning("No schools match the current filtration parameters for this state. Please adjust Lead Inputs.")
 
 st.divider()
 
@@ -215,8 +226,6 @@ with st.expander("🛠️ Developer Architecture Blueprint & Code Mapping Notes"
        * License Category: `{license_type}` (LPN Months Exp: {lpn_exp})
        * Travel Allowed: `{travel_ok}`
        * Total Courses Flagged with 'Need' Status: `{len(needed_courses)}`
-    2. **Transcript Status Arrays:**
-       * Tracked via persistent selection key hashes.
-    3. **Formula A2 Engine Replication:**
-       * Executed with case-insensitive upper constraints via Pandas vector logic (`.str.upper() == '{selected_track}'`).
+    2. **Multi-Parameter Matrix Filtering:**
+       * Replicates the complex multi-tab sheet lookups by using double-layered boolean masking rules in Pandas (`track_mask` and `state_mask`).
     """)
