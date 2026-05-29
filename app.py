@@ -22,7 +22,7 @@ st.caption("This interactive prototype maps Google Sheet matrix formulas and App
 st.divider()
 
 # ==============================================================================
-# 1. ACTUAL PARTNER DATABASE MATRIX (Updated with your real school profiles)
+# 1. ACTUAL PARTNER DATABASE MATRIX
 # ==============================================================================
 if 'mock_schools' not in st.session_state:
     st.session_state.mock_schools = pd.DataFrame([
@@ -42,7 +42,7 @@ st.sidebar.header("📋 Lead Inputs")
 if st.sidebar.button("🔄 Reset Form & Inputs"):
     st.rerun()
 
-student_name = st.sidebar.text_input("Student Name", placeholder="Jane Doe")
+student_name = st.sidebar.text_input("Student Name", value="Jane Doe")
 
 # 1. Student State
 student_state = st.sidebar.selectbox("Student State", [
@@ -57,7 +57,7 @@ student_state = st.sidebar.selectbox("Student State", [
 gpa_input = st.sidebar.text_input("GPA (Leave Blank if unsure)", value="4.00")
 
 # 3. Prior Nursing Dismissal?
-dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal? (C2 Trigger)", ["No", "Yes"])
+dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["No", "Yes"])
 dismissal_y = True if dismissal_selection == "Yes" else False
 
 # 4. LPN or CNA/CMA License?
@@ -171,14 +171,16 @@ st.header("🏫 Ranked Schools Result Output Matrix")
 st.caption("Emulates full nested sorting options from your complex A2 Array Filter formula.")
 
 # Filtering logic mapping the dynamic spreadsheet row criteria
-filtered_df = st.session_state.mock_schools[st.session_state.mock_schools["Program"] == program_interest].copy()
+# FORCE capitalization normalization to avoid empty dataset returns
+selected_track = str(program_interest).strip().upper()
+filtered_df = st.session_state.mock_schools[st.session_state.mock_schools["Program"].str.upper() == selected_track].copy()
 
 # Inject user-defined parameters directly into the schools grid data structure
 filtered_df["Transcript Deficiencies Fixed"] = ", ".join(needed_courses) if needed_courses else "None (All Cleared)"
 filtered_df["Injected Modules"] = "Entrance Exam Prep" if entrance_exam else "Standard Entry"
 
 # Add variation to class numbers based on requirements chosen
-filtered_df["Base Classes"] = filtered_df["Base Classes"].apply(lambda x: max(1, x + len(needed_courses) - 2))
+filtered_df["Base Classes"] = filtered_df["Base Classes"].apply(lambda x: max(1, x + len(needed_courses)))
 
 # Build dynamic visibility layout extracted from your onEditHandler Apps Script file
 columns_to_show = ["School Name", "Program", "Status", "Base Classes", "Transcript Deficiencies Fixed", "Injected Modules"]
@@ -199,4 +201,31 @@ if discount_free_course:
     columns_to_show.append("Free Course Token Allocation")
     st.info("💡 Apps Script Trigger Active: 'Free Course Code' Column Y unhidden.")
 
-# Display the multi
+# Display the multi-option data dashboard
+if not filtered_df.empty:
+    st.dataframe(filtered_df[columns_to_show].sort_values(by="Base Classes", ascending=True), use_container_width=True, hide_index=True)
+else:
+    st.warning("No schools match the current filtration parameters. Please adjust Lead Inputs.")
+
+st.divider()
+
+# ==============================================================================
+# 5. DEVELOPER HANDOFF INSTRUCTIONS
+# ==============================================================================
+with st.expander("🛠️ Developer Architecture Blueprint & Code Mapping Notes"):
+    st.markdown(f"""
+    ### Technical Specification Notes for Core Integration
+    Dear Developer, this POC translates legacy spreadsheet workbook code blocks directly into centralized, functional web blocks:
+    
+    1. **Form Fields Map:**
+       * State: `{student_state}`
+       * GPA: `{gpa_input if gpa_input else 'Blank'}`
+       * Dismissal Status: `{dismissal_selection}`
+       * License Category: `{license_type}` (LPN Months Exp: {lpn_exp})
+       * Travel Allowed: `{travel_ok}`
+       * Total Courses Flagged with 'Need' Status: `{len(needed_courses)}`
+    2. **Transcript Multi-Select Mapping Architecture:**
+       * The dropdown states are captured dynamically using a tracking object array system. This mirrors your Google Sheet `Transcript Review` sheet structure. 
+    3. **Formula A2 Engine Replication:**
+       * Mimicked using Pandas dynamic vector mapping. Your complex `BYROW`/`LAMBDA` logic runs instantly on state change.
+    """)
