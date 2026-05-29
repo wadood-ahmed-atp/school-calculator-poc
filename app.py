@@ -19,7 +19,7 @@ st.markdown("""
 
 st.title("🎓 School Placement & Financial Calculator")
 st.markdown("### **Production Blueprint (Dual-CSV Matrix Engine)**")
-st.caption("This engine co-evaluates institutional parameters alongside dynamic transcript deficiency matching tables.")
+st.caption("This resilient engine cleanses text data constraints dynamically to connect your database sheets.")
 st.divider()
 
 # ==============================================================================
@@ -31,6 +31,9 @@ TRANSCRIPT_CSV = "transcript_rules.csv"
 # Load Master School Dataset
 if os.path.exists(SCHOOLS_CSV):
     master_schools_df = pd.read_csv(SCHOOLS_CSV)
+    # Strip whitespace from string columns to prevent spacing bugs
+    for col in master_schools_df.select_dtypes(include=['object']).columns:
+        master_schools_df[col] = master_schools_df[col].astype(str).str.strip()
 else:
     st.error(f"⚠️ Master database file '{SCHOOLS_CSV}' not found.")
     st.stop()
@@ -38,6 +41,11 @@ else:
 # Load Transcript Review Dataset Matrix
 if os.path.exists(TRANSCRIPT_CSV):
     transcript_rules_df = pd.read_csv(TRANSCRIPT_CSV)
+    # Normalize mapping text spacing strings
+    for col in transcript_rules_df.select_dtypes(include=['object']).columns:
+        transcript_rules_df[col] = transcript_rules_df[col].astype(str).str.strip()
+    # Clean up column header spacing variations
+    transcript_rules_df.columns = transcript_rules_df.columns.str.strip()
 else:
     st.warning(f"⚠️ '{TRANSCRIPT_CSV}' not detected. Dynamic transcript eligibility filtering is temporarily disabled.")
     transcript_rules_df = None
@@ -94,7 +102,6 @@ transcript_status = {}
 for course in course_list:
     transcript_status[course] = st.sidebar.selectbox(f"{course}", ["Taken", "Need"], key=f"course_{course}")
 
-# Generate list of ONLY the courses the student explicitly needs
 needed_courses = [course for course, status in transcript_status.items() if status == "Need"]
 
 # ==============================================================================
@@ -177,7 +184,7 @@ with col_calc_output:
 st.divider()
 
 # ==============================================================================
-# 4. MULTI-SCHOOL RANKED OUTPUT GRID (Evaluates General rules + Transcript rules)
+# 4. MULTI-SCHOOL RANKED OUTPUT GRID (With Resilient Mapping & Diagnostics)
 # ==============================================================================
 st.header("🏫 Ranked Schools Result Output Matrix")
 st.caption("Replicates the nested spreadsheet logic matching demographics against your transcript validation rules matrices.")
@@ -194,15 +201,16 @@ filtered_df = filtered_df[state_mask]
 if selected_track == "ASN" and license_type == "LPN" and lpn_exp < 12:
     filtered_df = filtered_df[filtered_df["School Name"] != "Allegany College of Maryland"]
 
-# --- TRANSCRIPT RULE ENGINE LINKAGE (Formula A2 / Transcript Review Sync) ---
+# Resilient Transcript Linkage Engine
 if transcript_rules_df is not None and not filtered_df.empty:
     valid_school_names = []
+    missing_mappings_log = []
     
     for _, school_row in filtered_df.iterrows():
-        name = school_row["School Name"]
+        raw_name = str(school_row["School Name"]).strip()
         
-        # Pull matching row from transcript rules matrix
-        rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == name.upper()]
+        # Pull matching row using case-insensitive space-stripped lookup
+        rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
         
         if not rule_row.empty:
             is_eligible = True
@@ -210,17 +218,28 @@ if transcript_rules_df is not None and not filtered_df.empty:
             for required_course in needed_courses:
                 if required_course in rule_row.columns:
                     accepted_status = str(rule_row[required_course].values[0]).strip().upper()
+                    # If it's not explicitly 'Y', they are blocked from this school
                     if accepted_status != "Y":
                         is_eligible = False
                         break
+                else:
+                    # If column header name is missing from the sheet entirely, fail safe
+                    is_eligible = False
+                    break
             if is_eligible:
-                valid_school_names.append(name)
+                valid_school_names.append(raw_name)
         else:
-            # If a school has no strict transcript limitations uploaded, pass it by default
-            valid_school_names.append(name)
+            missing_mappings_log.append(raw_name)
             
-    # Apply the transcript mask filter
-    filtered_df = filtered_df[filtered_df["School Name"].isin(valid_school_names)]
+    # Apply the mapping filter
+    filtered_df = filtered_df[filtered_df["School Name"].str.upper().isin([n.upper() for n in valid_school_names])]
+    
+    # Diagnostics Panel: Alerts you exactly which names don't match between sheets
+    if missing_mappings_log:
+        with st.expander("🔍 System Integration Diagnostics (Name Sync Check)"):
+            st.warning("The following schools exist in your general file but are missing or named differently in your transcript file:")
+            for missing_name in missing_mappings_log:
+                st.code(f"Mismatched Name: '{missing_name}'")
 
 # Append UI properties
 filtered_df["Transcript Deficiencies Fixed"] = ", ".join(needed_courses) if needed_courses else "None (All Cleared)"
@@ -233,6 +252,7 @@ columns_to_show = [col for col in preferred_cols if col in available_cols]
 if dismissal_y and "Reentry Requirements" in available_cols:
     columns_to_show.append("Reentry Requirements")
 
+# Display filtered view
 if not filtered_df.empty:
     st.dataframe(filtered_df[columns_to_show], use_container_width=True, hide_index=True)
 else:
@@ -248,6 +268,6 @@ with st.expander("🛠️ Developer Architecture Blueprint & Code Mapping Notes"
     ### Production Technical Specification (Relational Mapping)
     Dear Developer, this app structure coregulates multi-conditional dependencies natively:
     
-    1. **Primary Database (`schools.csv`):** Controls institutional eligibility properties[cite: 2, 8, 9].
-    2. **Transcript Matrix (`transcript_rules.csv`):** Maps to legacy `Transcript Review` data[cite: 1, 14]. The code runs an lookup array mapping column matches where state input == 'Need'[cite: 1, 14, 15].
+    1. **Primary Database (`schools.csv`):** Controls institutional eligibility properties.
+    2. **Transcript Matrix (`transcript_rules.csv`):** Maps to legacy `Transcript Review` data. The code runs an lookup array mapping column matches where state input == 'Need'.
     """)
