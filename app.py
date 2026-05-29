@@ -18,43 +18,29 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🎓 School Placement & Financial Calculator")
-st.markdown("### **Production Blueprint (Exact Column Match)**")
-st.caption("This system actively parses your exact Google Sheet column matrix schema natively.")
+st.markdown("### **Production Blueprint (Dual-CSV Matrix Engine)**")
+st.caption("This engine co-evaluates institutional parameters alongside dynamic transcript deficiency matching tables.")
 st.divider()
 
 # ==============================================================================
-# 1. CORE DATA SOURCE (Reads your real schools.csv)
+# 1. DUAL-DATABASE DATA LOADER
 # ==============================================================================
-CSV_FILE_PATH = "schools.csv"
+SCHOOLS_CSV = "schools.csv"
+TRANSCRIPT_CSV = "transcript_rules.csv"
 
-if os.path.exists(CSV_FILE_PATH):
-    master_schools_df = pd.read_csv(CSV_FILE_PATH)
+# Load Master School Dataset
+if os.path.exists(SCHOOLS_CSV):
+    master_schools_df = pd.read_csv(SCHOOLS_CSV)
 else:
-    st.error(f"⚠️ Local database file '{CSV_FILE_PATH}' not found in GitHub. Displaying fallback configuration.")
-    fallback_data = [
-        {
-            "School Name": "Western Governors University", "School State": "UT", "County": "None", 
-            "States Accepted": "KY, Y", "ASN/BSN": "BSN", "Min Work Experience Required (mos)": 0, 
-            "Min GPA": "2.00", "LPN Required?": "No", "Clinical Travel?": "Yes", 
-            "In-County Tuition": 0, "In-State Tuition": 0, "Out-of-State Tuition": 0, 
-            "Prior Nursing Dismissal Policy": "Review", "Reentry Requirements": "None", "Max ODts/NCLEX Allowed": 3
-        },
-        {
-            "School Name": "Herzing University ASN", "School State": "KY", "County": "None", 
-            "States Accepted": "KY, Y", "ASN/BSN": "ASN", "Min Work Experience Required (mos)": 0, 
-            "Min GPA": "2.50", "LPN Required?": "No", "Clinical Travel?": "Yes", 
-            "In-County Tuition": 0, "In-State Tuition": 0, "Out-of-State Tuition": 0, 
-            "Prior Nursing Dismissal Policy": "No", "Reentry Requirements": "None", "Max ODts/NCLEX Allowed": 3
-        },
-        {
-            "School Name": "Excelsior University", "School State": "NY", "County": "None", 
-            "States Accepted": "NY, KY, Y", "ASN/BSN": "ASN", "Min Work Experience Required (mos)": 6, 
-            "Min GPA": "2.50", "LPN Required?": "Yes", "Clinical Travel?": "Yes", 
-            "In-County Tuition": 0, "In-State Tuition": 0, "Out-of-State Tuition": 0, 
-            "Prior Nursing Dismissal Policy": "No", "Reentry Requirements": "None", "Max ODts/NCLEX Allowed": 3
-        }
-    ]
-    master_schools_df = pd.DataFrame(fallback_data)
+    st.error(f"⚠️ Master database file '{SCHOOLS_CSV}' not found.")
+    st.stop()
+
+# Load Transcript Review Dataset Matrix
+if os.path.exists(TRANSCRIPT_CSV):
+    transcript_rules_df = pd.read_csv(TRANSCRIPT_CSV)
+else:
+    st.warning(f"⚠️ '{TRANSCRIPT_CSV}' not detected. Dynamic transcript eligibility filtering is temporarily disabled.")
+    transcript_rules_df = None
 
 # ==============================================================================
 # 2. SIDEBAR: LEAD INPUTS & MULTI-COURSE TRANSCRIPT MATRIX
@@ -66,7 +52,6 @@ if st.sidebar.button("🔄 Reset Form & Inputs"):
 
 student_name = st.sidebar.text_input("Student Name", value="Jane Doe")
 
-# 1. Student State
 student_state = st.sidebar.selectbox("Student State", [
     "KY", "NY", "Y", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
     "HI", "ID", "IL", "IN", "IA", "KS", "LA", "ME", "MD", 
@@ -75,26 +60,18 @@ student_state = st.sidebar.selectbox("Student State", [
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ])
 
-# 2. GPA
 gpa_input = st.sidebar.text_input("GPA (Leave Blank if unsure)", value="4.00")
-
-# 3. Prior Nursing Dismissal?
 dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["No", "Yes"])
 dismissal_y = True if dismissal_selection == "Yes" else False
 
-# 4. LPN or CNA/CMA License?
 license_type = st.sidebar.selectbox("LPN or CNA/CMA License?", ["LPN", "CNA/CMA", "None"])
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
-# 5. Months of LPN Work Experience
 lpn_exp = 0
 if license_type == "LPN":
     lpn_exp = st.sidebar.number_input("Months of LPN Work Experience", min_value=0, max_value=24, value=6)
 
-# 6. Travel for Clinicals ok?
 travel_ok = st.sidebar.selectbox("Travel for Clinicals ok?", ["Yes", "No"])
-
-# 7. ASN or BSN
 program_interest = st.sidebar.selectbox("Program Track: ASN or BSN", ["ASN", "BSN"])
 
 st.sidebar.markdown("---")
@@ -117,6 +94,7 @@ transcript_status = {}
 for course in course_list:
     transcript_status[course] = st.sidebar.selectbox(f"{course}", ["Taken", "Need"], key=f"course_{course}")
 
+# Generate list of ONLY the courses the student explicitly needs
 needed_courses = [course for course, status in transcript_status.items() if status == "Need"]
 
 # ==============================================================================
@@ -131,7 +109,7 @@ with col_calc_input:
     deposit_input = st.number_input("Deposit Paid ($) [W2 Input]", min_value=0.0, value=0.0, step=50.0)
     grant_input = st.number_input("Discount Grant Amount ($) [Z2 Input]", min_value=0.0, value=0.0, step=50.0)
     
-    st.markdown("**Discounts Selected [X2 Array Logic]:**")
+    st.markdown("**Discounts Selected:**")
     discount_match = st.checkbox("Deposit Match")
     discount_referral = st.checkbox("Referral")
     discount_military = st.checkbox("Military")
@@ -199,31 +177,55 @@ with col_calc_output:
 st.divider()
 
 # ==============================================================================
-# 4. MULTI-SCHOOL RANKED OUTPUT GRID
+# 4. MULTI-SCHOOL RANKED OUTPUT GRID (Evaluates General rules + Transcript rules)
 # ==============================================================================
 st.header("🏫 Ranked Schools Result Output Matrix")
-st.caption("Emulates full nested sorting options from your complex A2 Array Filter formula.")
+st.caption("Replicates the nested spreadsheet logic matching demographics against your transcript validation rules matrices.")
 
-# Filter Step A: Match ASN/BSN column name precisely
+# General Filters
 selected_track = str(program_interest).strip().upper()
 track_mask = master_schools_df["ASN/BSN"].str.upper() == selected_track
 filtered_df = master_schools_df[track_mask].copy()
 
-# Filter Step B: Match States Accepted column name precisely
 selected_state = str(student_state).strip().upper()
 state_mask = filtered_df["States Accepted"].str.upper().str.contains(selected_state)
 filtered_df = filtered_df[state_mask]
 
-# Rule Drop Trigger: Specifically block Allegany if the track is ASN and the user is an LPN with under 1 year experience
 if selected_track == "ASN" and license_type == "LPN" and lpn_exp < 12:
     filtered_df = filtered_df[filtered_df["School Name"] != "Allegany College of Maryland"]
 
-# Compute pseudo row attributes on your active dataframe columns
+# --- TRANSCRIPT RULE ENGINE LINKAGE (Formula A2 / Transcript Review Sync) ---
+if transcript_rules_df is not None and not filtered_df.empty:
+    valid_school_names = []
+    
+    for _, school_row in filtered_df.iterrows():
+        name = school_row["School Name"]
+        
+        # Pull matching row from transcript rules matrix
+        rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == name.upper()]
+        
+        if not rule_row.empty:
+            is_eligible = True
+            # Check every course the user marked as 'Need'
+            for required_course in needed_courses:
+                if required_course in rule_row.columns:
+                    accepted_status = str(rule_row[required_course].values[0]).strip().upper()
+                    if accepted_status != "Y":
+                        is_eligible = False
+                        break
+            if is_eligible:
+                valid_school_names.append(name)
+        else:
+            # If a school has no strict transcript limitations uploaded, pass it by default
+            valid_school_names.append(name)
+            
+    # Apply the transcript mask filter
+    filtered_df = filtered_df[filtered_df["School Name"].isin(valid_school_names)]
+
+# Append UI properties
 filtered_df["Transcript Deficiencies Fixed"] = ", ".join(needed_courses) if needed_courses else "None (All Cleared)"
 filtered_df["Injected Modules"] = "Entrance Exam Prep" if entrance_exam else "Standard Entry"
 
-# All columns visible from your real sheet mapping
-# Safely handle missing columns from user upload files
 available_cols = filtered_df.columns.tolist()
 preferred_cols = ["School Name", "ASN/BSN", "School State", "County", "States Accepted", "Min GPA", "Transcript Deficiencies Fixed", "Injected Modules"]
 columns_to_show = [col for col in preferred_cols if col in available_cols]
@@ -231,11 +233,10 @@ columns_to_show = [col for col in preferred_cols if col in available_cols]
 if dismissal_y and "Reentry Requirements" in available_cols:
     columns_to_show.append("Reentry Requirements")
 
-# Display filtered view
 if not filtered_df.empty:
     st.dataframe(filtered_df[columns_to_show], use_container_width=True, hide_index=True)
 else:
-    st.warning("No schools match the current filtration parameters for this state. Please adjust Lead Inputs.")
+    st.warning("No schools match the filtration parameters or accept the specified required transcript combinations.")
 
 st.divider()
 
@@ -244,12 +245,9 @@ st.divider()
 # ==============================================================================
 with st.expander("🛠️ Developer Architecture Blueprint & Code Mapping Notes"):
     st.markdown(f"""
-    ### Production Technical Specification
-    Dear Developer, this app structure maps perfectly to our legacy workbook table headers:
+    ### Production Technical Specification (Relational Mapping)
+    Dear Developer, this app structure coregulates multi-conditional dependencies natively:
     
-    1. **Primary Key Mappings Used in UI Code:**
-       * Track Filter: Maps to data column `ASN/BSN`
-       * Territory Filter: Maps to data column `States Accepted`
-    2. **Experience Rule Exception Layer:**
-       * Includes conditional exclusion logic blocking custom school structures based on LPN work experience metrics dynamically.
+    1. **Primary Database (`schools.csv`):** Controls institutional eligibility properties[cite: 2, 8, 9].
+    2. **Transcript Matrix (`transcript_rules.csv`):** Maps to legacy `Transcript Review` data[cite: 1, 14]. The code runs an lookup array mapping column matches where state input == 'Need'[cite: 1, 14, 15].
     """)
