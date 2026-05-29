@@ -22,7 +22,7 @@ st.caption("This interactive prototype maps Google Sheet matrix formulas and App
 st.divider()
 
 # ==============================================================================
-# 1. CORE DATA SOURCE
+# 1. CORE DATA SOURCE (Now including Wilson College!)
 # ==============================================================================
 schools_data = [
     # BSN Tracks
@@ -30,6 +30,7 @@ schools_data = [
     {"School Name": "Herzing University BSN", "Program": "BSN", "State": "KY, Y", "Status": "ACCEPTS", "Base Classes": 6, "Reentry Requirement": "None"},
     {"School Name": "Capella University", "Program": "BSN", "State": "KY, Y", "Status": "ACCEPTS", "Base Classes": 5, "Reentry Requirement": "None"},
     {"School Name": "Chamberlain University", "Program": "BSN", "State": "KY, Y", "Status": "ACCEPTS", "Base Classes": 7, "Reentry Requirement": "None"},
+    {"School Name": "Wilson College", "Program": "BSN", "State": "ANY, NY, KY, Y, AL, AK, AZ, AR, CA, CO, CT, DE, FL, GA, HI, ID, IL, IN, IA, KS, KY, LA, ME, MD, MA, MI, MN, MS, MO, MT, NE, NV, NH, NJ, NM, NY, NC, ND, OH, OK, OR, PA, RI, SC, SD, TN, TX, UT, VT, VA, WA, WV, WI, WY", "Status": "ACCEPTS", "Base Classes": 5, "Reentry Requirement": "None"},
     
     # ASN Tracks
     {"School Name": "Herzing University ASN", "Program": "ASN", "State": "KY, Y", "Status": "ACCEPTS", "Base Classes": 5, "Reentry Requirement": "None"},
@@ -142,7 +143,7 @@ with col_calc_output:
     
     final_total = max(0.0, base_total - calc_dep_match - calc_referral - calc_military - calc_free_course - grant_input)
     
-    # Cleaned, Multi-Line V2 Formula logic block to prevent browser wrapping cuts
+    # Cleaned, Multi-Line V2 Formula logic block
     if is_cna == "CNA/CMA":
         if total_classes <= 2:
             reg_fee = 150
