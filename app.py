@@ -18,7 +18,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🎓 School Placement & Financial Calculator")
-st.markdown("### **Production Matrix Engine**")
+st.markdown("### **Production Matrix Engine (Revenue Optimized)**")
 st.divider()
 
 # ==============================================================================
@@ -62,7 +62,7 @@ student_state = st.sidebar.selectbox("Student State", [
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ])
 
-gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=4.0, step=0.1)
+gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=4.0, step=0.01)
 dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["No", "Yes"])
 dismissal_y = True if dismissal_selection == "Yes" else False
 
@@ -119,7 +119,6 @@ with col_calc_input:
 with col_calc_output:
     st.subheader("Live Ledger Math")
     
-    # 1. Class Counting Math
     base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
     if entrance_exam:
         base_classes += 1
@@ -127,24 +126,20 @@ with col_calc_output:
     addons_count = 2 if has_addons else 0
     total_classes = base_classes + addons_count
     
-    # 2. Pricing Tier Formulas
     main_price = 1179 if base_classes >= 10 else (1229 if base_classes >= 4 else 1289)
     addon_price = 749 if total_classes >= 10 else (799 if total_classes >= 4 else 859)
     base_total = (base_classes * main_price) + (addons_count * addon_price)
     
-    # 3. Discount Evaluation Formulas
     dep_min = 150 if is_cna == "CNA/CMA" else 300
     calc_dep_match = min(deposit_input, 1000.0) if (discount_match and deposit_input >= dep_min) else 0.0
     calc_referral = 50.0 if discount_referral else 0.0
     calc_military = 200.0 if discount_military else 0.0
     calc_free_course = float(main_price) if discount_free_course else 0.0
     
-    # 4. Balancing Ledger Math Rules
     credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
     final_total = max(0.0, base_total - credits_sum)
     pending_bal = max(0.0, final_total - deposit_input)
     
-    # 5. Registration Fee Multi-tier Logic
     if is_cna == "CNA/CMA":
         if total_classes <= 2:
             reg_fee = 150
@@ -168,12 +163,10 @@ with col_calc_output:
         else:
             reg_fee = 600
         
-    # 6. Addons Space Logic
     room_left = 14500.0 - final_total
     max_additional_addons = max(0, int(room_left // 749))
     projected_addons = addons_count + max_additional_addons
 
-    # 7. Safe Output String Formats (No inline operations)
     txt_base_total = f"${base_total:,.2f}"
     txt_reg_fee = f"${reg_fee:,.2f}"
     txt_final_total = f"${final_total:,.2f}"
@@ -193,42 +186,49 @@ with col_calc_output:
 st.divider()
 
 # ==============================================================================
-# 4. MULTI-SCHOOL RANKED OUTPUT GRID
+# 4. MULTI-SCHOOL RANKED OUTPUT GRID (REVENUE ORIENTED SORTING)
 # ==============================================================================
 st.header("🏫 Ranked Schools Result Output Matrix")
 
 available_cols = master_schools_df.columns.tolist()
 
-# Demographic Filters
+# Step A: Filter by Program Track
 selected_track = str(program_interest).strip().upper()
 if "ASN/BSN" in available_cols:
     master_schools_df = master_schools_df[master_schools_df["ASN/BSN"].str.upper() == selected_track]
 
+# Step B: Filter by States Accepted
 selected_state = str(student_state).strip().upper()
 if "States Accepted" in available_cols:
     master_schools_df = master_schools_df[master_schools_df["States Accepted"].str.upper().str.contains(selected_state)]
 
+# Step C: Filter by Experience Required
 if "Min Work Experience Required (mos)" in available_cols:
     master_schools_df["Min Work Experience Required (mos)"] = pd.to_numeric(master_schools_df["Min Work Experience Required (mos)"], errors='coerce').fillna(0)
     master_schools_df = master_schools_df[master_schools_df["Min Work Experience Required (mos)"] <= lpn_exp]
 
+# Step D: STRICT GPA FILTER GUARD (Bypasses missing/dirty cell text values)
 if "Min GPA" in available_cols:
     master_schools_df["Min GPA"] = pd.to_numeric(master_schools_df["Min GPA"], errors='coerce').fillna(0.0)
+    # Only keep schools where the student's input GPA is higher or equal to the requirement
     master_schools_df = master_schools_df[master_schools_df["Min GPA"] <= gpa_val]
 
+# Step E: Filter by Clinical Travel Requirement
 if "Clinical Travel?" in available_cols and travel_ok == "No":
     master_schools_df = master_schools_df[master_schools_df["Clinical Travel?"].str.upper() != "YES"]
 
 filtered_df = master_schools_df.copy()
 
-# Transcript Checking Logic
+# Step F: Evaluate Transcript Rule Map Matrix & Calculate Dynamic Cash Margins
 if not filtered_df.empty:
     status_log = []
+    cash_yield_margins = []
     
     for _, school_row in filtered_df.iterrows():
         raw_name = str(school_row["School Name"]).strip()
         rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
         
+        # 1. Evaluate CBE Course Transfer Eligibility
         if not rule_row.empty:
             has_all_courses = True
             for required_course in needed_courses:
@@ -248,20 +248,38 @@ if not filtered_df.empty:
         else:
             status_log.append("Perfect Match")
             
+        # 2. Dynamic Revenue Extraction Formula: Gross Cash Paid - Underlying Institutional Tuition Cost
+        # Uses 'Tuition' column value as baseline institutional cost factor
+        tuition_cost_raw = school_row.get("Tuition", 0)
+        tuition_cost = pd.to_numeric(tuition_cost_raw, errors='coerce')
+        if pd.isna(tuition_cost):
+            tuition_cost = 0.0
+            
+        calculated_margin = max(0.0, final_total - float(tuition_cost))
+        cash_yield_margins.append(calculated_margin)
+            
     filtered_df["Match Status"] = status_log
+    filtered_df["Estimated Revenue Profit"] = cash_yield_margins
     
     if needed_courses:
         filtered_df["Transcript Deficiencies Fixed"] = ", ".join(needed_courses)
     else:
         filtered_df["Transcript Deficiencies Fixed"] = "None"
 
-    preferred_cols = ["School Name", "ASN/BSN", "Match Status", "School State", "County", "States Accepted", "Min GPA", "Transcript Deficiencies Fixed"]
+    # Rearrange displaying columns to bring Profit Yield visibility right next to the School Name
+    preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "States Accepted", "Transcript Deficiencies Fixed"]
     columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
 
     if dismissal_y and "Reentry Requirements" in filtered_df.columns:
         columns_to_show.append("Reentry Requirements")
 
+    # SORT BY REVENUE: Arranges schools automatically from highest profit to lowest profit
     final_display_df = filtered_df[columns_to_show].copy()
+    final_display_df = final_display_df.sort_values(by="Estimated Revenue Profit", ascending=False)
+
+    # Format the revenue column cleanly as dollar currency formatting
+    if "Estimated Revenue Profit" in final_display_df.columns:
+        final_display_df["Estimated Revenue Profit"] = final_display_df["Estimated Revenue Profit"].apply(lambda x: f"${x:,.2f}")
 
     def style_legibility_flags(df):
         style_matrix = pd.DataFrame('', index=df.index, columns=df.columns)
@@ -274,6 +292,6 @@ if not filtered_df.empty:
         styled_df = final_display_df.style.apply(style_legibility_flags, axis=None)
         st.dataframe(styled_df, use_container_width=True, hide_index=True)
     else:
-        st.warning("No schools match your base demographic filtration parameters.")
+        st.warning("No schools match your lead's numeric GPA score or demographic parameters.")
 else:
-    st.warning("No schools match your base demographic filtration parameters.")
+    st.warning("No schools match your lead's numeric GPA score or demographic parameters.")
