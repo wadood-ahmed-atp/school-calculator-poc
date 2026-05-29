@@ -22,14 +22,16 @@ st.caption("This interactive prototype maps Google Sheet matrix formulas and App
 st.divider()
 
 # ==============================================================================
-# 1. ACTUAL PARTNER DATABASE MATRIX (CLEANED - NO FAKE SCHOOLS)
+# 1. ACTUAL PARTNER DATABASE MATRIX (Now containing BSN & ASN Tracks)
 # ==============================================================================
 if 'mock_schools' not in st.session_state:
     st.session_state.mock_schools = pd.DataFrame([
         {"School Name": "Western Governors University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 4, "Reentry Requirement": "None"},
         {"School Name": "Herzing University BSN", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 6, "Reentry Requirement": "None"},
         {"School Name": "Capella University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 5, "Reentry Requirement": "None"},
-        {"School Name": "Chamberlain University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 7, "Reentry Requirement": "None"}
+        {"School Name": "Chamberlain University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 7, "Reentry Requirement": "None"},
+        {"School Name": "Herzing University ASN", "Program": "ASN", "Status": "ACCEPTS", "Base Classes": 5, "Reentry Requirement": "None"},
+        {"School Name": "Excelsior University", "Program": "ASN", "Status": "ACCEPTS", "Base Classes": 6, "Reentry Requirement": "None"}
     ])
 
 # ==============================================================================
@@ -42,9 +44,9 @@ if st.sidebar.button("🔄 Reset Form & Inputs"):
 
 student_name = st.sidebar.text_input("Student Name", value="Jane Doe")
 
-# 1. Student State
+# 1. Student State (Added "Y" to match your specific sheet input test case)
 student_state = st.sidebar.selectbox("Student State", [
-    "KY", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
+    "KY", "Y", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
     "HI", "ID", "IL", "IN", "IA", "KS", "LA", "ME", "MD", 
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
     "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
@@ -58,20 +60,20 @@ gpa_input = st.sidebar.text_input("GPA (Leave Blank if unsure)", value="4.00")
 dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["No", "Yes"])
 dismissal_y = True if dismissal_selection == "Yes" else False
 
-# 4. LPN or CNA/CMA License?
-license_type = st.sidebar.selectbox("LPN or CNA/CMA License?", ["CNA/CMA", "None", "LPN"])
+# 4. LPN or CNA/CMA License? (Defaulted to LPN based on your test case)
+license_type = st.sidebar.selectbox("LPN or CNA/CMA License?", ["LPN", "CNA/CMA", "None"])
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
 # 5. Months of LPN Work Experience
 lpn_exp = 0
 if license_type == "LPN":
-    lpn_exp = st.sidebar.number_input("Months of LPN Work Experience", min_value=0, max_value=24, value=0)
+    lpn_exp = st.sidebar.number_input("Months of LPN Work Experience", min_value=0, max_value=24, value=6)
 
 # 6. Travel for Clinicals ok?
 travel_ok = st.sidebar.selectbox("Travel for Clinicals ok?", ["Yes", "No"])
 
-# 7. ASN or BSN
-program_interest = st.sidebar.selectbox("Program Track: ASN or BSN (A2/G2 Logic)", ["BSN", "ASN"])
+# 7. ASN or BSN (Defaulted to ASN to match your test case execution)
+program_interest = st.sidebar.selectbox("Program Track: ASN or BSN (A2/G2 Logic)", ["ASN", "BSN"])
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("🛠️ Class Triggers")
@@ -120,7 +122,6 @@ with col_calc_input:
 with col_calc_output:
     st.subheader("Live Ledger Math (Formulas AA2 / V2 / T2)")
     
-    # Base calculation mapping sheet trends
     base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
     if entrance_exam:
         base_classes += 1
@@ -128,7 +129,6 @@ with col_calc_output:
     addons_count = 2 if has_addons else 0
     total_classes = base_classes + addons_count
     
-    # Core Formulas Mapping
     main_price = 1179 if base_classes >= 10 else (1229 if base_classes >= 4 else 1289)
     addon_price = 749 if total_classes >= 10 else (799 if total_classes >= 4 else 859)
     base_total = (base_classes * main_price) + (addons_count * addon_price)
@@ -168,37 +168,31 @@ st.divider()
 st.header("🏫 Ranked Schools Result Output Matrix")
 st.caption("Emulates full nested sorting options from your complex A2 Array Filter formula.")
 
-# Filtering logic mapping the dynamic spreadsheet row criteria
+# Normalize capitalization for stable array parsing
 selected_track = str(program_interest).strip().upper()
 filtered_df = st.session_state.mock_schools[st.session_state.mock_schools["Program"].str.upper() == selected_track].copy()
 
-# Inject user-defined parameters directly into the schools grid data structure
 filtered_df["Transcript Deficiencies Fixed"] = ", ".join(needed_courses) if needed_courses else "None (All Cleared)"
 filtered_df["Injected Modules"] = "Entrance Exam Prep" if entrance_exam else "Standard Entry"
-
-# Add variation to class numbers based on requirements chosen
 filtered_df["Base Classes"] = filtered_df["Base Classes"].apply(lambda x: max(1, x + len(needed_courses)))
 
-# Build dynamic visibility layout extracted from your onEditHandler Apps Script file
 columns_to_show = ["School Name", "Program", "Status", "Base Classes", "Transcript Deficiencies Fixed", "Injected Modules"]
 
-# Google Apps Script triggers mapping
 if dismissal_y:
     filtered_df["Reentry Review Req."] = filtered_df["Reentry Requirement"]
     columns_to_show.append("Reentry Review Req.")
-    st.info("💡 Apps Script Trigger Active: 'Reentry Review' Column N made visible due to selection updates.")
+    st.info("💡 Apps Script Trigger Active: 'Reentry Review' Column N unhidden.")
 
 if has_addons:
     filtered_df["Add-ons Active"] = "Yes - Multi-Tier Pricing"
     columns_to_show.append("Add-ons Active")
-    st.info("💡 Apps Script Trigger Active: 'Add-ons' Column R made visible dynamically.")
+    st.info("💡 Apps Script Trigger Active: 'Add-ons' Column R unhidden.")
 
 if discount_free_course:
     filtered_df["Free Course Token Allocation"] = "FREE COURSE CONVERTED"
     columns_to_show.append("Free Course Token Allocation")
     st.info("💡 Apps Script Trigger Active: 'Free Course Code' Column Y unhidden.")
 
-# Display the multi-option data dashboard
 if not filtered_df.empty:
     st.dataframe(filtered_df[columns_to_show].sort_values(by="Base Classes", ascending=True), use_container_width=True, hide_index=True)
 else:
@@ -221,8 +215,8 @@ with st.expander("🛠️ Developer Architecture Blueprint & Code Mapping Notes"
        * License Category: `{license_type}` (LPN Months Exp: {lpn_exp})
        * Travel Allowed: `{travel_ok}`
        * Total Courses Flagged with 'Need' Status: `{len(needed_courses)}`
-    2. **Transcript Multi-Select Mapping Architecture:**
-       * The dropdown states are captured dynamically using a tracking object array system. This mirrors your Google Sheet `Transcript Review` sheet structure. 
+    2. **Transcript Status Arrays:**
+       * Tracked via persistent selection key hashes.
     3. **Formula A2 Engine Replication:**
-       * Mimicked using Pandas dynamic vector mapping. Your complex `BYROW`/`LAMBDA` logic runs instantly on state change.
+       * Executed with case-insensitive upper constraints via Pandas vector logic (`.str.upper() == '{selected_track}'`).
     """)
