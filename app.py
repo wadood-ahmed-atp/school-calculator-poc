@@ -19,7 +19,6 @@ st.markdown("""
 
 st.title("🎓 School Placement & Financial Calculator")
 st.markdown("### **Production Matrix Engine (High-Legibility Model)**")
-st.caption("This system flags transcript mismatches using clean, high-contrast text color flags to ensure maximum readability.")
 st.divider()
 
 # ==============================================================================
@@ -94,103 +93,4 @@ entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep? (AB2 Trigger)",
 has_addons = st.sidebar.checkbox("Add-ons Selected? (Z2:AB2 Trigger)", value=False)
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("📚 Transcript Review Engine")
-
-course_list = [
-    "Eng Comp 1", "College Algebra", "Statistics", "Humanities 1", 
-    "Humanities 2", "Humanities 3", "Human Growth & Development", 
-    "Psychology", "Sociology", "Speech", "General Biology", 
-    "Chemistry", "Government", "History", "Foreign Language", 
-    "Macro/Micro Economics", "Elective 1", "Elective 2"
-]
-
-transcript_status = {}
-for course in course_list:
-    transcript_status[course] = st.sidebar.selectbox(f"{course}", ["Taken", "Need"], key=f"course_{course}")
-
-needed_courses = [course for course, status in transcript_status.items() if status == "Need"]
-
-# ==============================================================================
-# 3. INTERACTIVE CALCULATOR ENGINE (Emulates Formulas T2, V2, AA2, AB2)
-# ==============================================================================
-st.header("⚡ Financial Calculation Engine")
-
-col_calc_input, col_calc_output = st.columns([1, 1])
-
-with col_calc_input:
-    st.subheader("Financial Adjustments")
-    deposit_input = st.number_input("Deposit Paid ($) [W2 Input]", min_value=0.0, value=0.0, step=50.0)
-    grant_input = st.number_input("Discount Grant Amount ($) [Z2 Input]", min_value=0.0, value=0.0, step=50.0)
-    
-    st.markdown("**Discounts Selected:**")
-    discount_match = st.checkbox("Deposit Match")
-    discount_referral = st.checkbox("Referral")
-    discount_military = st.checkbox("Military")
-    discount_free_course = st.checkbox("Free Course")
-
-with col_calc_output:
-    st.subheader("Live Ledger Math")
-    
-    base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
-    if entrance_exam:
-        base_classes += 1
-        
-    addons_count = 2 if has_addons else 0
-    total_classes = base_classes + addons_count
-    
-    main_price = 1179 if base_classes >= 10 else (1229 if base_classes >= 4 else 1289)
-    addon_price = 749 if total_classes >= 10 else (799 if total_classes >= 4 else 859)
-    base_total = (base_classes * main_price) + (addons_count * addon_price)
-    
-    dep_min = 150 if is_cna == "CNA/CMA" else 300
-    calc_dep_match = min(deposit_input, 1000.0) if (discount_match and deposit_input >= dep_min) else 0.0
-    calc_referral = 50.0 if discount_referral else 0.0
-    calc_military = 200.0 if discount_military else 0.0
-    calc_free_course = float(main_price) if discount_free_course else 0.0
-    
-    final_total = max(0.0, base_total - calc_dep_match - calc_referral - calc_military - calc_free_course - grant_input)
-    
-    if is_cna == "CNA/CMA":
-        if total_classes <= 2:
-            reg_fee = 150
-        elif total_classes <= 7:
-            reg_fee = 175
-        elif total_classes <= 10:
-            reg_fee = 200
-        elif total_classes <= 15:
-            reg_fee = 250
-        else:
-            reg_fee = 300
-    else:
-        if total_classes <= 2:
-            reg_fee = 300
-        elif total_classes <= 7:
-            reg_fee = 325
-        elif total_classes <= 10:
-            reg_fee = 375
-        elif total_classes <= 15:
-            reg_fee = 475
-        else:
-            reg_fee = 600
-        
-    room_left = 14500 - final_total
-    max_additional_addons = max(0, int(room_left // 749))
-    projected_addons = addons_count + max_additional_addons
-
-    m1, m2 = st.columns(2)
-    m1.metric("Base Total (Before Credits)", f"${base_total:,.2f}")
-    m2.metric("Registration Fee (V2 Formula)", f"${reg_fee}")
-    
-    m3, m4 = st.columns(2)
-    m3.metric("Final Balance Due (AA2 Formula)", f"${final_total:,.2f}")
-    m4.metric("Pending Balance (AB2 Formula)", f"${max(0.0, final_total - deposit_input):,.2f}")
-    
-    st.metric("Max Add-ons Room Left", f"{projected_addons} max courses")
-
-st.divider()
-
-# ==============================================================================
-# 4. MULTI-SCHOOL RANKED OUTPUT GRID WITH TEXT COLOR FLAGS
-# ==============================================================================
-st.header("🏫 Ranked Schools Result Output Matrix")
-st.caption
+st.sidebar.subheader("📚 Transcript Review
