@@ -20,7 +20,7 @@ st.markdown("""
 st.title("🎓 School Placement & Financial Calculator")
 st.markdown("### **Proof of Concept Blueprint**")
 st.caption("This interactive prototype maps Google Sheet matrix formulas and Apps Script UI triggers directly into a clean web architecture.")
-st.hr()
+st.divider()
 
 # ==============================================================================
 # 1. APPLICATION STATE / EMULATED DATABASE
@@ -115,7 +115,7 @@ with col_calc_output:
     
     st.metric("Max Add-ons Room Left (T2 Formula)", f"{projected_addons} max courses")
 
-st.hr()
+st.divider()
 
 # ==============================================================================
 # 4. RANKED OUTPUT GRID (Emulates Formula A2 & UI Toggling Apps Script Logic)
@@ -146,6 +146,8 @@ if discount_free_course:
     st.info("💡 Apps Script Trigger Active: 'Free Course Code' Column Y unhidden.")
 
 st.dataframe(filtered_df[columns_to_show], use_container_width=True)
+
+st.divider()
 
 # ==============================================================================
 # 5. DEVELOPER HANDOFF INSTRUCTIONS
