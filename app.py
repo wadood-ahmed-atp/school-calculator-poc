@@ -22,16 +22,14 @@ st.caption("This interactive prototype maps Google Sheet matrix formulas and App
 st.divider()
 
 # ==============================================================================
-# 1. ACTUAL PARTNER DATABASE MATRIX
+# 1. ACTUAL PARTNER DATABASE MATRIX (CLEANED - NO FAKE SCHOOLS)
 # ==============================================================================
 if 'mock_schools' not in st.session_state:
     st.session_state.mock_schools = pd.DataFrame([
         {"School Name": "Western Governors University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 4, "Reentry Requirement": "None"},
         {"School Name": "Herzing University BSN", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 6, "Reentry Requirement": "None"},
         {"School Name": "Capella University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 5, "Reentry Requirement": "None"},
-        {"School Name": "Chamberlain University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 7, "Reentry Requirement": "None"},
-        {"School Name": "Beta College of Nursing", "Program": "ASN", "Status": "ACCEPTS", "Base Classes": 8, "Reentry Requirement": "None"},
-        {"School Name": "Delta State School", "Program": "ASN", "Status": "ACCEPTS", "Base Classes": 9, "Reentry Requirement": "Yes"}
+        {"School Name": "Chamberlain University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 7, "Reentry Requirement": "None"}
     ])
 
 # ==============================================================================
@@ -171,7 +169,6 @@ st.header("🏫 Ranked Schools Result Output Matrix")
 st.caption("Emulates full nested sorting options from your complex A2 Array Filter formula.")
 
 # Filtering logic mapping the dynamic spreadsheet row criteria
-# FORCE capitalization normalization to avoid empty dataset returns
 selected_track = str(program_interest).strip().upper()
 filtered_df = st.session_state.mock_schools[st.session_state.mock_schools["Program"].str.upper() == selected_track].copy()
 
