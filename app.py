@@ -168,4 +168,35 @@ st.divider()
 # 4. MULTI-SCHOOL RANKED OUTPUT GRID (Emulates Matrix Array Engine Formula A2)
 # ==============================================================================
 st.header("🏫 Ranked Schools Result Output Matrix")
-st.caption("Emulates full nested sorting options from
+st.caption("Emulates full nested sorting options from your complex A2 Array Filter formula.")
+
+# Filtering logic mapping the dynamic spreadsheet row criteria
+filtered_df = st.session_state.mock_schools[st.session_state.mock_schools["Program"] == program_interest].copy()
+
+# Inject user-defined parameters directly into the schools grid data structure
+filtered_df["Transcript Deficiencies Fixed"] = ", ".join(needed_courses) if needed_courses else "None (All Cleared)"
+filtered_df["Injected Modules"] = "Entrance Exam Prep" if entrance_exam else "Standard Entry"
+
+# Add variation to class numbers based on requirements chosen
+filtered_df["Base Classes"] = filtered_df["Base Classes"].apply(lambda x: max(1, x + len(needed_courses) - 2))
+
+# Build dynamic visibility layout extracted from your onEditHandler Apps Script file
+columns_to_show = ["School Name", "Program", "Status", "Base Classes", "Transcript Deficiencies Fixed", "Injected Modules"]
+
+# Google Apps Script triggers mapping
+if dismissal_y:
+    filtered_df["Reentry Review Req."] = filtered_df["Reentry Requirement"]
+    columns_to_show.append("Reentry Review Req.")
+    st.info("💡 Apps Script Trigger Active: 'Reentry Review' Column N made visible due to selection updates.")
+
+if has_addons:
+    filtered_df["Add-ons Active"] = "Yes - Multi-Tier Pricing"
+    columns_to_show.append("Add-ons Active")
+    st.info("💡 Apps Script Trigger Active: 'Add-ons' Column R made visible dynamically.")
+
+if discount_free_course:
+    filtered_df["Free Course Token Allocation"] = "FREE COURSE CONVERTED"
+    columns_to_show.append("Free Course Token Allocation")
+    st.info("💡 Apps Script Trigger Active: 'Free Course Code' Column Y unhidden.")
+
+# Display the multi
