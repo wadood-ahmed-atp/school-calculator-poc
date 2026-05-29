@@ -5,7 +5,7 @@ import os
 # ==============================================================================
 # 0. WEB PAGE CONFIG & STYLING
 # ==============================================================================
-st.set_page_config(page_title="School Placement & Calculator POC", layout="wide")
+st.set_page_config(page_title="Advisor Dashboard", layout="wide")
 
 st.markdown("""
     <style>
@@ -17,8 +17,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🎓 School Placement & Financial Calculator")
-st.markdown("### **Production Matrix Engine (Revenue Optimized)**")
+st.title("🎓 Advisor Dashboard")
+st.markdown("### **System Framework Matrix**")
 st.divider()
 
 # ==============================================================================
@@ -47,7 +47,7 @@ else:
 # ==============================================================================
 # 2. SIDEBAR: LEAD INPUTS & MULTI-COURSE TRANSCRIPT MATRIX
 # ==============================================================================
-st.sidebar.header("📋 Lead Inputs")
+st.sidebar.header("📋 Lead Profile")
 
 if st.sidebar.button("🔄 Reset Form"):
     st.rerun()
@@ -93,7 +93,7 @@ course_list = [
 ]
 
 needed_courses = st.sidebar.multiselect(
-    "Select Courses Student Needs:",
+    "Select Needed Courses:",
     options=course_list,
     default=[]
 )
@@ -101,47 +101,43 @@ needed_courses = st.sidebar.multiselect(
 # ==============================================================================
 # 3. INTERACTIVE CALCULATOR ENGINE
 # ==============================================================================
-st.header("⚡ Financial Calculation Engine")
+st.header("⚡ Financial Ledger")
 
 col_calc_input, col_calc_output = st.columns([1, 1])
 
 with col_calc_input:
-    st.subheader("Enrollment Verification & Fee Waivers")
-    deposit_input = st.number_input("Initial Enrollment Deposit Paid ($)", min_value=0.0, value=0.0, step=50.0)
-    grant_input = st.number_input("Institutional Grant Allocation ($)", min_value=0.0, value=0.0, step=50.0)
+    st.subheader("Adjustments & Waivers")
+    deposit_input = st.number_input("Enrollment Deposit Paid ($)", min_value=0.0, value=0.0, step=50.0)
+    grant_input = st.number_input("Grant Allocation ($)", min_value=0.0, value=0.0, step=50.0)
     
-    st.markdown("#### **Student Qualification Assessment**")
+    st.markdown("#### **Qualification Profile**")
     
-    # Question 1: Auto checked
-    st.info("✅ **Deposit Match Program:** Automatically applied to this profile.")
+    st.info("✅ **Deposit Match Program:** Automatically applied.")
     discount_match = True
     
-    # Question 2: Referral Question
     q_referral = st.radio(
-        "Was the student referred by an existing student, alumnus, or corporate affiliate partner?",
+        "Was the student referred by an affiliate partner or alum?",
         ["No", "Yes"],
         horizontal=True
     )
     discount_referral = True if q_referral == "Yes" else False
     
-    # Question 3: Military Question
     q_military = st.radio(
-        "Is the student an active-duty service member, veteran, or military spouse?",
+        "Is the student associated with the military (Veteran/Active/Spouse)?",
         ["No", "Yes"],
         horizontal=True
     )
     discount_military = True if q_military == "Yes" else False
     
-    # Question 4: Free Course Email Token
     q_free_course = st.radio(
-        "Did the student present a valid verification code or promotional email for a complimentary module?",
+        "Does the student possess a promotional code for a complimentary course?",
         ["No", "Yes"],
         horizontal=True
     )
     discount_free_course = True if q_free_course == "Yes" else False
 
 with col_calc_output:
-    st.subheader("Live Ledger Math")
+    st.subheader("Ledger Balance")
     
     base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
     if entrance_exam:
@@ -202,17 +198,17 @@ with col_calc_output:
     m2.metric("Registration Fee", txt_reg_fee)
     
     m3, m4 = st.columns(2)
-    m3.metric("Final Balance Due", txt_final_total)
+    m3.metric("Final Balance", txt_final_total)
     m4.metric("Pending Balance", txt_pending_bal)
     
-    st.metric("Max Add-ons Room Left", txt_projected_addons)
+    st.metric("Max Add-ons Headroom", txt_projected_addons)
 
 st.divider()
 
 # ==============================================================================
 # 4. MULTI-SCHOOL RANKED OUTPUT GRID
 # ==============================================================================
-st.header("🏫 Ranked Schools Result Output Matrix")
+st.header("🏫 Eligible Institution Matches")
 
 available_cols = master_schools_df.columns.tolist()
 
@@ -276,7 +272,6 @@ if not filtered_df.empty:
         else:
             status_log.append("Perfect Match")
             
-        # TRUE REVENUE MARGIN: Calculate revenue derived ONLY from courses the school actually offers ("Y")
         revenue_per_course = float(main_price)
         school_revenue_potential = offered_courses_count * revenue_per_course
         
@@ -292,11 +287,11 @@ if not filtered_df.empty:
     filtered_df["Estimated Revenue Profit"] = cash_yield_margins
     
     if needed_courses:
-        filtered_df["Transcript Deficiencies Fixed"] = ", ".join(needed_courses)
+        filtered_df["Deficiencies Met"] = ", ".join(needed_courses)
     else:
-        filtered_df["Transcript Deficiencies Fixed"] = "None"
+        filtered_df["Deficiencies Met"] = "None"
 
-    preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Clinical Travel?", "Transcript Deficiencies Fixed"]
+    preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Clinical Travel?", "Deficiencies Met"]
     columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
 
     if dismissal_y and "Reentry Requirements" in filtered_df.columns:
@@ -322,6 +317,6 @@ if not filtered_df.empty:
         styled_df = final_display_df.style.apply(style_legibility_flags, axis=None)
         st.dataframe(styled_df, use_container_width=True, hide_index=True)
     else:
-        st.warning("No schools match your base demographic filtration parameters.")
+        st.warning("No schools match your base profile parameters.")
 else:
-    st.warning("No schools match your base demographic filtration parameters.")
+    st.warning("No schools match your base profile parameters.")
