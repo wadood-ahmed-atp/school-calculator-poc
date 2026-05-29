@@ -92,7 +92,6 @@ course_list = [
     "Macro/Micro Economics", "Elective 1", "Elective 2"
 ]
 
-# SLEEK REVOLUTIONARY UI CHANGE: Add courses 1-by-1 instead of displaying 18 boxes
 needed_courses = st.sidebar.multiselect(
     "Select Courses Student Needs:",
     options=course_list,
@@ -107,15 +106,39 @@ st.header("⚡ Financial Calculation Engine")
 col_calc_input, col_calc_output = st.columns([1, 1])
 
 with col_calc_input:
-    st.subheader("Financial Adjustments")
-    deposit_input = st.number_input("Deposit Paid ($)", min_value=0.0, value=0.0, step=50.0)
-    grant_input = st.number_input("Discount Grant Amount ($)", min_value=0.0, value=0.0, step=50.0)
+    st.subheader("Enrollment Verification & Fee Waivers")
+    deposit_input = st.number_input("Initial Enrollment Deposit Paid ($)", min_value=0.0, value=0.0, step=50.0)
+    grant_input = st.number_input("Institutional Grant Allocation ($)", min_value=0.0, value=0.0, step=50.0)
     
-    st.markdown("**Discounts Selected:**")
-    discount_match = st.checkbox("Deposit Match")
-    discount_referral = st.checkbox("Referral")
-    discount_military = st.checkbox("Military")
-    discount_free_course = st.checkbox("Free Course")
+    st.markdown("#### **Student Qualification Assessment**")
+    
+    # Question 1: Auto checked
+    st.info("✅ **Deposit Match Program:** Automatically applied to this profile.")
+    discount_match = True
+    
+    # Question 2: Referral Question
+    q_referral = st.radio(
+        "Was the student referred by an existing student, alumnus, or corporate affiliate partner?",
+        ["No", "Yes"],
+        horizontal=True
+    )
+    discount_referral = True if q_referral == "Yes" else False
+    
+    # Question 3: Military Question
+    q_military = st.radio(
+        "Is the student an active-duty service member, veteran, or military spouse?",
+        ["No", "Yes"],
+        horizontal=True
+    )
+    discount_military = True if q_military == "Yes" else False
+    
+    # Question 4: Free Course Email Token
+    q_free_course = st.radio(
+        "Did the student present a valid verification code or promotional email for a complimentary module?",
+        ["No", "Yes"],
+        horizontal=True
+    )
+    discount_free_course = True if q_free_course == "Yes" else False
 
 with col_calc_output:
     st.subheader("Live Ledger Math")
@@ -273,7 +296,6 @@ if not filtered_df.empty:
     else:
         filtered_df["Transcript Deficiencies Fixed"] = "None"
 
-    # Polish column outputs: Removed 'States Accepted' completely per design specifications
     preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Clinical Travel?", "Transcript Deficiencies Fixed"]
     columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
 
@@ -283,7 +305,6 @@ if not filtered_df.empty:
     final_display_df = filtered_df[columns_to_show].copy()
     final_display_df = final_display_df.sort_values(by="Estimated Revenue Profit", ascending=False)
 
-    # Clean display values formatting
     if "Estimated Revenue Profit" in final_display_df.columns:
         final_display_df["Estimated Revenue Profit"] = final_display_df["Estimated Revenue Profit"].apply(lambda x: f"${x:,.2f}")
     
