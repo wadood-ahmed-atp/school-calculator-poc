@@ -186,7 +186,7 @@ with col_calc_output:
 st.divider()
 
 # ==============================================================================
-# 4. MULTI-SCHOOL RANKED OUTPUT GRID (REVENUE ORIENTED SORTING)
+# 4. MULTI-SCHOOL RANKED OUTPUT GRID
 # ==============================================================================
 st.header("🏫 Ranked Schools Result Output Matrix")
 
@@ -207,19 +207,23 @@ if "Min Work Experience Required (mos)" in available_cols:
     master_schools_df["Min Work Experience Required (mos)"] = pd.to_numeric(master_schools_df["Min Work Experience Required (mos)"], errors='coerce').fillna(0)
     master_schools_df = master_schools_df[master_schools_df["Min Work Experience Required (mos)"] <= lpn_exp]
 
-# Step D: STRICT GPA FILTER GUARD (Bypasses missing/dirty cell text values)
+# Step D: Filter by Strict GPA
 if "Min GPA" in available_cols:
     master_schools_df["Min GPA"] = pd.to_numeric(master_schools_df["Min GPA"], errors='coerce').fillna(0.0)
-    # Only keep schools where the student's input GPA is higher or equal to the requirement
     master_schools_df = master_schools_df[master_schools_df["Min GPA"] <= gpa_val]
 
-# Step E: Filter by Clinical Travel Requirement
-if "Clinical Travel?" in available_cols and travel_ok == "No":
-    master_schools_df = master_schools_df[master_schools_df["Clinical Travel?"].str.upper() != "YES"]
+# Step E: Filter by Clinical Travel (NEW FAIL-SAFE INVERSE FILTER LOGIC)
+if "Clinical Travel?" in available_cols:
+    if travel_ok == "No":
+        # Standardize data cell value lookup comparisons to catch all text variations
+        travel_clean = master_schools_df["Clinical Travel?"].astype(str).str.upper().str.strip()
+        # Keep ONLY schools that are explicitly marked as No, N, or None. 
+        # Everything else is hidden automatically.
+        master_schools_df = master_schools_df[travel_clean.isin(["NO", "N", "NONE", "0", "0.0"])]
 
 filtered_df = master_schools_df.copy()
 
-# Step F: Evaluate Transcript Rule Map Matrix & Calculate Dynamic Cash Margins
+# Step F: Evaluate Transcript Map Matrix & Calculate Dynamic Cash Margins
 if not filtered_df.empty:
     status_log = []
     cash_yield_margins = []
@@ -228,7 +232,6 @@ if not filtered_df.empty:
         raw_name = str(school_row["School Name"]).strip()
         rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
         
-        # 1. Evaluate CBE Course Transfer Eligibility
         if not rule_row.empty:
             has_all_courses = True
             for required_course in needed_courses:
@@ -248,8 +251,6 @@ if not filtered_df.empty:
         else:
             status_log.append("Perfect Match")
             
-        # 2. Dynamic Revenue Extraction Formula: Gross Cash Paid - Underlying Institutional Tuition Cost
-        # Uses 'Tuition' column value as baseline institutional cost factor
         tuition_cost_raw = school_row.get("Tuition", 0)
         tuition_cost = pd.to_numeric(tuition_cost_raw, errors='coerce')
         if pd.isna(tuition_cost):
@@ -266,18 +267,15 @@ if not filtered_df.empty:
     else:
         filtered_df["Transcript Deficiencies Fixed"] = "None"
 
-    # Rearrange displaying columns to bring Profit Yield visibility right next to the School Name
-    preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "States Accepted", "Transcript Deficiencies Fixed"]
+    preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Clinical Travel?", "States Accepted", "Transcript Deficiencies Fixed"]
     columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
 
     if dismissal_y and "Reentry Requirements" in filtered_df.columns:
         columns_to_show.append("Reentry Requirements")
 
-    # SORT BY REVENUE: Arranges schools automatically from highest profit to lowest profit
     final_display_df = filtered_df[columns_to_show].copy()
     final_display_df = final_display_df.sort_values(by="Estimated Revenue Profit", ascending=False)
 
-    # Format the revenue column cleanly as dollar currency formatting
     if "Estimated Revenue Profit" in final_display_df.columns:
         final_display_df["Estimated Revenue Profit"] = final_display_df["Estimated Revenue Profit"].apply(lambda x: f"${x:,.2f}")
 
@@ -292,6 +290,6 @@ if not filtered_df.empty:
         styled_df = final_display_df.style.apply(style_legibility_flags, axis=None)
         st.dataframe(styled_df, use_container_width=True, hide_index=True)
     else:
-        st.warning("No schools match your lead's numeric GPA score or demographic parameters.")
+        st.warning("No schools match your base demographic filtration parameters.")
 else:
-    st.warning("No schools match your lead's numeric GPA score or demographic parameters.")
+    st.warning("No schools match your base demographic filtration parameters.")
