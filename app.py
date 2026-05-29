@@ -18,8 +18,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🎓 School Placement & Financial Calculator")
-st.markdown("### **Production Matrix Engine (Dynamic Data Alignment)**")
-st.caption("This advanced architecture matches leads to rows completely dynamically based on your exact column values.")
+st.markdown("### **Production Matrix Engine (Visual Highlighting Model)**")
+st.caption("This system flags partial matches visually using highlight matrix overlays instead of hiding potential school options.")
 st.divider()
 
 # ==============================================================================
@@ -190,77 +190,100 @@ with col_calc_output:
 st.divider()
 
 # ==============================================================================
-# 4. MULTI-SCHOOL RANKED OUTPUT GRID (DYNAMIC SPREADSHEET MATRIX LOGIC)
+# 4. MULTI-SCHOOL RANKED OUTPUT GRID WITH ROW HIGHLIGHTING
 # ==============================================================================
 st.header("🏫 Ranked Schools Result Output Matrix")
-st.caption("Processes rules dynamically across every native data criteria parameter row.")
+st.caption("Perfect demographic matches are cleanly tracked. Rows highlighted in light red denote options missing necessary CBE course conversions.")
 
-# Safe column backup generation mapping
 available_cols = master_schools_df.columns.tolist()
 
-# 1. Filter: Match Program Track (ASN/BSN)
+# Demographic Core Filters
 selected_track = str(program_interest).strip().upper()
 if "ASN/BSN" in available_cols:
     master_schools_df = master_schools_df[master_schools_df["ASN/BSN"].str.upper() == selected_track]
 
-# 2. Filter: Match States Accepted
 selected_state = str(student_state).strip().upper()
 if "States Accepted" in available_cols:
     master_schools_df = master_schools_df[master_schools_df["States Accepted"].str.upper().str.contains(selected_state)]
 
-# 3. Filter: Min Work Experience Required
 if "Min Work Experience Required (mos)" in available_cols:
-    # Convert column data to numeric values cleanly
     master_schools_df["Min Work Experience Required (mos)"] = pd.to_numeric(master_schools_df["Min Work Experience Required (mos)"], errors='coerce').fillna(0)
     master_schools_df = master_schools_df[master_schools_df["Min Work Experience Required (mos)"] <= lpn_exp]
 
-# 4. Filter: Min GPA Check
 if "Min GPA" in available_cols:
     master_schools_df["Min GPA"] = pd.to_numeric(master_schools_df["Min GPA"], errors='coerce').fillna(0.0)
     master_schools_df = master_schools_df[master_schools_df["Min GPA"] <= gpa_val]
 
-# 5. Filter: Clinical Travel Selection Check
-if "Clinical Travel?" in available_cols:
-    # If student rejects travel, hide schools requiring travel
-    if travel_ok == "No":
-        master_schools_df = master_schools_df[master_schools_df["Clinical Travel?"].str.upper() != "YES"]
+if "Clinical Travel?" in available_cols and travel_ok == "No":
+    master_schools_df = master_schools_df[master_schools_df["Clinical Travel?"].str.upper() != "YES"]
 
-# 6. Filter: Strict Transcript Mapping Logic Cross-Reference
 filtered_df = master_schools_df.copy()
-if not filtered_df.empty and transcript_rules_df is not None:
-    valid_school_names = []
+
+# --- REVOLUTIONIZED TRANSCRIPT NON-DESTRUCTIVE HIGHLIGHT FILTER LAYER ---
+if not filtered_df.empty:
+    status_log = []
+    
     for _, school_row in filtered_df.iterrows():
         raw_name = str(school_row["School Name"]).strip()
         rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
         
         if not rule_row.empty:
-            is_eligible = True
+            has_all_courses = True
             for required_course in needed_courses:
                 if required_course in rule_row.columns:
                     accepted_status = str(rule_row[required_course].values[0]).strip().upper()
                     if accepted_status != "Y":
-                        is_eligible = False
+                        has_all_courses = False
                         break
                 else:
-                    is_eligible = False
+                    has_all_courses = False
                     break
-            if is_eligible:
-                valid_school_names.append(raw_name)
-                
-    filtered_df = filtered_df[filtered_df["School Name"].str.upper().isin([n.upper() for n in valid_school_names])]
+            
+            if has_all_courses:
+                status_log.append("Perfect Match")
+            else:
+                status_log.append("Missing Needed CBE Courses")
+        else:
+            status_log.append("Perfect Match") # Default pass fallback
+            
+    # Inject status data safely as a structured presentation column
+    filtered_df["Match Status"] = status_log
+    filtered_df["Transcript Deficiencies Fixed"] = ", ".join(needed_courses) if needed_courses else "None (All Cleared)"
+    filtered_df["Injected Modules"] = "Entrance Exam Prep" if entrance_exam else "Standard Entry"
 
-# Build final output layout presentation strings
-filtered_df["Transcript Deficiencies Fixed"] = ", ".join(needed_courses) if needed_courses else "None (All Cleared)"
-filtered_df["Injected Modules"] = "Entrance Exam Prep" if entrance_exam else "Standard Entry"
+    preferred_cols = ["School Name", "ASN/BSN", "Match Status", "School State", "County", "States Accepted", "Min GPA", "Transcript Deficiencies Fixed"]
+    columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
 
-preferred_cols = ["School Name", "ASN/BSN", "School State", "County", "States Accepted", "Min GPA", "Transcript Deficiencies Fixed", "Injected Modules"]
-columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
+    if dismissal_y and "Reentry Requirements" in filtered_df.columns:
+        columns_to_show.append("Reentry Requirements")
 
-if dismissal_y and "Reentry Requirements" in filtered_df.columns:
-    columns_to_show.append("Reentry Requirements")
+    final_display_df = filtered_df[columns_to_show].copy()
 
-# Display final true table matrix output
-if not filtered_df.empty:
-    st.dataframe(filtered_df[columns_to_show], use_container_width=True, hide_index=True)
+    # Dynamic Pandas highlighting mapping routine function
+    def highlight_mismatches(row):
+        # Soft coral warning highlight hex code (#fee2e2)
+        bg_color = 'background-color: #fee2e2;' if row["Match Status"] == "Missing Needed CBE Courses" else ''
+        return [bg_color] * len(row)
+
+    # Render data view grid with dynamic row formatting applied safely
+    if not final_display_df.empty:
+        styled_df = final_display_df.style.apply(highlight_mismatches, axis=1)
+        st.dataframe(styled_df, use_container_width=True, hide_index=True)
+    else:
+        st.warning("No schools match your base demographic filtration parameters.")
 else:
-    st.warning("No schools match your sheet filtering rules. Check your schools.csv column constraints.")
+    st.warning("No schools match your base demographic filtration parameters.")
+
+st.divider()
+
+# ==============================================================================
+# 5. DEVELOPER HANDOFF INSTRUCTIONS
+# ==============================================================================
+with st.expander("🛠️ Developer Architecture Blueprint & Code Mapping Notes"):
+    st.markdown(f"""
+    ### Production Technical Specification (Visual Layer Variant)
+    Dear Developer, instead of hard filtering row indices out on cross-reference lookup failures:
+    
+    1. **Evaluation Vector:** The array evaluates constraints and pipes matching logs into a synthetic presentation key named `Match Status`.
+    2. **Styler Injector:** Runs a row vector lambda mapping condition expressions (`#fee2e2`) dynamically into the frontend data container layout.
+    """)
