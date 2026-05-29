@@ -22,18 +22,16 @@ st.caption("This interactive prototype maps Google Sheet matrix formulas and App
 st.divider()
 
 # ==============================================================================
-# 1. EXPANDED DATABASE MATRIX (Emulating 'Results' & 'Schools' Tabs)
+# 1. ACTUAL PARTNER DATABASE MATRIX (Updated with your real school profiles)
 # ==============================================================================
 if 'mock_schools' not in st.session_state:
     st.session_state.mock_schools = pd.DataFrame([
-        {"School Name": "Alpha University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 4, "Reentry Requirement": "Yes"},
+        {"School Name": "Western Governors University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 4, "Reentry Requirement": "None"},
+        {"School Name": "Herzing University BSN", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 6, "Reentry Requirement": "None"},
+        {"School Name": "Capella University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 5, "Reentry Requirement": "None"},
+        {"School Name": "Chamberlain University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 7, "Reentry Requirement": "None"},
         {"School Name": "Beta College of Nursing", "Program": "ASN", "Status": "ACCEPTS", "Base Classes": 8, "Reentry Requirement": "None"},
-        {"School Name": "Gamma Institute", "Program": "BSN", "Status": "CONDITIONAL", "Base Classes": 11, "Reentry Requirement": "None"},
-        {"School Name": "Delta State School", "Program": "ASN", "Status": "ACCEPTS", "Base Classes": 14, "Reentry Requirement": "Yes"},
-        {"School Name": "Apex University", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 6, "Reentry Requirement": "None"},
-        {"School Name": "Summit Health College", "Program": "ASN", "Status": "CONDITIONAL", "Base Classes": 9, "Reentry Requirement": "Yes"},
-        {"School Name": "Beacon School of Nursing", "Program": "BSN", "Status": "ACCEPTS", "Base Classes": 12, "Reentry Requirement": "Yes"},
-        {"School Name": "Horizon Tech Institute", "Program": "ASN", "Status": "ACCEPTS", "Base Classes": 3, "Reentry Requirement": "None"}
+        {"School Name": "Delta State School", "Program": "ASN", "Status": "ACCEPTS", "Base Classes": 9, "Reentry Requirement": "Yes"}
     ])
 
 # ==============================================================================
@@ -46,28 +44,36 @@ if st.sidebar.button("🔄 Reset Form & Inputs"):
 
 student_name = st.sidebar.text_input("Student Name", placeholder="Jane Doe")
 
-# Core Lead Context
+# 1. Student State
 student_state = st.sidebar.selectbox("Student State", [
-    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
-    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", 
+    "KY", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
+    "HI", "ID", "IL", "IN", "IA", "KS", "LA", "ME", "MD", 
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
     "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ])
 
-gpa_input = st.sidebar.text_input("GPA (Leave Blank if unsure)", placeholder="e.g., 3.25")
+# 2. GPA
+gpa_input = st.sidebar.text_input("GPA (Leave Blank if unsure)", value="4.00")
+
+# 3. Prior Nursing Dismissal?
 dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal? (C2 Trigger)", ["No", "Yes"])
 dismissal_y = True if dismissal_selection == "Yes" else False
 
-license_type = st.sidebar.selectbox("LPN or CNA/CMA License?", ["None", "CNA/CMA", "LPN"])
+# 4. LPN or CNA/CMA License?
+license_type = st.sidebar.selectbox("LPN or CNA/CMA License?", ["CNA/CMA", "None", "LPN"])
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
+# 5. Months of LPN Work Experience
 lpn_exp = 0
 if license_type == "LPN":
     lpn_exp = st.sidebar.number_input("Months of LPN Work Experience", min_value=0, max_value=24, value=0)
 
+# 6. Travel for Clinicals ok?
 travel_ok = st.sidebar.selectbox("Travel for Clinicals ok?", ["Yes", "No"])
-program_interest = st.sidebar.selectbox("Program Track: ASN or BSN (A2/G2 Logic)", ["ASN", "BSN"])
+
+# 7. ASN or BSN
+program_interest = st.sidebar.selectbox("Program Track: ASN or BSN (A2/G2 Logic)", ["BSN", "ASN"])
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("🛠️ Class Triggers")
@@ -87,12 +93,12 @@ course_list = [
     "Macro/Micro Economics", "Elective 1", "Elective 2"
 ]
 
-# Create an tracking dictionary for state management
+# Track selection states natively
 transcript_status = {}
 for course in course_list:
     transcript_status[course] = st.sidebar.selectbox(f"{course}", ["Taken", "Need"], key=f"course_{course}")
 
-# Compile arrays based on the user selections
+# Compile arrays based on user selections
 needed_courses = [course for course, status in transcript_status.items() if status == "Need"]
 
 # ==============================================================================
@@ -116,7 +122,7 @@ with col_calc_input:
 with col_calc_output:
     st.subheader("Live Ledger Math (Formulas AA2 / V2 / T2)")
     
-    # Calculate base classes dynamic weight
+    # Base calculation mapping sheet trends
     base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
     if entrance_exam:
         base_classes += 1
@@ -162,62 +168,4 @@ st.divider()
 # 4. MULTI-SCHOOL RANKED OUTPUT GRID (Emulates Matrix Array Engine Formula A2)
 # ==============================================================================
 st.header("🏫 Ranked Schools Result Output Matrix")
-st.caption("Emulates full nested sorting options from your complex A2 Array Filter formula.")
-
-# Filtering logic mapping the dynamic spreadsheet row criteria
-filtered_df = st.session_state.mock_schools[st.session_state.mock_schools["Program"] == program_interest].copy()
-
-# Inject user-defined parameters directly into the schools grid data structure
-filtered_df["Transcript Deficiencies Fixed"] = ", ".join(needed_courses) if needed_courses else "None (All Cleared)"
-filtered_df["Injected Modules"] = "Entrance Exam Prep" if entrance_exam else "Standard Entry"
-
-# Add variation to class numbers based on requirements chosen
-filtered_df["Base Classes"] = filtered_df["Base Classes"].apply(lambda x: max(1, x + len(needed_courses) - 2))
-
-# Build dynamic visibility layout extracted from your onEditHandler Apps Script file
-columns_to_show = ["School Name", "Program", "Status", "Base Classes", "Transcript Deficiencies Fixed", "Injected Modules"]
-
-# Google Apps Script triggers mapping
-if dismissal_y:
-    filtered_df["Reentry Review Req."] = filtered_df["Reentry Requirement"]
-    columns_to_show.append("Reentry Review Req.")
-    st.info("💡 Apps Script Trigger Active: 'Reentry Review' Column N made visible due to selection updates.")
-
-if has_addons:
-    filtered_df["Add-ons Active"] = "Yes - Multi-Tier Pricing"
-    columns_to_show.append("Add-ons Active")
-    st.info("💡 Apps Script Trigger Active: 'Add-ons' Column R made visible dynamically.")
-
-if discount_free_course:
-    filtered_df["Free Course Token Allocation"] = "FREE COURSE CONVERTED"
-    columns_to_show.append("Free Course Token Allocation")
-    st.info("💡 Apps Script Trigger Active: 'Free Course Code' Column Y unhidden.")
-
-# Display the multi-option data dashboard
-if not filtered_df.empty:
-    st.dataframe(filtered_df[columns_to_show].sort_values(by="Base Classes", ascending=True), use_container_width=True)
-else:
-    st.warning("No schools match the current filtration parameters. Please adjust Lead Inputs.")
-
-st.divider()
-
-# ==============================================================================
-# 5. DEVELOPER HANDOFF INSTRUCTIONS
-# ==============================================================================
-with st.expander("🛠️ Developer Architecture Blueprint & Code Mapping Notes"):
-    st.markdown(f"""
-    ### Technical Specification Notes for Core Integration
-    Dear Developer, this POC translates legacy spreadsheet workbook code blocks directly into centralized, functional web blocks:
-    
-    1. **Form Fields Map:**
-       * State: `{student_state}`
-       * GPA: `{gpa_input if gpa_input else 'Blank'}`
-       * Dismissal Status: `{dismissal_selection}`
-       * License Category: `{license_type}` (LPN Months Exp: {lpn_exp})
-       * Travel Allowed: `{travel_ok}`
-       * Total Courses Flagged with 'Need' Status: `{len(needed_courses)}`
-    2. **Transcript Multi-Select Mapping Architecture:**
-       * The dropdown states are captured dynamically using a tracking object array system. This mirrors your Google Sheet `Transcript Review` sheet structure. 
-    3. **Formula A2 Engine Replication:**
-       * Mimicked using Pandas dynamic vector mapping. Your complex `BYROW`/`LAMBDA` logic runs instantly on state change.
-    """)
+st.caption("Emulates full nested sorting options from
