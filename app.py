@@ -92,11 +92,12 @@ course_list = [
     "Macro/Micro Economics", "Elective 1", "Elective 2"
 ]
 
-transcript_status = {}
-for course in course_list:
-    transcript_status[course] = st.sidebar.selectbox(f"{course}", ["Taken", "Need"], key=f"course_{course}")
-
-needed_courses = [course for course, status in transcript_status.items() if status == "Need"]
+# SLEEK REVOLUTIONARY UI CHANGE: Add courses 1-by-1 instead of displaying 18 boxes
+needed_courses = st.sidebar.multiselect(
+    "Select Courses Student Needs:",
+    options=course_list,
+    default=[]
+)
 
 # ==============================================================================
 # 3. INTERACTIVE CALCULATOR ENGINE
@@ -212,18 +213,15 @@ if "Min GPA" in available_cols:
     master_schools_df["Min GPA"] = pd.to_numeric(master_schools_df["Min GPA"], errors='coerce').fillna(0.0)
     master_schools_df = master_schools_df[master_schools_df["Min GPA"] <= gpa_val]
 
-# Step E: Filter by Clinical Travel (NEW FAIL-SAFE INVERSE FILTER LOGIC)
+# Step E: Filter by Clinical Travel Requirement
 if "Clinical Travel?" in available_cols:
     if travel_ok == "No":
-        # Standardize data cell value lookup comparisons to catch all text variations
         travel_clean = master_schools_df["Clinical Travel?"].astype(str).str.upper().str.strip()
-        # Keep ONLY schools that are explicitly marked as No, N, or None. 
-        # Everything else is hidden automatically.
         master_schools_df = master_schools_df[travel_clean.isin(["NO", "N", "NONE", "0", "0.0"])]
 
 filtered_df = master_schools_df.copy()
 
-# Step F: Evaluate Transcript Map Matrix & Calculate Dynamic Cash Margins
+# Step F: Evaluate Transcript Map Matrix & Calculate Custom Cash Margins Based ONLY on Offered Courses
 if not filtered_df.empty:
     status_log = []
     cash_yield_margins = []
@@ -232,31 +230,39 @@ if not filtered_df.empty:
         raw_name = str(school_row["School Name"]).strip()
         rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
         
+        offered_courses_count = 0
+        has_all_courses = True
+        
         if not rule_row.empty:
-            has_all_courses = True
             for required_course in needed_courses:
                 if required_course in rule_row.columns:
                     accepted_status = str(rule_row[required_course].values[0]).strip().upper()
-                    if accepted_status != "Y":
+                    if accepted_status == "Y":
+                        offered_courses_count += 1
+                    else:
                         has_all_courses = False
-                        break
                 else:
                     has_all_courses = False
-                    break
             
-            if has_all_courses:
+            if len(needed_courses) == 0:
+                status_log.append("Perfect Match")
+            elif has_all_courses:
                 status_log.append("Perfect Match")
             else:
                 status_log.append("Missing Needed CBE Courses")
         else:
             status_log.append("Perfect Match")
             
+        # TRUE REVENUE MARGIN: Calculate revenue derived ONLY from courses the school actually offers ("Y")
+        revenue_per_course = float(main_price)
+        school_revenue_potential = offered_courses_count * revenue_per_course
+        
         tuition_cost_raw = school_row.get("Tuition", 0)
         tuition_cost = pd.to_numeric(tuition_cost_raw, errors='coerce')
         if pd.isna(tuition_cost):
             tuition_cost = 0.0
             
-        calculated_margin = max(0.0, final_total - float(tuition_cost))
+        calculated_margin = max(0.0, school_revenue_potential - float(tuition_cost))
         cash_yield_margins.append(calculated_margin)
             
     filtered_df["Match Status"] = status_log
@@ -267,7 +273,8 @@ if not filtered_df.empty:
     else:
         filtered_df["Transcript Deficiencies Fixed"] = "None"
 
-    preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Clinical Travel?", "States Accepted", "Transcript Deficiencies Fixed"]
+    # Polish column outputs: Removed 'States Accepted' completely per design specifications
+    preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Clinical Travel?", "Transcript Deficiencies Fixed"]
     columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
 
     if dismissal_y and "Reentry Requirements" in filtered_df.columns:
@@ -276,8 +283,12 @@ if not filtered_df.empty:
     final_display_df = filtered_df[columns_to_show].copy()
     final_display_df = final_display_df.sort_values(by="Estimated Revenue Profit", ascending=False)
 
+    # Clean display values formatting
     if "Estimated Revenue Profit" in final_display_df.columns:
         final_display_df["Estimated Revenue Profit"] = final_display_df["Estimated Revenue Profit"].apply(lambda x: f"${x:,.2f}")
+    
+    if "Min GPA" in final_display_df.columns:
+        final_display_df["Min GPA"] = final_display_df["Min GPA"].apply(lambda x: f"{x:.2f}")
 
     def style_legibility_flags(df):
         style_matrix = pd.DataFrame('', index=df.index, columns=df.columns)
