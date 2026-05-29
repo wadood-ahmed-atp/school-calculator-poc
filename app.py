@@ -31,7 +31,6 @@ if os.path.exists(CSV_FILE_PATH):
     master_schools_df = pd.read_csv(CSV_FILE_PATH)
 else:
     st.error(f"⚠️ Local database file '{CSV_FILE_PATH}' not found in GitHub. Displaying fallback configuration.")
-    # Fallback structure using your EXACT new column headers
     fallback_data = [
         {
             "School Name": "Western Governors University", "School State": "UT", "County": "None", 
@@ -39,6 +38,13 @@ else:
             "Min GPA": "2.00", "LPN Required?": "No", "Clinical Travel?": "Yes", 
             "In-County Tuition": 0, "In-State Tuition": 0, "Out-of-State Tuition": 0, 
             "Prior Nursing Dismissal Policy": "Review", "Reentry Requirements": "None", "Max ODts/NCLEX Allowed": 3
+        },
+        {
+            "School Name": "Herzing University ASN", "School State": "KY", "County": "None", 
+            "States Accepted": "KY, Y", "ASN/BSN": "ASN", "Min Work Experience Required (mos)": 0, 
+            "Min GPA": "2.50", "LPN Required?": "No", "Clinical Travel?": "Yes", 
+            "In-County Tuition": 0, "In-State Tuition": 0, "Out-of-State Tuition": 0, 
+            "Prior Nursing Dismissal Policy": "No", "Reentry Requirements": "None", "Max ODts/NCLEX Allowed": 3
         },
         {
             "School Name": "Excelsior University", "School State": "NY", "County": "None", 
@@ -60,19 +66,19 @@ if st.sidebar.button("🔄 Reset Form & Inputs"):
 
 student_name = st.sidebar.text_input("Student Name", value="Jane Doe")
 
-# 1. Student State -> Maps to "States Accepted"
+# 1. Student State
 student_state = st.sidebar.selectbox("Student State", [
-    "NY", "KY", "Y", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
+    "KY", "NY", "Y", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
     "HI", "ID", "IL", "IN", "IA", "KS", "LA", "ME", "MD", 
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
     "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ])
 
-# 2. GPA -> Maps to "Min GPA"
+# 2. GPA
 gpa_input = st.sidebar.text_input("GPA (Leave Blank if unsure)", value="4.00")
 
-# 3. Prior Nursing Dismissal? -> Maps to "Prior Nursing Dismissal Policy"
+# 3. Prior Nursing Dismissal?
 dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["No", "Yes"])
 dismissal_y = True if dismissal_selection == "Yes" else False
 
@@ -80,15 +86,15 @@ dismissal_y = True if dismissal_selection == "Yes" else False
 license_type = st.sidebar.selectbox("LPN or CNA/CMA License?", ["LPN", "CNA/CMA", "None"])
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
-# 5. Months of LPN Work Experience -> Maps to "Min Work Experience Required (mos)"
+# 5. Months of LPN Work Experience
 lpn_exp = 0
 if license_type == "LPN":
     lpn_exp = st.sidebar.number_input("Months of LPN Work Experience", min_value=0, max_value=24, value=6)
 
-# 6. Travel for Clinicals ok? -> Maps to "Clinical Travel?"
+# 6. Travel for Clinicals ok?
 travel_ok = st.sidebar.selectbox("Travel for Clinicals ok?", ["Yes", "No"])
 
-# 7. ASN or BSN -> Maps to "ASN/BSN"
+# 7. ASN or BSN
 program_interest = st.sidebar.selectbox("Program Track: ASN or BSN", ["ASN", "BSN"])
 
 st.sidebar.markdown("---")
@@ -193,7 +199,7 @@ with col_calc_output:
 st.divider()
 
 # ==============================================================================
-# 4. MULTI-SCHOOL RANKED OUTPUT GRID (Using your precise column headers)
+# 4. MULTI-SCHOOL RANKED OUTPUT GRID
 # ==============================================================================
 st.header("🏫 Ranked Schools Result Output Matrix")
 st.caption("Emulates full nested sorting options from your complex A2 Array Filter formula.")
@@ -208,18 +214,24 @@ selected_state = str(student_state).strip().upper()
 state_mask = filtered_df["States Accepted"].str.upper().str.contains(selected_state)
 filtered_df = filtered_df[state_mask]
 
+# Rule Drop Trigger: Specifically block Allegany if the track is ASN and the user is an LPN with under 1 year experience
+if selected_track == "ASN" and license_type == "LPN" and lpn_exp < 12:
+    filtered_df = filtered_df[filtered_df["School Name"] != "Allegany College of Maryland"]
+
 # Compute pseudo row attributes on your active dataframe columns
 filtered_df["Transcript Deficiencies Fixed"] = ", ".join(needed_courses) if needed_courses else "None (All Cleared)"
 filtered_df["Injected Modules"] = "Entrance Exam Prep" if entrance_exam else "Standard Entry"
 
 # All columns visible from your real sheet mapping
-columns_to_show = ["School Name", "ASN/BSN", "School State", "County", "States Accepted", "Min GPA", "Transcript Deficiencies Fixed", "Injected Modules"]
+# Safely handle missing columns from user upload files
+available_cols = filtered_df.columns.tolist()
+preferred_cols = ["School Name", "ASN/BSN", "School State", "County", "States Accepted", "Min GPA", "Transcript Deficiencies Fixed", "Injected Modules"]
+columns_to_show = [col for col in preferred_cols if col in available_cols]
 
-# Apps Script Rule 1: show/hide Reentry Requirements column based on selection
-if dismissal_y:
+if dismissal_y and "Reentry Requirements" in available_cols:
     columns_to_show.append("Reentry Requirements")
-    st.info("💡 Apps Script Trigger Active: 'Reentry Requirements' column unhidden due to Prior Dismissal rule check.")
 
+# Display filtered view
 if not filtered_df.empty:
     st.dataframe(filtered_df[columns_to_show], use_container_width=True, hide_index=True)
 else:
@@ -238,5 +250,6 @@ with st.expander("🛠️ Developer Architecture Blueprint & Code Mapping Notes"
     1. **Primary Key Mappings Used in UI Code:**
        * Track Filter: Maps to data column `ASN/BSN`
        * Territory Filter: Maps to data column `States Accepted`
-       * Dynamic Dismissal Exception: Maps to data column `Reentry Requirements`
+    2. **Experience Rule Exception Layer:**
+       * Includes conditional exclusion logic blocking custom school structures based on LPN work experience metrics dynamically.
     """)
