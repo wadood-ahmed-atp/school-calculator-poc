@@ -57,10 +57,10 @@ if st.sidebar.button("🔄 Reset Form"):
 student_name = st.sidebar.text_input("Student Name", value="Jane Doe")
 
 student_state = st.sidebar.selectbox("Student State", [
-    "KY", "NY", "Y", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
+    "GA", "KY", "NY", "Y", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", 
     "HI", "ID", "IL", "IN", "IA", "KS", "LA", "ME", "MD", 
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
-    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
+    "NM", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ])
 
@@ -75,7 +75,7 @@ dismissal_y = True if dismissal_selection == "Yes" else False
 
 dismissal_months = 0
 if dismissal_y:
-    dismissal_months = st.sidebar.number_input("Months Since Dismissal", min_value=0, max_value=300, value=24, step=1)
+    dismissal_months = st.sidebar.number_input("Months Since Dismissal", min_value=0, max_value=300, value=72, step=1)
 
 license_type = st.sidebar.selectbox("License?", ["LPN", "CNA/CMA", "None"])
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
@@ -85,7 +85,7 @@ if license_type != "None":
     lpn_exp = st.sidebar.number_input("Months of Active Experience", min_value=0, max_value=120, value=6)
 
 travel_ok = st.sidebar.selectbox("Clinical Travel ok?", ["Yes", "No"])
-program_interest = st.sidebar.selectbox("Track?", ["ASN", "BSN"])
+program_interest = st.sidebar.selectbox("Track?", ["BSN", "ASN"])
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📚 Transcript Review")
@@ -237,7 +237,6 @@ else:
     st.header("🏫 Eligible Institution Matches")
     available_cols = master_schools_df.columns.tolist()
 
-    # Create working dataframe copy to process filters safely
     working_schools_df = master_schools_df.copy()
 
     if "ASN/BSN" in available_cols:
@@ -272,7 +271,12 @@ else:
         
         for _, school_row in filtered_df.iterrows():
             raw_name = str(school_row["School Name"]).strip()
-            rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
+            
+            # RESILIENT MAPPING LOOKUP LAYER: Match rules even if Herzing/Herizng spelling is transposed in either file
+            if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
+                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains("HERZ") | transcript_rules_df["School Name"].str.upper().str.contains("HERI")]
+            else:
+                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
             
             offered_courses_count = 0
             has_all_courses = True
@@ -300,7 +304,6 @@ else:
             revenue_per_course = float(main_price)
             school_revenue_potential = offered_courses_count * revenue_per_course
             
-            # UPGRADED: Forcefully strips string symbols ($ and commas) to prevent parse failure
             tuition_cost_raw = str(school_row.get("Tuition", "0")).replace("$", "").replace(",", "").strip()
             tuition_cost = pd.to_numeric(tuition_cost_raw, errors='coerce')
             if pd.isna(tuition_cost):
