@@ -54,9 +54,7 @@ if st.sidebar.button("🔄 Reset Form"):
     if "addon_state" in st.session_state: del st.session_state["addon_state"]
     st.rerun()
 
-# MANDATORY COMPLIANCE AGE GUARD
-is_adult = st.sidebar.selectbox("Is the applicant 18 years of age or older?", ["Yes", "No"])
-
+# --- UX IMPROVEMENT: NATURAL LEAD FLOW ORDER ---
 student_name = st.sidebar.text_input("Student Name", value="Jane Doe")
 
 student_state = st.sidebar.selectbox("Student State", [
@@ -66,6 +64,9 @@ student_state = st.sidebar.selectbox("Student State", [
     "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ])
+
+is_adult = st.sidebar.selectbox("Is the applicant 18 years of age or older?", ["Yes", "No"])
+# -----------------------------------------------
 
 gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=4.0, step=0.01)
 dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["No", "Yes"])
@@ -98,7 +99,6 @@ needed_courses = st.sidebar.multiselect(
     default=[]
 )
 
-# Initialize session parameters cleanly
 if "exam_state" not in st.session_state: st.session_state["exam_state"] = False
 if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
 
@@ -106,18 +106,15 @@ if "addon_state" not in st.session_state: st.session_state["addon_state"] = Fals
 # 3. INTERACTIVE RENDERING / COMPLIANCE GATING
 # ==============================================================================
 if is_adult == "No":
-    # Complete lockdown layout injection for under-18 users
     st.error("🛑 **Self-Serve Checkout Unavailable**")
-    st.info("""
-    ### **Next Steps Required:**
+    st.info(f"""
+    ### **Next Steps Required for {student_name}:**
     Applicants under the age of 18 are not permitted to complete an independent digital registration or contract confirmation. 
     
     To advance your enrollment matrix, please schedule an appointment to speak with an admissions representative. 
     **Note:** A parent, legal guardian, or sponsoring adult must accompany the applicant during the consultation call.
     """)
 else:
-    # Standard Full Application Experience for Legal Adults
-    
     # --- BACKGROUND PRE-FLIGHT BALANCING & COMPLIANCE GUARD ENGINE ---
     mock_base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
     if st.session_state["exam_state"]: mock_base_classes += 1
