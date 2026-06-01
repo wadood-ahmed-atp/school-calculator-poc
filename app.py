@@ -107,10 +107,10 @@ program_interest = st.sidebar.selectbox("Which track are you interested in?", op
 st.sidebar.markdown("---")
 st.sidebar.subheader("📚 Transcript Review")
 
-# FIXED: Standardized "Human Growth" header key to match your sheet exactly
+# UPDATED: Re-synced to your updated "Human Growth & Development" CSV column header name
 course_list = [
     "Eng Comp 1", "College Algebra", "Statistics", "Humanities 1", 
-    "Humanities 2", "Humanities 3", "Human Growth", 
+    "Humanities 2", "Humanities 3", "Human Growth & Development", 
     "Psychology", "Sociology", "Speech", "General Biology", 
     "Chemistry", "Government", "History", "Foreign Language", 
     "Macro/Micro Economics", "Elective 1", "Elective 2"
