@@ -45,11 +45,14 @@ else:
     st.stop()
 
 # ==============================================================================
-# 2. SIDEBAR BASE PRE-CALCULATION BLOCK
+# 2. SIDEBAR INITIALIZATION & CONFIGURATION
 # ==============================================================================
 st.sidebar.header("📋 Lead Profile")
 
 if st.sidebar.button("🔄 Reset Form"):
+    # Clear out internal trigger tracking states on reset
+    if "exam_state" in st.session_state: del st.session_state["exam_state"]
+    if "addon_state" in st.session_state: del st.session_state["addon_state"]
     st.rerun()
 
 student_name = st.sidebar.text_input("Student Name", value="Jane Doe")
@@ -93,26 +96,48 @@ needed_courses = st.sidebar.multiselect(
     default=[]
 )
 
-# --- BACKEND PRE-CALCULATOR CEILING CHECK LOOP ---
-pre_count = len(needed_courses) if len(needed_courses) > 0 else 1
-pre_main_price = 1179 if pre_count >= 10 else (1229 if pre_count >= 4 else 1289)
-pre_base_total = pre_count * pre_main_price
-
-# Conditional rendering loop for Class Triggers panel section block
-entrance_exam = False
-has_addons = False
-
-st.sidebar.markdown("---")
-if pre_base_total < 14500:
-    st.sidebar.subheader("🛠️ Class Triggers")
-    entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep?", value=False)
-    has_addons = st.sidebar.checkbox("Add-ons Selected?", value=False)
-else:
-    st.sidebar.subheader("🛠️ Class Triggers")
-    st.sidebar.warning("⚠️ Package limit reached ($14,500 Floor). Add-on triggers locked.")
+# Initialize checkbox tracking session parameters cleanly
+if "exam_state" not in st.session_state: st.session_state["exam_state"] = False
+if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
 
 # ==============================================================================
-# 3. INTERACTIVE CALCULATOR ENGINE
+# 3. BACKGROUND PRE-FLIGHT BALANCING & COMPLIANCE GUARD ENGINE
+# ==============================================================================
+# Step A: Run a mock pricing iteration using current checked states
+mock_base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
+if st.session_state["exam_state"]: mock_base_classes += 1
+mock_addons_count = 2 if st.session_state["addon_state"] else 0
+
+mock_main_price = 1179 if mock_base_classes >= 10 else (1229 if mock_base_classes >= 4 else 1289)
+mock_addon_price = 749 if (mock_base_classes + mock_addons_count) >= 10 else (799 if (mock_base_classes + mock_addons_count) >= 4 else 859)
+mock_grand_total = (mock_base_classes * mock_main_price) + (mock_addons_count * mock_addon_price)
+
+# Step B: Strict Enforcement Loop - If mock package breaches cap, forcefully strip checkboxes
+if mock_grand_total >= 14500:
+    st.session_state["exam_state"] = False
+    st.session_state["addon_state"] = False
+    # Re-evaluate pristine core baseline totals post-strip
+    mock_base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
+    mock_main_price = 1179 if mock_base_classes >= 10 else (1229 if mock_base_classes >= 4 else 1289)
+    mock_grand_total = mock_base_classes * mock_main_price
+
+# Step C: Render UI elements safely matching corrected states
+st.sidebar.markdown("---")
+st.sidebar.subheader("🛠️ Class Triggers")
+
+if mock_grand_total < 14500:
+    entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep?", value=st.session_state["exam_state"], key="ui_exam")
+    has_addons = st.sidebar.checkbox("Add-ons Selected?", value=st.session_state["addon_state"], key="ui_addon")
+    # Synchronize chosen interactions instantly back into tracking states
+    st.session_state["exam_state"] = entrance_exam
+    st.session_state["addon_state"] = has_addons
+else:
+    st.sidebar.warning("⚠️ Package limit reached ($14,500 Floor). Add-on triggers forced off.")
+    entrance_exam = False
+    has_addons = False
+
+# ==============================================================================
+# 4. INTERACTIVE CALCULATOR ENGINE
 # ==============================================================================
 st.header("⚡ Financial Ledger")
 
@@ -124,29 +149,16 @@ with col_calc_input:
     grant_input = st.number_input("Grant Allocation ($)", min_value=0.0, value=0.0, step=50.0)
     
     st.markdown("#### **Qualification Profile**")
-    
     st.info("✅ **Deposit Match Program:** Automatically applied.")
     discount_match = True
     
-    q_referral = st.radio(
-        "Was the student referred by an affiliate partner or alum?",
-        ["No", "Yes"],
-        horizontal=True
-    )
+    q_referral = st.radio("Was the student referred by an affiliate partner or alum?", ["No", "Yes"], horizontal=True)
     discount_referral = True if q_referral == "Yes" else False
     
-    q_military = st.radio(
-        "Is the student associated with the military (Veteran/Active/Spouse)?",
-        ["No", "Yes"],
-        horizontal=True
-    )
+    q_military = st.radio("Is the student associated with the military (Veteran/Active/Spouse)?", ["No", "Yes"], horizontal=True)
     discount_military = True if q_military == "Yes" else False
     
-    q_free_course = st.radio(
-        "Does the student possess a promotional code for a complimentary course?",
-        ["No", "Yes"],
-        horizontal=True
-    )
+    q_free_course = st.radio("Does the student possess a promotional code for a complimentary course?", ["No", "Yes"], horizontal=True)
     discount_free_course = True if q_free_course == "Yes" else False
 
 with col_calc_output:
@@ -174,27 +186,17 @@ with col_calc_output:
     pending_bal = max(0.0, final_total - deposit_input)
     
     if is_cna == "CNA/CMA":
-        if total_classes <= 2:
-            reg_fee = 150
-        elif total_classes <= 7:
-            reg_fee = 175
-        elif total_classes <= 10:
-            reg_fee = 200
-        elif total_classes <= 15:
-            reg_fee = 250
-        else:
-            reg_fee = 300
+        if total_classes <= 2: reg_fee = 150
+        elif total_classes <= 7: reg_fee = 175
+        elif total_classes <= 10: reg_fee = 200
+        elif total_classes <= 15: reg_fee = 250
+        else: reg_fee = 300
     else:
-        if total_classes <= 2:
-            reg_fee = 300
-        elif total_classes <= 7:
-            reg_fee = 325
-        elif total_classes <= 10:
-            reg_fee = 375
-        elif total_classes <= 15:
-            reg_fee = 475
-        else:
-            reg_fee = 600
+        if total_classes <= 2: reg_fee = 300
+        elif total_classes <= 7: reg_fee = 325
+        elif total_classes <= 10: reg_fee = 375
+        elif total_classes <= 15: reg_fee = 475
+        else: reg_fee = 600
         
     room_left = 14500.0 - final_total
     max_additional_addons = max(0, int(room_left // 749))
@@ -219,7 +221,7 @@ with col_calc_output:
 st.divider()
 
 # ==============================================================================
-# 4. MULTI-SCHOOL RANKED OUTPUT GRID
+# 5. MULTI-SCHOOL RANKED OUTPUT GRID
 # ==============================================================================
 st.header("🏫 Eligible Institution Matches")
 
