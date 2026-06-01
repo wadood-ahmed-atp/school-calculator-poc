@@ -70,7 +70,6 @@ is_adult = st.sidebar.selectbox("Is the applicant 18 years of age or older?", ["
 
 gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=4.0, step=0.01)
 
-# DYNAMIC NURSING DISMISSAL FLOW TRACKING
 dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["No", "Yes"])
 dismissal_y = True if dismissal_selection == "Yes" else False
 
@@ -238,33 +237,34 @@ else:
     st.header("🏫 Eligible Institution Matches")
     available_cols = master_schools_df.columns.tolist()
 
+    # Create working dataframe copy to process filters safely
+    working_schools_df = master_schools_df.copy()
+
     if "ASN/BSN" in available_cols:
-        master_schools_df = master_schools_df[master_schools_df["ASN/BSN"].str.upper() == selected_track]
+        working_schools_df = working_schools_df[working_schools_df["ASN/BSN"].str.upper() == selected_track]
 
     if "States Accepted" in available_cols:
-        master_schools_df = master_schools_df[master_schools_df["States Accepted"].str.upper().str.contains(selected_state)]
+        working_schools_df = working_schools_df[working_schools_df["States Accepted"].str.upper().str.contains(selected_state)]
 
     if "Min Work Experience Required (mos)" in available_cols:
-        master_schools_df["Min Work Experience Required (mos)"] = pd.to_numeric(master_schools_df["Min Work Experience Required (mos)"], errors='coerce').fillna(0)
-        master_schools_df = master_schools_df[master_schools_df["Min Work Experience Required (mos)"] <= lpn_exp]
+        working_schools_df["Min Work Experience Required (mos)"] = pd.to_numeric(working_schools_df["Min Work Experience Required (mos)"], errors='coerce').fillna(0)
+        working_schools_df = working_schools_df[working_schools_df["Min Work Experience Required (mos)"] <= lpn_exp]
 
     if "Min GPA" in available_cols:
-        master_schools_df["Min GPA"] = pd.to_numeric(master_schools_df["Min GPA"], errors='coerce').fillna(0.0)
-        master_schools_df = master_schools_df[master_schools_df["Min GPA"] <= gpa_val]
+        working_schools_df["Min GPA"] = pd.to_numeric(working_schools_df["Min GPA"], errors='coerce').fillna(0.0)
+        working_schools_df = working_schools_df[working_schools_df["Min GPA"] <= gpa_val]
 
     if "Clinical Travel?" in available_cols:
         if travel_ok == "No":
-            travel_clean = master_schools_df["Clinical Travel?"].astype(str).str.upper().str.strip()
-            master_schools_df = master_schools_df[travel_clean.isin(["NO", "N", "NONE", "0", "0.0"])]
+            travel_clean = working_schools_df["Clinical Travel?"].astype(str).str.upper().str.strip()
+            working_schools_df = working_schools_df[travel_clean.isin(["NO", "N", "NONE", "0", "0.0"])]
 
-    # NEW: PRIOR NURSING DISMISSAL COMPLIANCE ENGINE FILTER
     if "Prior Nursing Dismissal Policy" in available_cols and dismissal_y:
         if dismissal_months <= 60:
-            policy_clean = master_schools_df["Prior Nursing Dismissal Policy"].astype(str).str.upper().str.strip()
-            # Under or equal to 60 months means we strictly hide any school marked "DOES NOT ACCEPT"
-            master_schools_df = master_schools_df[policy_clean != "DOES NOT ACCEPT"]
+            policy_clean = working_schools_df["Prior Nursing Dismissal Policy"].astype(str).str.upper().str.strip()
+            working_schools_df = working_schools_df[policy_clean != "DOES NOT ACCEPT"]
 
-    filtered_df = master_schools_df.copy()
+    filtered_df = working_schools_df.copy()
 
     if not filtered_df.empty:
         status_log = []
@@ -300,7 +300,8 @@ else:
             revenue_per_course = float(main_price)
             school_revenue_potential = offered_courses_count * revenue_per_course
             
-            tuition_cost_raw = school_row.get("Tuition", 0)
+            # UPGRADED: Forcefully strips string symbols ($ and commas) to prevent parse failure
+            tuition_cost_raw = str(school_row.get("Tuition", "0")).replace("$", "").replace(",", "").strip()
             tuition_cost = pd.to_numeric(tuition_cost_raw, errors='coerce')
             if pd.isna(tuition_cost):
                 tuition_cost = 0.0
