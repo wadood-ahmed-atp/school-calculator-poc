@@ -57,14 +57,14 @@ if st.sidebar.button("🔄 Reset Form"):
 student_name = st.sidebar.text_input("Student Name", value="Jane Doe")
 
 student_state = st.sidebar.selectbox("Student State", [
-    "GA", "KY", "NY", "Y", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", 
+    "FL", "GA", "WI", "AL", "KY", "NY", "Y", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", 
     "HI", "ID", "IL", "IN", "IA", "KS", "LA", "ME", "MD", 
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
     "NM", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ])
 
-student_zip = st.sidebar.text_input("Zip Code", value="40201", max_chars=10)
+student_zip = st.sidebar.text_input("Zip Code", value="32801", max_chars=10)
 
 is_adult = st.sidebar.selectbox("Is the applicant 18 years of age or older?", ["Yes", "No"])
 
@@ -272,9 +272,6 @@ else:
         for _, school_row in filtered_df.iterrows():
             raw_name = str(school_row["School Name"]).strip()
             
-            # --- FAULT-TOLERANT ALGORITHM FIX ---
-            # Instead of looking for exact matching characters, it isolates terms.
-            # If the row contains "HERZ" or "HERI", it scans for the paired words inside the rules matrix.
             if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
                 word_pattern = "HERZ|HERI"
                 rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains(word_pattern, na=False, case=False)]
