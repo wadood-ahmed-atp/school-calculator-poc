@@ -45,22 +45,22 @@ else:
     st.stop()
 
 # ==============================================================================
-# 2. DEFINED SYSTEM STATE CONSTANTS & RESET TRACKER
+# 2. DEFINED ARRAYS WITH STAKEHOLDER PLACEHOLDERS
 # ==============================================================================
 STATE_OPTIONS = [
-    "FL", "GA", "WI", "AL", "DC", "KY", "NY", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", 
+    "Select state", "FL", "GA", "WI", "AL", "DC", "KY", "NY", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", 
     "HI", "ID", "IL", "IN", "IA", "KS", "LA", "ME", "MD", 
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
     "NM", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ]
 BINARY_OPTIONS = ["Yes", "No"]
-DISMISSAL_OPTIONS = ["Yes", "No"]
-LICENSE_OPTIONS = ["LPN", "CNA/CMA", "None"]
+DISMISSAL_OPTIONS = ["No", "Yes"]  # "No" is now index 0 to align with requested reset defaults
+LICENSE_OPTIONS = ["None", "LPN", "CNA/CMA"] # "None" is now index 0 to align with requested reset defaults
 TRACK_OPTIONS = ["BSN", "ASN"]
 
-# Initialize reset version tracker
-if "reset_counter" not in st.session_state:
+# Initialize reset dynamic counter token
+if "reset_counter" not in st.session_state: 
     st.session_state["reset_counter"] = 0
 if "exam_state" not in st.session_state: 
     st.session_state["exam_state"] = False
@@ -69,41 +69,42 @@ if "addon_state" not in st.session_state:
 
 st.sidebar.header("📋 Lead Profile")
 
-# Clicking this increments the counter, changing all widget keys instantly
+# Dynamic state reset manager - triggers absolute rebuild with requested defaults
 if st.sidebar.button("🔄 Reset Form"):
     st.session_state["reset_counter"] += 1
     st.session_state["exam_state"] = False
     st.session_state["addon_state"] = False
     st.rerun()
 
-# Dynamic key generation token
 version = st.session_state["reset_counter"]
 
 # ==============================================================================
-# 3. SIDEBAR INTERACTIVE UI (BOUND TO DYNAMIC RESET TOKENS)
+# 3. CONVERSATIONAL SIDEBAR (DYNAMIC ARRAYS WITH REQUESTED DEFAULT STRINGS)
 # ==============================================================================
-student_name = st.sidebar.text_input("Student Name", value="Jane Doe", key=f"name_{version}")
+student_name = st.sidebar.text_input("Student Name", value="Enter Your name", key=f"name_{version}")
 student_state = st.sidebar.selectbox("Lead State", options=STATE_OPTIONS, index=0, key=f"state_{version}")
-student_zip = st.sidebar.text_input("Zip Code", value="32801", max_chars=10, key=f"zip_{version}")
-is_adult = st.sidebar.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=0, key=f"adult_{version}")
-gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=3.50, step=0.01, key=f"gpa_{version}")
+student_zip = st.sidebar.text_input("Zip Code", value="Enter Your Zip", max_chars=14, key=f"zip_{version}")
 
-dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", options=DISMISSAL_OPTIONS, index=1, key=f"dismiss_{version}")
+# Conversational Overhaul Integration
+is_adult = st.sidebar.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=0, key=f"adult_{version}")
+gpa_val = st.sidebar.number_input("What is your GPA Score?", min_value=0.0, max_value=4.0, value=4.00, step=0.01, key=f"gpa_{version}")
+
+dismissal_selection = st.sidebar.selectbox("Do you have a prior nursing dismissal?", options=DISMISSAL_OPTIONS, index=0, key=f"dismiss_{version}")
 dismissal_y = True if dismissal_selection == "Yes" else False
 
 dismissal_months = 0
 if dismissal_y:
-    dismissal_months = st.sidebar.number_input("Months Since Dismissal", min_value=0, max_value=300, value=72, step=1, key=f"dismiss_mos_{version}")
+    dismissal_months = st.sidebar.number_input("Months since your dismissal", min_value=0, max_value=300, value=72, step=1, key=f"dismiss_mos_{version}")
 
-license_type = st.sidebar.selectbox("License?", options=LICENSE_OPTIONS, index=0, key=f"lic_{version}")
+license_type = st.sidebar.selectbox("What is your current nursing license?", options=LICENSE_OPTIONS, index=0, key=f"lic_{version}")
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
 lpn_exp = 0
 if license_type != "None":
-    lpn_exp = st.sidebar.number_input("Months of Active Experience (If less than 2 years)", min_value=0, max_value=120, value=6, step=1, key=f"exp_{version}")
+    lpn_exp = st.sidebar.number_input("Months of Active Experience (If less than 2 years)", min_value=0, max_value=120, value=0, step=1, key=f"exp_{version}")
 
-travel_ok = st.sidebar.selectbox("Clinical Travel ok?", options=BINARY_OPTIONS, index=0, key=f"travel_{version}")
-program_interest = st.sidebar.selectbox("Track?", options=TRACK_OPTIONS, index=0, key=f"track_{version}")
+travel_ok = st.sidebar.selectbox("Are you okay with regional clinical travel?", options=BINARY_OPTIONS, index=0, key=f"travel_{version}")
+program_interest = st.sidebar.selectbox("Which track are you interested in?", options=TRACK_OPTIONS, index=0, key=f"track_{version}")
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📚 Transcript Review")
@@ -127,7 +128,7 @@ selected_track = str(program_interest).strip().upper()
 selected_state = str(student_state).strip().upper()
 
 # ==============================================================================
-# 4. MAIN INTERACTIVE RENDERING / COMPLIANCE GATING
+# 4. INTERACTIVE CALCULATOR PROCESSING / COMPLIANCE SAFEGUARD
 # ==============================================================================
 if is_adult == "No":
     st.error("🛑 **Self-Serve Checkout Unavailable**")
@@ -138,6 +139,8 @@ if is_adult == "No":
     To advance your enrollment matrix, please schedule an appointment to speak with an admissions representative. 
     **Note:** A parent, legal guardian, or sponsoring adult must accompany the applicant during the consultation call.
     """)
+elif student_state == "Select state":
+    st.warning("⚠️ **Lead State Required:** Please select a valid state territory from the sidebar dropdown list to unlock matrix filtering features.")
 else:
     # --- BACKGROUND PRE-FLIGHT BALANCING & COMPLIANCE GUARD ENGINE ---
     mock_base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
@@ -181,6 +184,7 @@ else:
         st.info("✅ **Deposit Match Program:** Automatically applied.")
         discount_match = True
         
+        # Premium Personalized Adjustment Logic Hooks
         q_referral = st.radio("Were you referred by someone?", ["No", "Yes"], horizontal=True, key=f"ref_{version}")
         discount_referral = True if q_referral == "Yes" else False
         
