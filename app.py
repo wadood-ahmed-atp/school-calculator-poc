@@ -45,7 +45,7 @@ else:
     st.stop()
 
 # ==============================================================================
-# 2. SIDEBAR: LEAD INPUTS & MULTI-COURSE TRANSCRIPT MATRIX
+# 2. SIDEBAR BASE PRE-CALCULATION BLOCK
 # ==============================================================================
 st.sidebar.header("📋 Lead Profile")
 
@@ -69,18 +69,12 @@ dismissal_y = True if dismissal_selection == "Yes" else False
 license_type = st.sidebar.selectbox("License?", ["LPN", "CNA/CMA", "None"])
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
-# DYNAMIC VISIBILITY & RETITLED FIELD: Experience hidden completely if 'None' is selected
 lpn_exp = 0
 if license_type != "None":
     lpn_exp = st.sidebar.number_input("Months of Active Experience", min_value=0, max_value=120, value=6)
 
 travel_ok = st.sidebar.selectbox("Clinical Travel ok?", ["Yes", "No"])
 program_interest = st.sidebar.selectbox("Track?", ["ASN", "BSN"])
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("🛠️ Class Triggers")
-entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep?", value=False)
-has_addons = st.sidebar.checkbox("Add-ons Selected?", value=False)
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📚 Transcript Review")
@@ -98,6 +92,24 @@ needed_courses = st.sidebar.multiselect(
     options=course_list,
     default=[]
 )
+
+# --- BACKEND PRE-CALCULATOR CEILING CHECK LOOP ---
+pre_count = len(needed_courses) if len(needed_courses) > 0 else 1
+pre_main_price = 1179 if pre_count >= 10 else (1229 if pre_count >= 4 else 1289)
+pre_base_total = pre_count * pre_main_price
+
+# Conditional rendering loop for Class Triggers panel section block
+entrance_exam = False
+has_addons = False
+
+st.sidebar.markdown("---")
+if pre_base_total < 14500:
+    st.sidebar.subheader("🛠️ Class Triggers")
+    entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep?", value=False)
+    has_addons = st.sidebar.checkbox("Add-ons Selected?", value=False)
+else:
+    st.sidebar.subheader("🛠️ Class Triggers")
+    st.sidebar.warning("⚠️ Package limit reached ($14,500 Floor). Add-on triggers locked.")
 
 # ==============================================================================
 # 3. INTERACTIVE CALCULATOR ENGINE
