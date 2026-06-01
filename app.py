@@ -56,8 +56,9 @@ if st.sidebar.button("🔄 Reset Form"):
 
 student_name = st.sidebar.text_input("Student Name", value="Jane Doe")
 
-student_state = st.sidebar.selectbox("Student State", [
-    "FL", "GA", "WI", "AL", "KY", "NY", "Y", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", 
+# STAKEHOLDER UPDATE 1: "Lead State" label overhaul with clean list + DC added
+student_state = st.sidebar.selectbox("Lead State", [
+    "FL", "GA", "WI", "AL", "DC", "KY", "NY", "Y", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", 
     "HI", "ID", "IL", "IN", "IA", "KS", "LA", "ME", "MD", 
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
     "NM", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
@@ -66,7 +67,7 @@ student_state = st.sidebar.selectbox("Student State", [
 
 student_zip = st.sidebar.text_input("Zip Code", value="32801", max_chars=10)
 
-is_adult = st.sidebar.selectbox("Is the applicant 18 years of age or older?", ["Yes", "No"])
+is_adult = st.sidebar.selectbox("Are you 18 years of age or older?", ["Yes", "No"])
 
 gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=3.50, step=0.01)
 
@@ -82,7 +83,8 @@ is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
 lpn_exp = 0
 if license_type != "None":
-    lpn_exp = st.sidebar.number_input("Months of Active Experience", min_value=0, max_value=120, value=6)
+    # STAKEHOLDER UPDATE 2: Visual queue clarification for background lookbacks
+    lpn_exp = st.sidebar.number_input("Months of Active Experience (If less than 2 years)", min_value=0, max_value=120, value=6)
 
 travel_ok = st.sidebar.selectbox("Clinical Travel ok?", ["Yes", "No"])
 program_interest = st.sidebar.selectbox("Track?", ["BSN", "ASN"])
@@ -165,13 +167,16 @@ else:
         st.info("✅ **Deposit Match Program:** Automatically applied.")
         discount_match = True
         
-        q_referral = st.radio("Was the student referred by an affiliate partner or alum?", ["No", "Yes"], horizontal=True)
+        # STAKEHOLDER UPDATE 5: Conversational, ultra-simplified referral text string
+        q_referral = st.radio("Were you referred by someone?", ["No", "Yes"], horizontal=True)
         discount_referral = True if q_referral == "Yes" else False
         
-        q_military = st.radio("Is the student associated with the military (Veteran/Active/Spouse)?", ["No", "Yes"], horizontal=True)
+        # STAKEHOLDER UPDATE 3: Personalization shift for military vetting criteria
+        q_military = st.radio("Are you associated with the military (Veteran/Active/Spouse)?", ["No", "Yes"], horizontal=True)
         discount_military = True if q_military == "Yes" else False
         
-        q_free_course = st.radio("Does the student possess a promotional code for a complimentary course?", ["No", "Yes"], horizontal=True)
+        # STAKEHOLDER UPDATE 4: Clear user-level conversational coupon question framing
+        q_free_course = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], horizontal=True)
         discount_free_course = True if q_free_course == "Yes" else False
 
     with col_calc_output:
@@ -258,7 +263,6 @@ else:
             travel_clean = working_schools_df["Clinical Travel?"].astype(str).str.upper().str.strip()
             working_schools_df = working_schools_df[travel_clean.isin(["NO", "N", "NONE", "0", "0.0"])]
 
-    # --- STABLE COMPLIANCE DISMISSAL GATE ---
     if "Prior Nursing Dismissal Policy" in available_cols and dismissal_y:
         if dismissal_months <= 60:
             policy_clean = working_schools_df["Prior Nursing Dismissal Policy"].astype(str).str.upper().str.strip()
@@ -273,7 +277,6 @@ else:
         for _, school_row in filtered_df.iterrows():
             raw_name = str(school_row["School Name"]).strip()
             
-            # Keeps the spelling-resilient mapping intact so Herzing/Herizng works
             if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
                 word_pattern = "HERZ|HERI"
                 rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains(word_pattern, na=False, case=False)]
