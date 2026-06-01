@@ -69,9 +69,10 @@ dismissal_y = True if dismissal_selection == "Yes" else False
 license_type = st.sidebar.selectbox("License?", ["LPN", "CNA/CMA", "None"])
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
+# DYNAMIC VISIBILITY & RETITLED FIELD: Experience hidden completely if 'None' is selected
 lpn_exp = 0
-if license_type == "LPN":
-    lpn_exp = st.sidebar.number_input("LPN Months Exp", min_value=0, max_value=120, value=6)
+if license_type != "None":
+    lpn_exp = st.sidebar.number_input("Months of Active Experience", min_value=0, max_value=120, value=6)
 
 travel_ok = st.sidebar.selectbox("Clinical Travel ok?", ["Yes", "No"])
 program_interest = st.sidebar.selectbox("Track?", ["ASN", "BSN"])
