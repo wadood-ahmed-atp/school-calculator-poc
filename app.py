@@ -64,7 +64,6 @@ student_state = st.sidebar.selectbox("Student State", [
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ])
 
-# UX UPGRADE: ZIP CODE INTAKE BOX POSITIONED CORRECTLY AFTER STATE
 student_zip = st.sidebar.text_input("Zip Code", value="40201", max_chars=10)
 
 is_adult = st.sidebar.selectbox("Is the applicant 18 years of age or older?", ["Yes", "No"])
@@ -102,6 +101,10 @@ needed_courses = st.sidebar.multiselect(
 
 if "exam_state" not in st.session_state: st.session_state["exam_state"] = False
 if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
+
+# --- FIXED: UNIVERSAL TRACK DEFINITIONS DECLARED OUTSIDE COMPLIANCE SHIELD ---
+selected_track = str(program_interest).strip().upper()
+selected_state = str(student_state).strip().upper()
 
 # ==============================================================================
 # 3. INTERACTIVE RENDERING / COMPLIANCE GATING
