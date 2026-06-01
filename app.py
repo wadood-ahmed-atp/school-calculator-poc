@@ -75,7 +75,7 @@ dismissal_y = True if dismissal_selection == "Yes" else False
 
 dismissal_months = 0
 if dismissal_y:
-    dismissal_months = st.sidebar.number_input("Months Since Dismissal", min_value=0, max_value=300, value=72, step=1)
+    dismissal_months = st.sidebar.number_input("Months Since Dismissal", min_value=0, max_value=300, value=63, step=1)
 
 license_type = st.sidebar.selectbox("License?", ["LPN", "CNA/CMA", "None"])
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
@@ -258,10 +258,11 @@ else:
             travel_clean = working_schools_df["Clinical Travel?"].astype(str).str.upper().str.strip()
             working_schools_df = working_schools_df[travel_clean.isin(["NO", "N", "NONE", "0", "0.0"])]
 
+    # CRITICAL SECURITY FIX: Absolute Dismissal Restriction
+    # If the student checks 'Yes' to a dismissal, any school marked 'DOES NOT ACCEPT' is permanently hidden, ignoring month count
     if "Prior Nursing Dismissal Policy" in available_cols and dismissal_y:
-        if dismissal_months <= 60:
-            policy_clean = working_schools_df["Prior Nursing Dismissal Policy"].astype(str).str.upper().str.strip()
-            working_schools_df = working_schools_df[policy_clean != "DOES NOT ACCEPT"]
+        policy_clean = working_schools_df["Prior Nursing Dismissal Policy"].astype(str).str.upper().str.strip()
+        working_schools_df = working_schools_df[policy_clean != "DOES NOT ACCEPT"]
 
     filtered_df = working_schools_df.copy()
 
