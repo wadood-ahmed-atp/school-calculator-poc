@@ -54,7 +54,6 @@ if st.sidebar.button("🔄 Reset Form"):
     if "addon_state" in st.session_state: del st.session_state["addon_state"]
     st.rerun()
 
-# --- UX IMPROVEMENT: NATURAL LEAD FLOW ORDER ---
 student_name = st.sidebar.text_input("Student Name", value="Jane Doe")
 
 student_state = st.sidebar.selectbox("Student State", [
@@ -65,8 +64,10 @@ student_state = st.sidebar.selectbox("Student State", [
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ])
 
+# UX UPGRADE: ZIP CODE INTAKE BOX POSITIONED CORRECTLY AFTER STATE
+student_zip = st.sidebar.text_input("Zip Code", value="40201", max_chars=10)
+
 is_adult = st.sidebar.selectbox("Is the applicant 18 years of age or older?", ["Yes", "No"])
-# -----------------------------------------------
 
 gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=4.0, step=0.01)
 dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["No", "Yes"])
