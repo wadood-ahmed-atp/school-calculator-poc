@@ -69,8 +69,14 @@ student_zip = st.sidebar.text_input("Zip Code", value="40201", max_chars=10)
 is_adult = st.sidebar.selectbox("Is the applicant 18 years of age or older?", ["Yes", "No"])
 
 gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=4.0, step=0.01)
+
+# DYNAMIC NURSING DISMISSAL FLOW TRACKING
 dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["No", "Yes"])
 dismissal_y = True if dismissal_selection == "Yes" else False
+
+dismissal_months = 0
+if dismissal_y:
+    dismissal_months = st.sidebar.number_input("Months Since Dismissal", min_value=0, max_value=300, value=24, step=1)
 
 license_type = st.sidebar.selectbox("License?", ["LPN", "CNA/CMA", "None"])
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
@@ -102,7 +108,6 @@ needed_courses = st.sidebar.multiselect(
 if "exam_state" not in st.session_state: st.session_state["exam_state"] = False
 if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
 
-# --- FIXED: UNIVERSAL TRACK DEFINITIONS DECLARED OUTSIDE COMPLIANCE SHIELD ---
 selected_track = str(program_interest).strip().upper()
 selected_state = str(student_state).strip().upper()
 
@@ -252,6 +257,13 @@ else:
             travel_clean = master_schools_df["Clinical Travel?"].astype(str).str.upper().str.strip()
             master_schools_df = master_schools_df[travel_clean.isin(["NO", "N", "NONE", "0", "0.0"])]
 
+    # NEW: PRIOR NURSING DISMISSAL COMPLIANCE ENGINE FILTER
+    if "Prior Nursing Dismissal Policy" in available_cols and dismissal_y:
+        if dismissal_months <= 60:
+            policy_clean = master_schools_df["Prior Nursing Dismissal Policy"].astype(str).str.upper().str.strip()
+            # Under or equal to 60 months means we strictly hide any school marked "DOES NOT ACCEPT"
+            master_schools_df = master_schools_df[policy_clean != "DOES NOT ACCEPT"]
+
     filtered_df = master_schools_df.copy()
 
     if not filtered_df.empty:
@@ -330,6 +342,6 @@ else:
             styled_df = final_display_df.style.apply(style_legibility_flags, axis=None)
             st.dataframe(styled_df, use_container_width=True, hide_index=True)
         else:
-            st.warning("No schools match your base profile parameters.")
+            st.warning("No schools match your base profile parameters or dismissal compliance rules.")
     else:
-        st.warning("No schools match your base profile parameters.")
+        st.warning("No schools match your base profile parameters or dismissal compliance rules.")
