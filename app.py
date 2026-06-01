@@ -107,9 +107,10 @@ program_interest = st.sidebar.selectbox("Which track are you interested in?", op
 st.sidebar.markdown("---")
 st.sidebar.subheader("📚 Transcript Review")
 
+# FIXED: Standardized "Human Growth" header key to match your sheet exactly
 course_list = [
     "Eng Comp 1", "College Algebra", "Statistics", "Humanities 1", 
-    "Humanities 2", "Humanities 3", "Human Growth & Development", 
+    "Humanities 2", "Humanities 3", "Human Growth", 
     "Psychology", "Sociology", "Speech", "General Biology", 
     "Chemistry", "Government", "History", "Foreign Language", 
     "Macro/Micro Economics", "Elective 1", "Elective 2"
@@ -285,7 +286,7 @@ else:
     if not filtered_df.empty:
         status_log = []
         cash_yield_margins = []
-        deficiencies_resolved_log = [] # Container to store school-specific allowed courses
+        deficiencies_resolved_log = []
         
         for _, school_row in filtered_df.iterrows():
             raw_name = str(school_row["School Name"]).strip()
@@ -301,7 +302,7 @@ else:
             
             offered_courses_count = 0
             has_all_courses = True
-            school_accepted_list = [] # Tracker for courses that earn a 'Y' mark
+            school_accepted_list = []
             
             if not rule_row.empty:
                 for required_course in needed_courses:
@@ -309,7 +310,7 @@ else:
                         accepted_status = str(rule_row[required_course].values[0]).strip().upper()
                         if accepted_status == "Y":
                             offered_courses_count += 1
-                            school_accepted_list.append(required_course) # Logs course as resolved
+                            school_accepted_list.append(required_course)
                         else:
                             has_all_courses = False
                     else:
@@ -324,7 +325,6 @@ else:
             else:
                 status_log.append("Perfect Match")
                 
-            # FIXED: "Deficiencies Met" column logic now dynamically displays only true accepted matches
             if school_accepted_list:
                 deficiencies_resolved_log.append(", ".join(school_accepted_list))
             else:
@@ -343,7 +343,7 @@ else:
                 
         filtered_df["Match Status"] = status_log
         filtered_df["Estimated Revenue Profit"] = cash_yield_margins
-        filtered_df["Deficiencies Met"] = deficiencies_resolved_log # Injects dynamic data array into table row data map
+        filtered_df["Deficiencies Met"] = deficiencies_resolved_log
 
         preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Clinical Travel?", "Deficiencies Met"]
         columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
