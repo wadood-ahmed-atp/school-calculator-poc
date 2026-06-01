@@ -55,11 +55,10 @@ STATE_OPTIONS = [
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ]
 BINARY_OPTIONS = ["Yes", "No"]
-DISMISSAL_OPTIONS = ["No", "Yes"]  # "No" is now index 0 to align with requested reset defaults
-LICENSE_OPTIONS = ["None", "LPN", "CNA/CMA"] # "None" is now index 0 to align with requested reset defaults
+DISMISSAL_OPTIONS = ["No", "Yes"]
+LICENSE_OPTIONS = ["None", "LPN", "CNA/CMA"]
 TRACK_OPTIONS = ["BSN", "ASN"]
 
-# Initialize reset dynamic counter token
 if "reset_counter" not in st.session_state: 
     st.session_state["reset_counter"] = 0
 if "exam_state" not in st.session_state: 
@@ -69,7 +68,7 @@ if "addon_state" not in st.session_state:
 
 st.sidebar.header("📋 Lead Profile")
 
-# Dynamic state reset manager - triggers absolute rebuild with requested defaults
+# Clear Reset Flow
 if st.sidebar.button("🔄 Reset Form"):
     st.session_state["reset_counter"] += 1
     st.session_state["exam_state"] = False
@@ -79,13 +78,13 @@ if st.sidebar.button("🔄 Reset Form"):
 version = st.session_state["reset_counter"]
 
 # ==============================================================================
-# 3. CONVERSATIONAL SIDEBAR (DYNAMIC ARRAYS WITH REQUESTED DEFAULT STRINGS)
+# 3. SIDEBAR WITH WIDGET PLACEHOLDERS & DYNAMIC LPN CONDITIONAL VISIBILITY
 # ==============================================================================
-student_name = st.sidebar.text_input("Student Name", value="Enter Your name", key=f"name_{version}")
+# FIXED: Using placeholder= instead of value= allows text fields to be auto-typed over instantly
+student_name = st.sidebar.text_input("Student Name", placeholder="Enter Your name", value="", key=f"name_{version}")
 student_state = st.sidebar.selectbox("Lead State", options=STATE_OPTIONS, index=0, key=f"state_{version}")
-student_zip = st.sidebar.text_input("Zip Code", value="Enter Your Zip", max_chars=14, key=f"zip_{version}")
+student_zip = st.sidebar.text_input("Zip Code", placeholder="Enter Your Zip", value="", max_chars=14, key=f"zip_{version}")
 
-# Conversational Overhaul Integration
 is_adult = st.sidebar.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=0, key=f"adult_{version}")
 gpa_val = st.sidebar.number_input("What is your GPA Score?", min_value=0.0, max_value=4.0, value=4.00, step=0.01, key=f"gpa_{version}")
 
@@ -99,11 +98,13 @@ if dismissal_y:
 license_type = st.sidebar.selectbox("What is your current nursing license?", options=LICENSE_OPTIONS, index=0, key=f"lic_{version}")
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
+# FIXED: Experience field now strictly gates visibility to LPN and fits elegantly on one line
 lpn_exp = 0
-if license_type != "None":
-    lpn_exp = st.sidebar.number_input("Months of Active Experience (If less than 2 years)", min_value=0, max_value=120, value=0, step=1, key=f"exp_{version}")
+if license_type == "LPN":
+    lpn_exp = st.sidebar.number_input("Months of LPN Experience (If less than 2 yrs)", min_value=0, max_value=120, value=0, step=1, key=f"exp_{version}")
 
-travel_ok = st.sidebar.selectbox("Are you okay with regional clinical travel?", options=BINARY_OPTIONS, index=0, key=f"travel_{version}")
+# FIXED: Substituted regional text tracking string with local target parameters
+travel_ok = st.sidebar.selectbox("Are you okay with local clinical travel?", options=BINARY_OPTIONS, index=0, key=f"travel_{version}")
 program_interest = st.sidebar.selectbox("Which track are you interested in?", options=TRACK_OPTIONS, index=0, key=f"track_{version}")
 
 st.sidebar.markdown("---")
@@ -128,17 +129,11 @@ selected_track = str(program_interest).strip().upper()
 selected_state = str(student_state).strip().upper()
 
 # ==============================================================================
-# 4. INTERACTIVE CALCULATOR PROCESSING / COMPLIANCE SAFEGUARD
+# 4. MAIN INTERACTIVE RENDERING / COMPLIANCE GATING
 # ==============================================================================
 if is_adult == "No":
     st.error("🛑 **Self-Serve Checkout Unavailable**")
-    st.info(f"""
-    ### **Next Steps Required for {student_name}:**
-    Applicants under the age of 18 are not permitted to complete an independent digital registration or contract confirmation. 
-    
-    To advance your enrollment matrix, please schedule an appointment to speak with an admissions representative. 
-    **Note:** A parent, legal guardian, or sponsoring adult must accompany the applicant during the consultation call.
-    """)
+    st.info(f"### **Next Steps Required for {student_name if student_name else 'Applicant'}:**\nApplicants under the age of 18 are not permitted to complete an independent digital registration or contract confirmation. \n\nTo advance your enrollment matrix, please schedule an appointment to speak with an admissions representative. \n**Note:** A parent, legal guardian, or sponsoring adult must accompany the applicant during the consultation call.")
 elif student_state == "Select state":
     st.warning("⚠️ **Lead State Required:** Please select a valid state territory from the sidebar dropdown list to unlock matrix filtering features.")
 else:
@@ -184,7 +179,6 @@ else:
         st.info("✅ **Deposit Match Program:** Automatically applied.")
         discount_match = True
         
-        # Premium Personalized Adjustment Logic Hooks
         q_referral = st.radio("Were you referred by someone?", ["No", "Yes"], horizontal=True, key=f"ref_{version}")
         discount_referral = True if q_referral == "Yes" else False
         
