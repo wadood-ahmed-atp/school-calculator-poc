@@ -49,44 +49,52 @@ else:
 # ==============================================================================
 st.sidebar.header("📋 Lead Profile")
 
+# FIX: Comprehensive Session-State Sweeper for Reset Button
 if st.sidebar.button("🔄 Reset Form"):
-    if "exam_state" in st.session_state: del st.session_state["exam_state"]
-    if "addon_state" in st.session_state: del st.session_state["addon_state"]
+    all_keys = [
+        "exam_state", "addon_state", "ui_name", "ui_state", "ui_zip", 
+        "ui_adult", "ui_gpa", "ui_dismiss", "ui_dismiss_months", 
+        "ui_license", "ui_exp", "ui_travel", "ui_track", "ui_courses",
+        "ui_exam", "ui_addon"
+    ]
+    for key in all_keys:
+        if key in st.session_state:
+            del st.session_state[key]
     st.rerun()
 
-student_name = st.sidebar.text_input("Student Name", value="Jane Doe")
+# Assigned unique persistent keys to every input widget to lock in global resets
+student_name = st.sidebar.text_input("Student Name", value="Jane Doe", key="ui_name")
 
-# FIXED: Removed the invalid "Y" entry from the picklist array
 student_state = st.sidebar.selectbox("Lead State", [
     "FL", "GA", "WI", "AL", "DC", "KY", "NY", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", 
     "HI", "ID", "IL", "IN", "IA", "KS", "LA", "ME", "MD", 
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
     "NM", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
-])
+], key="ui_state")
 
-student_zip = st.sidebar.text_input("Zip Code", value="32801", max_chars=10)
+student_zip = st.sidebar.text_input("Zip Code", value="32801", max_chars=10, key="ui_zip")
 
-is_adult = st.sidebar.selectbox("Are you 18 years of age or older?", ["Yes", "No"])
+is_adult = st.sidebar.selectbox("Are you 18 years of age or older?", ["Yes", "No"], key="ui_adult")
 
-gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=3.50, step=0.01)
+gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=3.50, step=0.01, key="ui_gpa")
 
-dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["Yes", "No"])
+dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["Yes", "No"], key="ui_dismiss")
 dismissal_y = True if dismissal_selection == "Yes" else False
 
 dismissal_months = 0
 if dismissal_y:
-    dismissal_months = st.sidebar.number_input("Months Since Dismissal", min_value=0, max_value=300, value=72, step=1)
+    dismissal_months = st.sidebar.number_input("Months Since Dismissal", min_value=0, max_value=300, value=72, step=1, key="ui_dismiss_months")
 
-license_type = st.sidebar.selectbox("License?", ["LPN", "CNA/CMA", "None"])
+license_type = st.sidebar.selectbox("License?", ["LPN", "CNA/CMA", "None"], key="ui_license")
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
 lpn_exp = 0
 if license_type != "None":
-    lpn_exp = st.sidebar.number_input("Months of Active Experience (If less than 2 years)", min_value=0, max_value=120, value=6)
+    lpn_exp = st.sidebar.number_input("Months of Active Experience (If less than 2 years)", min_value=0, max_value=120, value=6, key="ui_exp")
 
-travel_ok = st.sidebar.selectbox("Clinical Travel ok?", ["Yes", "No"])
-program_interest = st.sidebar.selectbox("Track?", ["BSN", "ASN"])
+travel_ok = st.sidebar.selectbox("Clinical Travel ok?", ["Yes", "No"], key="ui_travel")
+program_interest = st.sidebar.selectbox("Track?", ["BSN", "ASN"], key="ui_track")
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📚 Transcript Review")
@@ -102,7 +110,8 @@ course_list = [
 needed_courses = st.sidebar.multiselect(
     "Select Needed Courses:",
     options=course_list,
-    default=[]
+    default=[],
+    key="ui_courses"
 )
 
 if "exam_state" not in st.session_state: st.session_state["exam_state"] = False
