@@ -45,56 +45,98 @@ else:
     st.stop()
 
 # ==============================================================================
-# 2. SIDEBAR INITIALIZATION & CONFIGURATION
+# 2. DEFINED SYSTEM STATE CONSTANTS & STATE RESET MANAGER
 # ==============================================================================
-st.sidebar.header("📋 Lead Profile")
-
-# FIX: Comprehensive Session-State Sweeper for Reset Button
-if st.sidebar.button("🔄 Reset Form"):
-    all_keys = [
-        "exam_state", "addon_state", "ui_name", "ui_state", "ui_zip", 
-        "ui_adult", "ui_gpa", "ui_dismiss", "ui_dismiss_months", 
-        "ui_license", "ui_exp", "ui_travel", "ui_track", "ui_courses",
-        "ui_exam", "ui_addon"
-    ]
-    for key in all_keys:
-        if key in st.session_state:
-            del st.session_state[key]
-    st.rerun()
-
-# Assigned unique persistent keys to every input widget to lock in global resets
-student_name = st.sidebar.text_input("Student Name", value="Jane Doe", key="ui_name")
-
-student_state = st.sidebar.selectbox("Lead State", [
+# Define raw arrays for index mapping
+STATE_OPTIONS = [
     "FL", "GA", "WI", "AL", "DC", "KY", "NY", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", 
     "HI", "ID", "IL", "IN", "IA", "KS", "LA", "ME", "MD", 
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
     "NM", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
-], key="ui_state")
+]
+BINARY_OPTIONS = ["Yes", "No"]
+DISMISSAL_OPTIONS = ["Yes", "No"]
+LICENSE_OPTIONS = ["LPN", "CNA/CMA", "None"]
+TRACK_OPTIONS = ["BSN", "ASN"]
 
-student_zip = st.sidebar.text_input("Zip Code", value="32801", max_chars=10, key="ui_zip")
+# Initialize baseline structural value anchors cleanly
+if "val_name" not in st.session_state: st.session_state["val_name"] = "Jane Doe"
+if "val_state" not in st.session_state: st.session_state["val_state"] = 0  # Points to FL
+if "val_zip" not in st.session_state: st.session_state["val_zip"] = "32801"
+if "val_adult" not in st.session_state: st.session_state["val_adult"] = 0  # Points to Yes
+if "val_gpa" not in st.session_state: st.session_state["val_gpa"] = 3.50
+if "val_dismiss" not in st.session_state: st.session_state["val_dismiss"] = 1  # Points to No
+if "val_dismiss_months" not in st.session_state: st.session_state["val_dismiss_months"] = 72
+if "val_license" not in st.session_state: st.session_state["val_license"] = 0  # Points to LPN
+if "val_exp" not in st.session_state: st.session_state["val_exp"] = 6
+if "val_travel" not in st.session_state: st.session_state["val_travel"] = 0  # Points to Yes
+if "val_track" not in st.session_state: st.session_state["val_track"] = 0  # Points to BSN
+if "val_courses" not in st.session_state: st.session_state["val_courses"] = []
+if "exam_state" not in st.session_state: st.session_state["exam_state"] = False
+if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
 
-is_adult = st.sidebar.selectbox("Are you 18 years of age or older?", ["Yes", "No"], key="ui_adult")
+st.sidebar.header("📋 Lead Profile")
 
-gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=3.50, step=0.01, key="ui_gpa")
+# The Hard-Reset Callback Engine
+if st.sidebar.button("🔄 Reset Form"):
+    st.session_state["val_name"] = "Jane Doe"
+    st.session_state["val_state"] = 0
+    st.session_state["val_zip"] = "32801"
+    st.session_state["val_adult"] = 0
+    st.session_state["val_gpa"] = 3.50
+    st.session_state["val_dismiss"] = 1
+    st.session_state["val_dismiss_months"] = 72
+    st.session_state["val_license"] = 0
+    st.session_state["val_exp"] = 6
+    st.session_state["val_travel"] = 0
+    st.session_state["val_track"] = 0
+    st.session_state["val_courses"] = []
+    st.session_state["exam_state"] = False
+    st.session_state["addon_state"] = False
+    st.rerun()
 
-dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["Yes", "No"], key="ui_dismiss")
+# ==============================================================================
+# 3. INTERACTIVE SIDEBAR WIDGET IMPLEMENTATION
+# ==============================================================================
+student_name = st.sidebar.text_input("Student Name", value=st.session_state["val_name"])
+st.session_state["val_name"] = student_name
+
+student_state = st.sidebar.selectbox("Lead State", options=STATE_OPTIONS, index=st.session_state["val_state"])
+st.session_state["val_state"] = STATE_OPTIONS.index(student_state)
+
+student_zip = st.sidebar.text_input("Zip Code", value=st.session_state["val_zip"], max_chars=10)
+st.session_state["val_zip"] = student_zip
+
+is_adult = st.sidebar.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=st.session_state["val_adult"])
+st.session_state["val_adult"] = BINARY_OPTIONS.index(is_adult)
+
+gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=st.session_state["val_gpa"], step=0.01)
+st.session_state["val_gpa"] = gpa_val
+
+dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", options=DISMISSAL_OPTIONS, index=st.session_state["val_dismiss"])
+st.session_state["val_dismiss"] = DISMISSAL_OPTIONS.index(dismissal_selection)
 dismissal_y = True if dismissal_selection == "Yes" else False
 
 dismissal_months = 0
 if dismissal_y:
-    dismissal_months = st.sidebar.number_input("Months Since Dismissal", min_value=0, max_value=300, value=72, step=1, key="ui_dismiss_months")
+    dismissal_months = st.sidebar.number_input("Months Since Dismissal", min_value=0, max_value=300, value=st.session_state["val_dismiss_months"], step=1)
+    st.session_state["val_dismiss_months"] = dismissal_months
 
-license_type = st.sidebar.selectbox("License?", ["LPN", "CNA/CMA", "None"], key="ui_license")
+license_type = st.sidebar.selectbox("License?", options=LICENSE_OPTIONS, index=st.session_state["val_license"])
+st.session_state["val_license"] = LICENSE_OPTIONS.index(license_type)
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
 lpn_exp = 0
 if license_type != "None":
-    lpn_exp = st.sidebar.number_input("Months of Active Experience (If less than 2 years)", min_value=0, max_value=120, value=6, key="ui_exp")
+    lpn_exp = st.sidebar.number_input("Months of Active Experience (If less than 2 years)", min_value=0, max_value=120, value=st.session_state["val_exp"], step=1)
+    st.session_state["val_exp"] = lpn_exp
 
-travel_ok = st.sidebar.selectbox("Clinical Travel ok?", ["Yes", "No"], key="ui_travel")
-program_interest = st.sidebar.selectbox("Track?", ["BSN", "ASN"], key="ui_track")
+travel_ok = st.sidebar.selectbox("Clinical Travel ok?", options=BINARY_OPTIONS, index=st.session_state["val_travel"])
+st.session_state["val_travel"] = BINARY_OPTIONS.index(travel_ok)
+
+program_interest = st.sidebar.selectbox("Track?", options=TRACK_OPTIONS, index=st.session_state["val_track"])
+st.session_state["val_track"] = TRACK_OPTIONS.index(program_interest)
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📚 Transcript Review")
@@ -110,18 +152,15 @@ course_list = [
 needed_courses = st.sidebar.multiselect(
     "Select Needed Courses:",
     options=course_list,
-    default=[],
-    key="ui_courses"
+    default=st.session_state["val_courses"]
 )
-
-if "exam_state" not in st.session_state: st.session_state["exam_state"] = False
-if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
+st.session_state["val_courses"] = needed_courses
 
 selected_track = str(program_interest).strip().upper()
 selected_state = str(student_state).strip().upper()
 
 # ==============================================================================
-# 3. INTERACTIVE RENDERING / COMPLIANCE GATING
+# 4. MAIN INTERACTIVE RENDERING / COMPLIANCE GATING
 # ==============================================================================
 if is_adult == "No":
     st.error("🛑 **Self-Serve Checkout Unavailable**")
@@ -153,8 +192,8 @@ else:
     st.sidebar.subheader("🛠️ Class Triggers")
 
     if mock_grand_total < 14500:
-        entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep?", value=st.session_state["exam_state"], key="ui_exam")
-        has_addons = st.sidebar.checkbox("Add-ons Selected?", value=st.session_state["addon_state"], key="ui_addon")
+        entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep?", value=st.session_state["exam_state"])
+        has_addons = st.sidebar.checkbox("Add-ons Selected?", value=st.session_state["addon_state"])
         st.session_state["exam_state"] = entrance_exam
         st.session_state["addon_state"] = has_addons
     else:
