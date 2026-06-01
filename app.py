@@ -97,7 +97,6 @@ if dismissal_y:
 license_type = st.sidebar.selectbox("What is your current nursing license?", options=LICENSE_OPTIONS, index=0, key=f"lic_{version}")
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
-# Dynamic Visibility Gate for LPN Experience Tracking Box
 lpn_exp = 0
 if license_type == "LPN":
     lpn_exp = st.sidebar.number_input("Months of LPN Experience (If less than 2 yrs)", min_value=0, max_value=120, value=0, step=1, key=f"exp_{version}")
@@ -259,7 +258,6 @@ else:
     if "States Accepted" in available_cols:
         working_schools_df = working_schools_df[working_schools_df["States Accepted"].str.upper().str.contains(selected_state)]
 
-    # FIXED: Broadened LPN requirement gate layer with case/whitespace tolerant pattern search execution
     if "LPN Required?" in available_cols and license_type in ["None", "CNA/CMA"]:
         working_schools_df["LPN Required?"] = working_schools_df["LPN Required?"].astype(str).str.upper().str.strip()
         working_schools_df = working_schools_df[working_schools_df["LPN Required?"] != "Y"]
@@ -287,6 +285,7 @@ else:
     if not filtered_df.empty:
         status_log = []
         cash_yield_margins = []
+        deficiencies_resolved_log = [] # Container to store school-specific allowed courses
         
         for _, school_row in filtered_df.iterrows():
             raw_name = str(school_row["School Name"]).strip()
@@ -302,6 +301,7 @@ else:
             
             offered_courses_count = 0
             has_all_courses = True
+            school_accepted_list = [] # Tracker for courses that earn a 'Y' mark
             
             if not rule_row.empty:
                 for required_course in needed_courses:
@@ -309,6 +309,7 @@ else:
                         accepted_status = str(rule_row[required_course].values[0]).strip().upper()
                         if accepted_status == "Y":
                             offered_courses_count += 1
+                            school_accepted_list.append(required_course) # Logs course as resolved
                         else:
                             has_all_courses = False
                     else:
@@ -323,6 +324,12 @@ else:
             else:
                 status_log.append("Perfect Match")
                 
+            # FIXED: "Deficiencies Met" column logic now dynamically displays only true accepted matches
+            if school_accepted_list:
+                deficiencies_resolved_log.append(", ".join(school_accepted_list))
+            else:
+                deficiencies_resolved_log.append("None")
+                
             revenue_per_course = float(main_price)
             school_revenue_potential = offered_courses_count * revenue_per_course
             
@@ -336,11 +343,7 @@ else:
                 
         filtered_df["Match Status"] = status_log
         filtered_df["Estimated Revenue Profit"] = cash_yield_margins
-        
-        if needed_courses:
-            filtered_df["Deficiencies Met"] = ", ".join(needed_courses)
-        else:
-            filtered_df["Deficiencies Met"] = "None"
+        filtered_df["Deficiencies Met"] = deficiencies_resolved_log # Injects dynamic data array into table row data map
 
         preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Clinical Travel?", "Deficiencies Met"]
         columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
