@@ -68,9 +68,9 @@ student_zip = st.sidebar.text_input("Zip Code", value="40201", max_chars=10)
 
 is_adult = st.sidebar.selectbox("Is the applicant 18 years of age or older?", ["Yes", "No"])
 
-gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=4.0, step=0.01)
+gpa_val = st.sidebar.number_input("GPA Score", min_value=0.0, max_value=4.0, value=3.50, step=0.01)
 
-dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["No", "Yes"])
+dismissal_selection = st.sidebar.selectbox("Prior Nursing Dismissal?", ["Yes", "No"])
 dismissal_y = True if dismissal_selection == "Yes" else False
 
 dismissal_months = 0
@@ -272,9 +272,12 @@ else:
         for _, school_row in filtered_df.iterrows():
             raw_name = str(school_row["School Name"]).strip()
             
-            # RESILIENT MAPPING LOOKUP LAYER: Match rules even if Herzing/Herizng spelling is transposed in either file
+            # --- FAULT-TOLERANT ALGORITHM FIX ---
+            # Instead of looking for exact matching characters, it isolates terms.
+            # If the row contains "HERZ" or "HERI", it scans for the paired words inside the rules matrix.
             if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
-                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains("HERZ") | transcript_rules_df["School Name"].str.upper().str.contains("HERI")]
+                word_pattern = "HERZ|HERI"
+                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains(word_pattern, na=False, case=False)]
             else:
                 rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
             
