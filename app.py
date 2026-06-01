@@ -56,9 +56,9 @@ if st.sidebar.button("🔄 Reset Form"):
 
 student_name = st.sidebar.text_input("Student Name", value="Jane Doe")
 
-# STAKEHOLDER UPDATE 1: "Lead State" label overhaul with clean list + DC added
+# FIXED: Removed the invalid "Y" entry from the picklist array
 student_state = st.sidebar.selectbox("Lead State", [
-    "FL", "GA", "WI", "AL", "DC", "KY", "NY", "Y", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", 
+    "FL", "GA", "WI", "AL", "DC", "KY", "NY", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", 
     "HI", "ID", "IL", "IN", "IA", "KS", "LA", "ME", "MD", 
     "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
     "NM", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
@@ -83,7 +83,6 @@ is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
 lpn_exp = 0
 if license_type != "None":
-    # STAKEHOLDER UPDATE 2: Visual queue clarification for background lookbacks
     lpn_exp = st.sidebar.number_input("Months of Active Experience (If less than 2 years)", min_value=0, max_value=120, value=6)
 
 travel_ok = st.sidebar.selectbox("Clinical Travel ok?", ["Yes", "No"])
@@ -167,15 +166,12 @@ else:
         st.info("✅ **Deposit Match Program:** Automatically applied.")
         discount_match = True
         
-        # STAKEHOLDER UPDATE 5: Conversational, ultra-simplified referral text string
         q_referral = st.radio("Were you referred by someone?", ["No", "Yes"], horizontal=True)
         discount_referral = True if q_referral == "Yes" else False
         
-        # STAKEHOLDER UPDATE 3: Personalization shift for military vetting criteria
         q_military = st.radio("Are you associated with the military (Veteran/Active/Spouse)?", ["No", "Yes"], horizontal=True)
         discount_military = True if q_military == "Yes" else False
         
-        # STAKEHOLDER UPDATE 4: Clear user-level conversational coupon question framing
         q_free_course = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], horizontal=True)
         discount_free_course = True if q_free_course == "Yes" else False
 
