@@ -78,9 +78,8 @@ if st.sidebar.button("🔄 Reset Form"):
 version = st.session_state["reset_counter"]
 
 # ==============================================================================
-# 3. SIDEBAR WITH WIDGET PLACEHOLDERS & DYNAMIC LPN CONDITIONAL VISIBILITY
+# 3. SIDEBAR WITH WIDGET PLACEHOLDERS & CONDITIONAL VISIBILITY
 # ==============================================================================
-# FIXED: Using placeholder= instead of value= allows text fields to be auto-typed over instantly
 student_name = st.sidebar.text_input("Student Name", placeholder="Enter Your name", value="", key=f"name_{version}")
 student_state = st.sidebar.selectbox("Lead State", options=STATE_OPTIONS, index=0, key=f"state_{version}")
 student_zip = st.sidebar.text_input("Zip Code", placeholder="Enter Your Zip", value="", max_chars=14, key=f"zip_{version}")
@@ -98,12 +97,11 @@ if dismissal_y:
 license_type = st.sidebar.selectbox("What is your current nursing license?", options=LICENSE_OPTIONS, index=0, key=f"lic_{version}")
 is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
 
-# FIXED: Experience field now strictly gates visibility to LPN and fits elegantly on one line
+# Dynamic Visibility Gate for LPN Experience Tracking Box
 lpn_exp = 0
 if license_type == "LPN":
     lpn_exp = st.sidebar.number_input("Months of LPN Experience (If less than 2 yrs)", min_value=0, max_value=120, value=0, step=1, key=f"exp_{version}")
 
-# FIXED: Substituted regional text tracking string with local target parameters
 travel_ok = st.sidebar.selectbox("Are you okay with local clinical travel?", options=BINARY_OPTIONS, index=0, key=f"travel_{version}")
 program_interest = st.sidebar.selectbox("Which track are you interested in?", options=TRACK_OPTIONS, index=0, key=f"track_{version}")
 
@@ -185,8 +183,11 @@ else:
         q_military = st.radio("Are you associated with the military (Veteran/Active/Spouse)?", ["No", "Yes"], horizontal=True, key=f"mil_{version}")
         discount_military = True if q_military == "Yes" else False
         
-        q_free_course = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], horizontal=True, key=f"promo_{version}")
-        discount_free_course = True if q_free_course == "Yes" else False
+        # FIXED: Dynamic visibility gate limits coupon radio box initialization unless courses count >= 3
+        discount_free_course = False
+        if len(needed_courses) >= 3:
+            q_free_course = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], horizontal=True, key=f"promo_{version}")
+            discount_free_course = True if q_free_course == "Yes" else False
 
     with col_calc_output:
         st.subheader("Ledger Balance")
