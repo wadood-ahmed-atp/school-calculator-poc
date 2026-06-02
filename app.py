@@ -101,13 +101,13 @@ lpn_exp = 0
 if license_type == "LPN":
     lpn_exp = st.sidebar.number_input("Months of LPN Experience (If less than 2 yrs)", min_value=0, max_value=120, value=0, step=1, key=f"exp_{version}")
 
-travel_ok = st.sidebar.selectbox("Are you okay with local clinical travel?", options=BINARY_OPTIONS, index=0, key=f"travel_{version}")
+# UPDATED: Reverted text framework parameter back to regional definition
+travel_ok = st.sidebar.selectbox("Are you okay with regional clinical travel?", options=BINARY_OPTIONS, index=0, key=f"travel_{version}")
 program_interest = st.sidebar.selectbox("Which track are you interested in?", options=TRACK_OPTIONS, index=0, key=f"track_{version}")
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📚 Transcript Review")
 
-# UPDATED: Re-synced to your updated "Human Growth & Development" CSV column header name
 course_list = [
     "Eng Comp 1", "College Algebra", "Statistics", "Humanities 1", 
     "Humanities 2", "Humanities 3", "Human Growth & Development", 
