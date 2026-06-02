@@ -18,8 +18,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🎓 Bridge Plan Generator")
-st.markdown("### **System Framework Matrix**")
+st.title("🗺️ Bridge Plan Generator")
+st.markdown("### **Self-Serve Enrollment Matrix**")
 st.divider()
 
 # ==============================================================================
@@ -169,7 +169,7 @@ else:
     if st.session_state["confirmed_package"]:
         pkg = st.session_state["confirmed_package"]
         st.balloons()
-        st.success(f"🎉 **Enrollment Successfully Finalized for {student_name if student_name else 'Lead'}!**")
+        st.success(f"🎉 **Bridge Plan Successfully Finalized for {student_name if student_name else 'Lead'}!**")
         
         inv1, inv2, inv3 = st.columns(3)
         inv1.markdown(f"**Institution Secured:**\n### {pkg['school_name']}")
@@ -469,7 +469,7 @@ else:
 
         st.markdown("#### Click 'Select School' directly on any partner row to process enrollment setup:")
         
-        # FIXED: Expanded column grid tracking layout arrays to cleanly hold 7 separate column items
+        # Grid Column Sizing Array Mapping
         h_col1, h_col2, h_col3, h_col4, h_col5, h_col6, h_col7 = st.columns([1.5, 2.5, 1.2, 1, 1.8, 1.5, 2.5])
         h_col1.markdown("**Action Matrix**")
         h_col2.markdown("**School Name**")
@@ -477,7 +477,7 @@ else:
         h_col4.markdown("**Track**")
         h_col5.markdown("**Match Status**")
         h_col6.markdown("**Entrance Exam**")
-        h_col7.markdown("**Deficiencies Met**") # Restored column label header
+        h_col7.markdown("**Deficiencies Met**")
         st.markdown("<hr style='margin: 0px 0px 10px 0px; border-color: #cbd5e1;'>", unsafe_allow_html=True)
 
         for idx, row in final_display_df.iterrows():
@@ -490,7 +490,6 @@ else:
             
             txt_profit = f"${s_profit_raw:,.2f}" if isinstance(s_profit_raw, (int, float)) else str(row["Estimated Revenue Profit"])
             
-            # FIXED: Synchronized row display columns mapping with the exact header sizing above
             row_col1, row_col2, row_col3, row_col4, row_col5, row_col6, row_col7 = st.columns([1.5, 2.5, 1.2, 1, 1.8, 1.5, 2.5])
             
             if row_col1.button("Select School", key=f"btn_select_{idx}_{version}"):
@@ -506,7 +505,7 @@ else:
                 row_col5.markdown(s_status)
                 
             row_col6.markdown(f"`{s_exam}`")
-            row_col7.markdown(f"_{s_met}_") # Restored dynamic resolution dataset text variable
+            row_col7.markdown(f"_{s_met}_")
             st.markdown("<hr style='margin: 5px 0px; border-color: #f1f5f9;'>", unsafe_allow_html=True)
 
     else:
