@@ -368,4 +368,145 @@ else:
             elif final_total_classes <= 7: m_reg = 325
             elif final_total_classes <= 10: m_reg = 375
             elif final_total_classes <= 15: m_reg = 475
-            else: m_reg = 60
+            else: m_reg = 600
+
+        c1, c2 = st.columns(2)
+        c1.metric("Adjusted Base Total", f"${final_base_total:,.2f}")
+        c2.metric("Registration Fee", f"${m_reg:,.2f}")
+        st.metric("Final Balance Due", f"${modal_final_total:,.2f}")
+        
+        if st.button("🔒 Lock in Enrollment Package", key="modal_lock_btn"):
+            st.session_state["confirmed_package"] = {
+                "school_name": school_name,
+                "student_name": student_name if student_name else "Unnamed Applicant",
+                "base_total": final_base_total,
+                "reg_fee": m_reg,
+                "final_total": modal_final_total,
+                "courses_included": needed_courses,
+                "entrance_exam_prep_added": include_exam_prep,
+                "addons_active": has_addons
+            }
+            st.rerun()
+
+    if not filtered_df.empty:
+        status_log = []
+        cash_yield_margins = []
+        deficiencies_resolved_log = []
+        exam_requirements_list = []
+        
+        for _, school_row in filtered_df.iterrows():
+            raw_name = str(school_row["School Name"]).strip()
+            exam_requirements_list.append(str(school_row.get("Entrance Exam", "--")).strip())
+            
+            if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
+                word_pattern = "HERZ|HERI"
+                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains(word_pattern, na=False, case=False)]
+            elif "EXCEL" in raw_name.upper():
+                word_pattern = "EXCEL"
+                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains(word_pattern, na=False, case=False)]
+            else:
+                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
+            
+            offered_courses_count = 0
+            has_all_courses = True
+            school_accepted_list = []
+            
+            if not rule_row.empty:
+                for required_course in needed_courses:
+                    if required_course in rule_row.columns:
+                        accepted_status = str(rule_row[required_course].values[0]).strip().upper()
+                        if accepted_status == "Y":
+                            offered_courses_count += 1
+                            school_accepted_list.append(required_course)
+                        else:
+                            has_all_courses = False
+                    else:
+                        has_all_courses = False
+                
+                if len(needed_courses) == 0:
+                    status_log.append("Perfect Match")
+                elif has_all_courses:
+                    status_log.append("Perfect Match")
+                else:
+                    status_log.append("Missing Needed CBE Courses")
+            else:
+                status_log.append("Perfect Match")
+                
+            if school_accepted_list:
+                deficiencies_resolved_log.append(", ".join(school_accepted_list))
+            else:
+                deficiencies_resolved_log.append("None")
+                
+            revenue_per_course = float(main_price)
+            school_revenue_potential = offered_courses_count * revenue_per_course
+            
+            tuition_cost_raw = str(school_row.get("Tuition", "0")).replace("$", "").replace(",", "").strip()
+            tuition_cost = pd.to_numeric(tuition_cost_raw, errors='coerce')
+            if pd.isna(tuition_cost):
+                tuition_cost = 0.0
+                
+            calculated_margin = max(0.0, school_revenue_potential - float(tuition_cost))
+            cash_yield_margins.append(calculated_margin)
+                
+        filtered_df["Match Status"] = status_log
+        filtered_df["Estimated Revenue Profit"] = cash_yield_margins
+        filtered_df["Deficiencies Met"] = deficiencies_resolved_log
+        filtered_df["Entrance Exam Requirement"] = exam_requirements_list
+
+        preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Entrance Exam Requirement", "Deficiencies Met"]
+        columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
+
+        if dismissal_y and "Reentry Requirements" in filtered_df.columns:
+            columns_to_show.append("Reentry Requirements")
+
+        final_display_df = filtered_df[columns_to_show].copy()
+        
+        # FIXED: Fault-tolerant numeric conversion for strict descending row sorting safety
+        final_display_df["_sort_profit"] = pd.to_numeric(
+            final_display_df["Estimated Revenue Profit"].astype(str).str.replace("$", "").str.replace(",", ""), 
+            errors="coerce"
+        ).fillna(0.0)
+        final_display_df = final_display_df.sort_values(by="_sort_profit", ascending=False)
+
+        st.markdown("#### Click 'Select School' directly on any partner row to process enrollment setup:")
+        
+        # Table Header Layout Config
+        h_col1, h_col2, h_col3, h_col4, h_col5, h_col6 = st.columns([1.5, 2.5, 1.5, 1, 2, 1.5])
+        h_col1.markdown("**Action Matrix**")
+        h_col2.markdown("**School Name**")
+        h_col3.markdown("**Est Profit**")
+        h_col4.markdown("**Track**")
+        h_col5.markdown("**Match Status**")
+        h_col6.markdown("**Entrance Exam**")
+        st.markdown("<hr style='margin: 0px 0px 10px 0px; border-color: #cbd5e1;'>", unsafe_allow_html=True)
+
+        # Fault-tolerant loop matrix generation configuration layer
+        for idx, row in final_display_df.iterrows():
+            s_name = row["School Name"]
+            s_exam = row["Entrance Exam Requirement"]
+            s_profit_raw = row["_sort_profit"]
+            s_track = row["ASN/BSN"]
+            s_status = row["Match Status"]
+            
+            # FIXED: Flawless string fallback protection for custom ledger display rendering strings safely
+            txt_profit = f"${s_profit_raw:,.2f}" if isinstance(s_profit_raw, (int, float)) else str(row["Estimated Revenue Profit"])
+            
+            row_col1, row_col2, row_col3, row_col4, row_col5, row_col6 = st.columns([1.5, 2.5, 1.5, 1, 2, 1.5])
+            
+            if row_col1.button("Select School", key=f"btn_select_{idx}_{version}"):
+                render_institutional_modal(s_name, s_exam)
+                
+            row_col2.markdown(f"**{s_name}**")
+            row_col3.markdown(txt_profit)
+            row_col4.markdown(s_track)
+            
+            if s_status == "Missing Needed CBE Courses":
+                row_col5.markdown(f"<span style='color: #DC2626; font-weight: bold;'>{s_status}</span>", unsafe_allow_html=True)
+            else:
+                row_col5.markdown(s_status)
+                
+            row_col6.markdown(f"`{s_exam}`")
+            st.markdown("<hr style='margin: 5px 0px; border-color: #f1f5f9;'>", unsafe_allow_html=True)
+
+    else:
+        st.warning("No schools match your base profile parameters or dismissal compliance rules.")
