@@ -18,7 +18,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🎓 Advisor Dashboard")
+st.title("🎓 ridge Plan Generator")
 st.markdown("### **System Framework Matrix**")
 st.divider()
 
