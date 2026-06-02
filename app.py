@@ -47,12 +47,13 @@ else:
 # ==============================================================================
 # 2. DEFINED ARRAYS WITH STAKEHOLDER PLACEHOLDERS
 # ==============================================================================
+# FIXED: Reordered states array to be perfectly alphabetical for better scannability
 STATE_OPTIONS = [
-    "Select state", "FL", "GA", "WI", "AL", "DC", "KY", "NY", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", 
-    "HI", "ID", "IL", "IN", "IA", "KS", "LA", "ME", "MD", 
-    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
-    "NM", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
-    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+    "Select state", 
+    "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", "HI", "IA", 
+    "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN", "MO", "MS", 
+    "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH", "OK", "OR", "PA", 
+    "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY"
 ]
 BINARY_OPTIONS = ["Yes", "No"]
 DISMISSAL_OPTIONS = ["No", "Yes"]
@@ -134,10 +135,9 @@ if is_adult == "No":
 elif student_state == "Select state":
     st.warning("⚠️ **Lead State Required:** Please select a valid state territory from the sidebar dropdown list to unlock matrix filtering features.")
 else:
-    # --- PROACTIVE GUARDRAIL ENGINE (FIXED LOOP SEQUENCE) ---
+    # --- PROACTIVE GUARDRAIL ENGINE ---
     base_count = len(needed_courses) if len(needed_courses) > 0 else 1
     
-    # Calculate exactly what the baseline total is BEFORE checkboxes are considered
     raw_base_classes = base_count
     raw_main_price = 1179 if raw_base_classes >= 10 else (1229 if raw_base_classes >= 4 else 1289)
     baseline_only_total = raw_base_classes * raw_main_price
@@ -145,7 +145,6 @@ else:
     st.sidebar.markdown("---")
     st.sidebar.subheader("🛠️ Class Triggers")
 
-    # If the base courses ALREADY hit or breach the cap limit, force everything off instantly
     if baseline_only_total >= 14500:
         st.sidebar.warning("⚠️ Package limit reached ($14,500 Floor). Add-on triggers forced off.")
         entrance_exam = False
@@ -153,11 +152,9 @@ else:
         st.session_state["exam_state"] = False
         st.session_state["addon_state"] = False
     else:
-        # If baseline is safe, render the elements conditionally
         entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep?", value=st.session_state["exam_state"], key=f"chk_exam_{version}")
         has_addons = st.sidebar.checkbox("Add-ons Selected?", value=st.session_state["addon_state"], key=f"chk_addon_{version}")
         
-        # Test what the projected price WOULD be based on what the user just clicked
         test_base = base_count + (1 if entrance_exam else 0)
         test_addons = 2 if has_addons else 0
         test_total_classes = test_base + test_addons
@@ -166,14 +163,12 @@ else:
         test_addon_price = 749 if test_total_classes >= 10 else (799 if test_total_classes >= 4 else 859)
         projected_total = (test_base * test_main_price) + (test_addons * test_addon_price)
         
-        # If their selection breaches the cap, throw warning, reset states, and trigger a swift rerun
         if projected_total >= 14500:
             st.sidebar.warning("⚠️ Selection blocked: Combined total breaches the $14,500 Package Floor limit.")
             st.session_state["exam_state"] = False
             st.session_state["addon_state"] = False
             st.rerun()
         else:
-            # Safe selection: save state anchors normally
             st.session_state["exam_state"] = entrance_exam
             st.session_state["addon_state"] = has_addons
 
@@ -223,6 +218,10 @@ else:
         
         credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
         final_total = max(0.0, base_total - credits_sum)
+        with col_calc_input:
+            if (base_total >= 14500) and (not entrance_exam) and (not has_addons):
+                st.sidebar.warning("⚠️ Package limit reached ($14,500 Floor). Add-on triggers forced off.")
+                
         pending_bal = max(0.0, final_total - deposit_input)
         
         if is_cna == "CNA/CMA":
