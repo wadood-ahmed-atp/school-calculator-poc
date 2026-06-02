@@ -11,9 +11,10 @@ st.markdown("""
     <style>
     .main {background-color: #f8f9fa;}
     h1, h2, h3 {color: #1E3A8A;}
-    .stButton>button {background-color: #1E3A8A; color: white; border-radius: 5px; width: 100%;}
+    .stButton>button {background-color: #1E3A8A; color: white; border-radius: 5px; width: 100%; height: 35px;}
     .stButton>button:hover {background-color: #3B82F6; color: white;}
     div[data-testid="stMetricValue"] {font-size: 24px; color: #10B981;}
+    .matrix-row {background-color: white; padding: 15px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #e2e8f0;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -295,7 +296,7 @@ else:
 
     filtered_df = working_schools_df.copy()
 
-    # DIALOG MODAL FUNCTION
+    # DIALOG MODAL EXECUTION ENGINE
     @st.dialog("Confirm & Lock Enrollment Package")
     def render_institutional_modal(school_name, school_exam_type):
         st.markdown(f"### 📋 Reviewing: **{school_name}**")
@@ -367,135 +368,4 @@ else:
             elif final_total_classes <= 7: m_reg = 325
             elif final_total_classes <= 10: m_reg = 375
             elif final_total_classes <= 15: m_reg = 475
-            else: m_reg = 600
-
-        c1, c2 = st.columns(2)
-        c1.metric("Adjusted Base Total", f"${final_base_total:,.2f}")
-        c2.metric("Registration Fee", f"${m_reg:,.2f}")
-        st.metric("Final Balance Due", f"${modal_final_total:,.2f}")
-        
-        if st.button("🔒 Lock in Enrollment Package"):
-            st.session_state["confirmed_package"] = {
-                "school_name": school_name,
-                "student_name": student_name if student_name else "Unnamed Applicant",
-                "base_total": final_base_total,
-                "reg_fee": m_reg,
-                "final_total": modal_final_total,
-                "courses_included": needed_courses,
-                "entrance_exam_prep_added": include_exam_prep,
-                "addons_active": has_addons
-            }
-            st.rerun()
-
-    if not filtered_df.empty:
-        status_log = []
-        cash_yield_margins = []
-        deficiencies_resolved_log = []
-        exam_requirements_list = []
-        
-        for _, school_row in filtered_df.iterrows():
-            raw_name = str(school_row["School Name"]).strip()
-            exam_requirements_list.append(str(school_row.get("Entrance Exam", "--")).strip())
-            
-            if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
-                word_pattern = "HERZ|HERI"
-                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains(word_pattern, na=False, case=False)]
-            elif "EXCEL" in raw_name.upper():
-                word_pattern = "EXCEL"
-                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains(word_pattern, na=False, case=False)]
-            else:
-                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
-            
-            offered_courses_count = 0
-            has_all_courses = True
-            school_accepted_list = []
-            
-            if not rule_row.empty:
-                for required_course in needed_courses:
-                    if required_course in rule_row.columns:
-                        accepted_status = str(rule_row[required_course].values[0]).strip().upper()
-                        if accepted_status == "Y":
-                            offered_courses_count += 1
-                            school_accepted_list.append(required_course)
-                        else:
-                            has_all_courses = False
-                    else:
-                        has_all_courses = False
-                
-                if len(needed_courses) == 0:
-                    status_log.append("Perfect Match")
-                elif has_all_courses:
-                    status_log.append("Perfect Match")
-                else:
-                    status_log.append("Missing Needed CBE Courses")
-            else:
-                status_log.append("Perfect Match")
-                
-            if school_accepted_list:
-                deficiencies_resolved_log.append(", ".join(school_accepted_list))
-            else:
-                deficiencies_resolved_log.append("None")
-                
-            revenue_per_course = float(main_price)
-            school_revenue_potential = offered_courses_count * revenue_per_course
-            
-            tuition_cost_raw = str(school_row.get("Tuition", "0")).replace("$", "").replace(",", "").strip()
-            tuition_cost = pd.to_numeric(tuition_cost_raw, errors='coerce')
-            if pd.isna(tuition_cost):
-                tuition_cost = 0.0
-                
-            calculated_margin = max(0.0, school_revenue_potential - float(tuition_cost))
-            cash_yield_margins.append(calculated_margin)
-                
-        filtered_df["Match Status"] = status_log
-        filtered_df["Estimated Revenue Profit"] = cash_yield_margins
-        filtered_df["Deficiencies Met"] = deficiencies_resolved_log
-        filtered_df["Entrance Exam Requirement"] = exam_requirements_list
-
-        # FIXED: Created an action field column that maps row clicks natively into buttons
-        filtered_df["Select Partner"] = "Select School"
-
-        preferred_cols = ["Select Partner", "School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Entrance Exam Requirement", "Deficiencies Met"]
-        columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
-
-        if dismissal_y and "Reentry Requirements" in filtered_df.columns:
-            columns_to_show.append("Reentry Requirements")
-
-        final_display_df = filtered_df[columns_to_show].copy()
-        final_display_df = final_display_df.sort_values(by="Estimated Revenue Profit", ascending=False)
-
-        if "Estimated Revenue Profit" in final_display_df.columns:
-            final_display_df["Estimated Revenue Profit"] = final_display_df["Estimated Revenue Profit"].apply(lambda x: f"${x:,.2f}")
-        if "Min GPA" in final_display_df.columns:
-            final_display_df["Min GPA"] = final_display_df["Min GPA"].apply(lambda x: f"{x:.2f}")
-
-        # Streamlit Dataframe Native Action Grid configurations mapping row selections automatically
-        action_grid_response = st.data_editor(
-            final_display_df,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Select Partner": st.column_config.ButtonColumn(
-                    "Action Matrix",
-                    help="Click to confirm enrollment matrix routing protocols",
-                    width="medium",
-                    disabled=False,
-                )
-            },
-            disabled=True, # Locks down spreadsheet values so they are completely un-editable
-            key=f"grid_editor_{version}"
-        )
-
-        # Triggers modal event listening instantly when row index triggers click registry mapping tracking
-        if st.session_state.get(f"grid_editor_{version}"):
-            grid_click_state = st.session_state[f"grid_editor_{version}"]
-            if "event" in grid_click_state and grid_click_state["event"].get("row") is not None:
-                clicked_row_idx = grid_click_state["event"]["row"]
-                selected_school_record = final_display_df.iloc[clicked_row_idx]
-                s_name = selected_school_record["School Name"]
-                s_exam = selected_school_record["Entrance Exam Requirement"]
-                
-                # Immediately initialize custom dialog overlay engine
-                render_institutional_modal(s_name, s_exam)
-    else:
-        st.warning("No schools match your base profile parameters or dismissal compliance rules.")
+            else: m_reg = 60
