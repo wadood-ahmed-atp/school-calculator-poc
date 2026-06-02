@@ -47,7 +47,6 @@ else:
 # ==============================================================================
 # 2. DEFINED ARRAYS WITH STAKEHOLDER PLACEHOLDERS
 # ==============================================================================
-# FIXED: Reordered states array to be perfectly alphabetical for better scannability
 STATE_OPTIONS = [
     "Select state", 
     "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", "HI", "IA", 
@@ -136,16 +135,17 @@ elif student_state == "Select state":
     st.warning("⚠️ **Lead State Required:** Please select a valid state territory from the sidebar dropdown list to unlock matrix filtering features.")
 else:
     # --- PROACTIVE GUARDRAIL ENGINE ---
-    base_count = len(needed_courses) if len(needed_courses) > 0 else 1
+    base_count = len(needed_courses)
     
-    raw_base_classes = base_count
+    # Pre-flight logic: determine pricing tiers based on user choices
+    raw_base_classes = base_count if base_count > 0 else 1
     raw_main_price = 1179 if raw_base_classes >= 10 else (1229 if raw_base_classes >= 4 else 1289)
     baseline_only_total = raw_base_classes * raw_main_price
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("🛠️ Class Triggers")
 
-    if baseline_only_total >= 14500:
+    if baseline_only_total >= 14500 and base_count > 0:
         st.sidebar.warning("⚠️ Package limit reached ($14,500 Floor). Add-on triggers forced off.")
         entrance_exam = False
         has_addons = False
@@ -155,7 +155,7 @@ else:
         entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep?", value=st.session_state["exam_state"], key=f"chk_exam_{version}")
         has_addons = st.sidebar.checkbox("Add-ons Selected?", value=st.session_state["addon_state"], key=f"chk_addon_{version}")
         
-        test_base = base_count + (1 if entrance_exam else 0)
+        test_base = (base_count if base_count > 0 else 1) + (1 if entrance_exam else 0)
         test_addons = 2 if has_addons else 0
         test_total_classes = test_base + test_addons
         
@@ -163,7 +163,7 @@ else:
         test_addon_price = 749 if test_total_classes >= 10 else (799 if test_total_classes >= 4 else 859)
         projected_total = (test_base * test_main_price) + (test_addons * test_addon_price)
         
-        if projected_total >= 14500:
+        if projected_total >= 14500 and (base_count > 0 or entrance_exam or has_addons):
             st.sidebar.warning("⚠️ Selection blocked: Combined total breaches the $14,500 Package Floor limit.")
             st.session_state["exam_state"] = False
             st.session_state["addon_state"] = False
@@ -199,16 +199,27 @@ else:
     with col_calc_output:
         st.subheader("Ledger Balance")
         
-        base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
+        # Check if absolutely nothing is active to toggle Option A visual mask
+        is_completely_empty = (base_count == 0 and not entrance_exam and not has_addons)
+        
+        base_classes = base_count if base_count > 0 else 1
         if entrance_exam:
-            base_classes += 1
+            # If exam is added to an empty package, base classes count becomes exactly 1 instead of 2
+            base_classes = base_count + 1 if base_count > 0 else 1
             
         addons_count = 2 if has_addons else 0
-        total_classes = base_classes + addons_count
+        total_classes = (base_count if base_count > 0 else 0) + (1 if entrance_exam else 0) + addons_count
         
         main_price = 1179 if base_classes >= 10 else (1229 if base_classes >= 4 else 1289)
         addon_price = 749 if total_classes >= 10 else (799 if total_classes >= 4 else 859)
-        base_total = (base_classes * main_price) + (addons_count * addon_price)
+        
+        # Calculate raw mathematical base total
+        if base_count == 0 and entrance_exam:
+            base_total = (1 * main_price) + (addons_count * addon_price)
+        elif base_count == 0 and not entrance_exam:
+            base_total = (addons_count * addon_price)
+        else:
+            base_total = (base_classes * main_price) + (addons_count * addon_price)
         
         dep_min = 150 if is_cna == "CNA/CMA" else 300
         calc_dep_match = min(deposit_input, 1000.0) if (discount_match and deposit_input >= dep_min) else 0.0
@@ -218,20 +229,23 @@ else:
         
         credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
         final_total = max(0.0, base_total - credits_sum)
+        
         with col_calc_input:
-            if (base_total >= 14500) and (not entrance_exam) and (not has_addons):
+            if (base_total >= 14500) and (base_count > 0):
                 st.sidebar.warning("⚠️ Package limit reached ($14,500 Floor). Add-on triggers forced off.")
                 
         pending_bal = max(0.0, final_total - deposit_input)
         
         if is_cna == "CNA/CMA":
-            if total_classes <= 2: reg_fee = 150
+            if total_classes == 0: reg_fee = 0
+            elif total_classes <= 2: reg_fee = 150
             elif total_classes <= 7: reg_fee = 175
             elif total_classes <= 10: reg_fee = 200
             elif total_classes <= 15: reg_fee = 250
             else: reg_fee = 300
         else:
-            if total_classes <= 2: reg_fee = 300
+            if total_classes == 0: reg_fee = 0
+            elif total_classes <= 2: reg_fee = 300
             elif total_classes <= 7: reg_fee = 325
             elif total_classes <= 10: reg_fee = 375
             elif total_classes <= 15: reg_fee = 475
@@ -241,11 +255,12 @@ else:
         max_additional_addons = max(0, int(room_left // 749))
         projected_addons = addons_count + max_additional_addons
 
-        txt_base_total = f"${base_total:,.2f}"
-        txt_reg_fee = f"${reg_fee:,.2f}"
-        txt_final_total = f"${final_total:,.2f}"
-        txt_pending_bal = f"${pending_bal:,.2f}"
-        txt_projected_addons = f"{projected_addons} max courses"
+        # OPTION A VISUAL MASK: Overrides display variables to a clean $0.00 if form has no active items
+        txt_base_total = "$0.00" if is_completely_empty else f"${base_total:,.2f}"
+        txt_reg_fee = "$0.00" if is_completely_empty else f"${reg_fee:,.2f}"
+        txt_final_total = "$0.00" if is_completely_empty else f"${final_total:,.2f}"
+        txt_pending_bal = "$0.00" if is_completely_empty else f"${pending_bal:,.2f}"
+        txt_projected_addons = "19 max courses" if is_completely_empty else f"{projected_addons} max courses"
 
         m1, m2 = st.columns(2)
         m1.metric("Base Total", txt_base_total)
