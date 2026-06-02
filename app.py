@@ -134,39 +134,48 @@ if is_adult == "No":
 elif student_state == "Select state":
     st.warning("⚠️ **Lead State Required:** Please select a valid state territory from the sidebar dropdown list to unlock matrix filtering features.")
 else:
-    # --- BACKGROUND PRE-FLIGHT BALANCING & COMPLIANCE GUARD ENGINE ---
-    # FIXED: Pre-calculating full combined packages including exam state baseline variables before drawing widgets
-    temp_base = len(needed_courses) if len(needed_courses) > 0 else 1
-    if st.session_state["exam_state"]: 
-        temp_base += 1
-    temp_addons = 2 if st.session_state["addon_state"] else 0
-
-    temp_main_price = 1179 if temp_base >= 10 else (1229 if temp_base >= 4 else 1289)
-    temp_addon_price = 749 if (temp_base + temp_addons) >= 10 else (799 if (temp_base + temp_addons) >= 4 else 859)
-    mock_grand_total = (temp_base * temp_main_price) + (temp_addons * temp_addon_price)
-
-    # Nuclear reset trigger if total breaches the threshold
-    if mock_grand_total >= 14500:
-        st.session_state["exam_state"] = False
-        st.session_state["addon_state"] = False
-        # Recalculate baseline values safely post-reset
-        temp_base = len(needed_courses) if len(needed_courses) > 0 else 1
-        temp_main_price = 1179 if temp_base >= 10 else (1229 if temp_base >= 4 else 1289)
-        mock_grand_total = temp_base * temp_main_price
+    # --- PROACTIVE GUARDRAIL ENGINE (FIXED LOOP SEQUENCE) ---
+    base_count = len(needed_courses) if len(needed_courses) > 0 else 1
+    
+    # Calculate exactly what the baseline total is BEFORE checkboxes are considered
+    raw_base_classes = base_count
+    raw_main_price = 1179 if raw_base_classes >= 10 else (1229 if raw_base_classes >= 4 else 1289)
+    baseline_only_total = raw_base_classes * raw_main_price
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("🛠️ Class Triggers")
 
-    # FIXED: The guardrail warning condition handles structural pricing combined package states dynamically
-    if mock_grand_total < 14500:
-        entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep?", value=st.session_state["exam_state"], key=f"chk_exam_{version}")
-        has_addons = st.sidebar.checkbox("Add-ons Selected?", value=st.session_state["addon_state"], key=f"chk_addon_{version}")
-        st.session_state["exam_state"] = entrance_exam
-        st.session_state["addon_state"] = has_addons
-    else:
+    # If the base courses ALREADY hit or breach the cap limit, force everything off instantly
+    if baseline_only_total >= 14500:
         st.sidebar.warning("⚠️ Package limit reached ($14,500 Floor). Add-on triggers forced off.")
         entrance_exam = False
         has_addons = False
+        st.session_state["exam_state"] = False
+        st.session_state["addon_state"] = False
+    else:
+        # If baseline is safe, render the elements conditionally
+        entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep?", value=st.session_state["exam_state"], key=f"chk_exam_{version}")
+        has_addons = st.sidebar.checkbox("Add-ons Selected?", value=st.session_state["addon_state"], key=f"chk_addon_{version}")
+        
+        # Test what the projected price WOULD be based on what the user just clicked
+        test_base = base_count + (1 if entrance_exam else 0)
+        test_addons = 2 if has_addons else 0
+        test_total_classes = test_base + test_addons
+        
+        test_main_price = 1179 if test_base >= 10 else (1229 if test_base >= 4 else 1289)
+        test_addon_price = 749 if test_total_classes >= 10 else (799 if test_total_classes >= 4 else 859)
+        projected_total = (test_base * test_main_price) + (test_addons * test_addon_price)
+        
+        # If their selection breaches the cap, throw warning, reset states, and trigger a swift rerun
+        if projected_total >= 14500:
+            st.sidebar.warning("⚠️ Selection blocked: Combined total breaches the $14,500 Package Floor limit.")
+            st.session_state["exam_state"] = False
+            st.session_state["addon_state"] = False
+            st.rerun()
+        else:
+            # Safe selection: save state anchors normally
+            st.session_state["exam_state"] = entrance_exam
+            st.session_state["addon_state"] = has_addons
 
     # --- FINANCIAL LEDGER ENGINE VIEW ---
     st.header("⚡ Financial Ledger")
@@ -214,11 +223,6 @@ else:
         
         credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
         final_total = max(0.0, base_total - credits_sum)
-        with col_calc_input:
-            # Re-checking combined sums for ultimate UI state layout sync
-            if (base_total >= 14500) and (not entrance_exam) and (not has_addons):
-                st.sidebar.warning("⚠️ Package limit reached ($14,500 Floor). Add-on triggers forced off.")
-                
         pending_bal = max(0.0, final_total - deposit_input)
         
         if is_cna == "CNA/CMA":
