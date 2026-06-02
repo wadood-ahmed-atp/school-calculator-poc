@@ -5,7 +5,7 @@ import os
 # ==============================================================================
 # 0. WEB PAGE CONFIG & STYLING
 # ==============================================================================
-st.set_page_config(page_title="Advisor Dashboard", layout="wide")
+st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
 st.markdown("""
     <style>
