@@ -101,7 +101,6 @@ lpn_exp = 0
 if license_type == "LPN":
     lpn_exp = st.sidebar.number_input("Months of LPN Experience (If less than 2 yrs)", min_value=0, max_value=120, value=0, step=1, key=f"exp_{version}")
 
-# UPDATED: Reverted text framework parameter back to regional definition
 travel_ok = st.sidebar.selectbox("Are you okay with regional clinical travel?", options=BINARY_OPTIONS, index=0, key=f"travel_{version}")
 program_interest = st.sidebar.selectbox("Which track are you interested in?", options=TRACK_OPTIONS, index=0, key=f"track_{version}")
 
@@ -136,24 +135,29 @@ elif student_state == "Select state":
     st.warning("⚠️ **Lead State Required:** Please select a valid state territory from the sidebar dropdown list to unlock matrix filtering features.")
 else:
     # --- BACKGROUND PRE-FLIGHT BALANCING & COMPLIANCE GUARD ENGINE ---
-    mock_base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
-    if st.session_state["exam_state"]: mock_base_classes += 1
-    mock_addons_count = 2 if st.session_state["addon_state"] else 0
+    # FIXED: Pre-calculating full combined packages including exam state baseline variables before drawing widgets
+    temp_base = len(needed_courses) if len(needed_courses) > 0 else 1
+    if st.session_state["exam_state"]: 
+        temp_base += 1
+    temp_addons = 2 if st.session_state["addon_state"] else 0
 
-    mock_main_price = 1179 if mock_base_classes >= 10 else (1229 if mock_base_classes >= 4 else 1289)
-    mock_addon_price = 749 if (mock_base_classes + mock_addons_count) >= 10 else (799 if (mock_base_classes + mock_addons_count) >= 4 else 859)
-    mock_grand_total = (mock_base_classes * mock_main_price) + (mock_addons_count * mock_addon_price)
+    temp_main_price = 1179 if temp_base >= 10 else (1229 if temp_base >= 4 else 1289)
+    temp_addon_price = 749 if (temp_base + temp_addons) >= 10 else (799 if (temp_base + temp_addons) >= 4 else 859)
+    mock_grand_total = (temp_base * temp_main_price) + (temp_addons * temp_addon_price)
 
+    # Nuclear reset trigger if total breaches the threshold
     if mock_grand_total >= 14500:
         st.session_state["exam_state"] = False
         st.session_state["addon_state"] = False
-        mock_base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
-        mock_main_price = 1179 if mock_base_classes >= 10 else (1229 if mock_base_classes >= 4 else 1289)
-        mock_grand_total = mock_base_classes * mock_main_price
+        # Recalculate baseline values safely post-reset
+        temp_base = len(needed_courses) if len(needed_courses) > 0 else 1
+        temp_main_price = 1179 if temp_base >= 10 else (1229 if temp_base >= 4 else 1289)
+        mock_grand_total = temp_base * temp_main_price
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("🛠️ Class Triggers")
 
+    # FIXED: The guardrail warning condition handles structural pricing combined package states dynamically
     if mock_grand_total < 14500:
         entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep?", value=st.session_state["exam_state"], key=f"chk_exam_{version}")
         has_addons = st.sidebar.checkbox("Add-ons Selected?", value=st.session_state["addon_state"], key=f"chk_addon_{version}")
@@ -210,6 +214,11 @@ else:
         
         credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
         final_total = max(0.0, base_total - credits_sum)
+        with col_calc_input:
+            # Re-checking combined sums for ultimate UI state layout sync
+            if (base_total >= 14500) and (not entrance_exam) and (not has_addons):
+                st.sidebar.warning("⚠️ Package limit reached ($14,500 Floor). Add-on triggers forced off.")
+                
         pending_bal = max(0.0, final_total - deposit_input)
         
         if is_cna == "CNA/CMA":
