@@ -461,7 +461,6 @@ else:
 
         final_display_df = filtered_df[columns_to_show].copy()
         
-        # FIXED: Fault-tolerant numeric conversion for strict descending row sorting safety
         final_display_df["_sort_profit"] = pd.to_numeric(
             final_display_df["Estimated Revenue Profit"].astype(str).str.replace("$", "").str.replace(",", ""), 
             errors="coerce"
@@ -470,28 +469,29 @@ else:
 
         st.markdown("#### Click 'Select School' directly on any partner row to process enrollment setup:")
         
-        # Table Header Layout Config
-        h_col1, h_col2, h_col3, h_col4, h_col5, h_col6 = st.columns([1.5, 2.5, 1.5, 1, 2, 1.5])
+        # FIXED: Expanded column grid tracking layout arrays to cleanly hold 7 separate column items
+        h_col1, h_col2, h_col3, h_col4, h_col5, h_col6, h_col7 = st.columns([1.5, 2.5, 1.2, 1, 1.8, 1.5, 2.5])
         h_col1.markdown("**Action Matrix**")
         h_col2.markdown("**School Name**")
         h_col3.markdown("**Est Profit**")
         h_col4.markdown("**Track**")
         h_col5.markdown("**Match Status**")
         h_col6.markdown("**Entrance Exam**")
+        h_col7.markdown("**Deficiencies Met**") # Restored column label header
         st.markdown("<hr style='margin: 0px 0px 10px 0px; border-color: #cbd5e1;'>", unsafe_allow_html=True)
 
-        # Fault-tolerant loop matrix generation configuration layer
         for idx, row in final_display_df.iterrows():
             s_name = row["School Name"]
             s_exam = row["Entrance Exam Requirement"]
             s_profit_raw = row["_sort_profit"]
             s_track = row["ASN/BSN"]
             s_status = row["Match Status"]
+            s_met = row.get("Deficiencies Met", "None")
             
-            # FIXED: Flawless string fallback protection for custom ledger display rendering strings safely
             txt_profit = f"${s_profit_raw:,.2f}" if isinstance(s_profit_raw, (int, float)) else str(row["Estimated Revenue Profit"])
             
-            row_col1, row_col2, row_col3, row_col4, row_col5, row_col6 = st.columns([1.5, 2.5, 1.5, 1, 2, 1.5])
+            # FIXED: Synchronized row display columns mapping with the exact header sizing above
+            row_col1, row_col2, row_col3, row_col4, row_col5, row_col6, row_col7 = st.columns([1.5, 2.5, 1.2, 1, 1.8, 1.5, 2.5])
             
             if row_col1.button("Select School", key=f"btn_select_{idx}_{version}"):
                 render_institutional_modal(s_name, s_exam)
@@ -506,6 +506,7 @@ else:
                 row_col5.markdown(s_status)
                 
             row_col6.markdown(f"`{s_exam}`")
+            row_col7.markdown(f"_{s_met}_") # Restored dynamic resolution dataset text variable
             st.markdown("<hr style='margin: 5px 0px; border-color: #f1f5f9;'>", unsafe_allow_html=True)
 
     else:
