@@ -11,7 +11,7 @@ st.markdown("""
     <style>
     .main {background-color: #f8f9fa;}
     h1, h2, h3 {color: #1E3A8A;}
-    .stButton>button {background-color: #1E3A8A; color: white; border-radius: 5px;}
+    .stButton>button {background-color: #1E3A8A; color: white; border-radius: 5px; width: 100%;}
     .stButton>button:hover {background-color: #3B82F6; color: white;}
     div[data-testid="stMetricValue"] {font-size: 24px; color: #10B981;}
     </style>
@@ -61,18 +61,18 @@ TRACK_OPTIONS = ["BSN", "ASN"]
 
 if "reset_counter" not in st.session_state: 
     st.session_state["reset_counter"] = 0
-if "exam_state" not in st.session_state: 
-    st.session_state["exam_state"] = False
 if "addon_state" not in st.session_state: 
     st.session_state["addon_state"] = False
+if "confirmed_package" not in st.session_state:
+    st.session_state["confirmed_package"] = None
 
 st.sidebar.header("📋 Lead Profile")
 
 # Clear Reset Flow
 if st.sidebar.button("🔄 Reset Form"):
     st.session_state["reset_counter"] += 1
-    st.session_state["exam_state"] = False
     st.session_state["addon_state"] = False
+    st.session_state["confirmed_package"] = None
     st.rerun()
 
 version = st.session_state["reset_counter"]
@@ -130,14 +130,11 @@ selected_state = str(student_state).strip().upper()
 # ==============================================================================
 if is_adult == "No":
     st.error("🛑 **Self-Serve Checkout Unavailable**")
-    st.info(f"### **Next Steps Required for {student_name if student_name else 'Applicant'}:**\nApplicants under the age of 18 are not permitted to complete an independent digital registration or contract confirmation. \n\nTo advance your enrollment matrix, please schedule an appointment to speak with an admissions representative. \n**Note:** A parent, legal guardian, or sponsoring adult must accompany the applicant during the consultation call.")
+    st.info(f"### **Next Steps Required for {student_name if student_name else 'Applicant'}:**\nApplicants under the age of 18 are not permitted to complete an independent digital registration or contract confirmation.")
 elif student_state == "Select state":
     st.warning("⚠️ **Lead State Required:** Please select a valid state territory from the sidebar dropdown list to unlock matrix filtering features.")
 else:
-    # --- PROACTIVE GUARDRAIL ENGINE ---
     base_count = len(needed_courses)
-    
-    # Pre-flight logic: determine pricing tiers based on user choices
     raw_base_classes = base_count if base_count > 0 else 1
     raw_main_price = 1179 if raw_base_classes >= 10 else (1229 if raw_base_classes >= 4 else 1289)
     baseline_only_total = raw_base_classes * raw_main_price
@@ -145,17 +142,15 @@ else:
     st.sidebar.markdown("---")
     st.sidebar.subheader("🛠️ Class Triggers")
 
+    # Gated Addon trigger verification check
     if baseline_only_total >= 14500 and base_count > 0:
         st.sidebar.warning("⚠️ Package limit reached ($14,500 Floor). Add-on triggers forced off.")
-        entrance_exam = False
         has_addons = False
-        st.session_state["exam_state"] = False
         st.session_state["addon_state"] = False
     else:
-        entrance_exam = st.sidebar.checkbox("Include Entrance Exam Prep?", value=st.session_state["exam_state"], key=f"chk_exam_{version}")
         has_addons = st.sidebar.checkbox("Add-ons Selected?", value=st.session_state["addon_state"], key=f"chk_addon_{version}")
         
-        test_base = (base_count if base_count > 0 else 1) + (1 if entrance_exam else 0)
+        test_base = (base_count if base_count > 0 else 1)
         test_addons = 2 if has_addons else 0
         test_total_classes = test_base + test_addons
         
@@ -163,14 +158,27 @@ else:
         test_addon_price = 749 if test_total_classes >= 10 else (799 if test_total_classes >= 4 else 859)
         projected_total = (test_base * test_main_price) + (test_addons * test_addon_price)
         
-        if projected_total >= 14500 and (base_count > 0 or entrance_exam or has_addons):
+        if projected_total >= 14500 and (base_count > 0 or has_addons):
             st.sidebar.warning("⚠️ Selection blocked: Combined total breaches the $14,500 Package Floor limit.")
-            st.session_state["exam_state"] = False
             st.session_state["addon_state"] = False
             st.rerun()
         else:
-            st.session_state["exam_state"] = entrance_exam
             st.session_state["addon_state"] = has_addons
+
+    # --- SHOW CONFIRMED PACKAGE CELEBRATION CARD IF LOCK ACTIVE ---
+    if st.session_state["confirmed_package"]:
+        pkg = st.session_state["confirmed_package"]
+        st.balloons()
+        st.success(f"🎉 **Enrollment Successfully Finalized for {student_name if student_name else 'Lead'}!**")
+        
+        inv1, inv2, inv3 = st.columns(3)
+        inv1.markdown(f"**Institution Secured:**\n### {pkg['school_name']}")
+        inv2.metric("Final Balance Due", f"${pkg['final_total']:,.2f}")
+        inv3.metric("Registration Fee", f"${pkg['reg_fee']:,.2f}")
+        
+        with st.expander("📄 View Itemized Invoice Audit Ledger"):
+            st.json(pkg)
+        st.divider()
 
     # --- FINANCIAL LEDGER ENGINE VIEW ---
     st.header("⚡ Financial Ledger")
@@ -199,24 +207,15 @@ else:
     with col_calc_output:
         st.subheader("Ledger Balance")
         
-        # Check if absolutely nothing is active to toggle Option A visual mask
-        is_completely_empty = (base_count == 0 and not entrance_exam and not has_addons)
-        
+        is_completely_empty = (base_count == 0 and not has_addons)
         base_classes = base_count if base_count > 0 else 1
-        if entrance_exam:
-            # If exam is added to an empty package, base classes count becomes exactly 1 instead of 2
-            base_classes = base_count + 1 if base_count > 0 else 1
-            
         addons_count = 2 if has_addons else 0
-        total_classes = (base_count if base_count > 0 else 0) + (1 if entrance_exam else 0) + addons_count
+        total_classes = (base_count if base_count > 0 else 0) + addons_count
         
         main_price = 1179 if base_classes >= 10 else (1229 if base_classes >= 4 else 1289)
         addon_price = 749 if total_classes >= 10 else (799 if total_classes >= 4 else 859)
         
-        # Calculate raw mathematical base total
-        if base_count == 0 and entrance_exam:
-            base_total = (1 * main_price) + (addons_count * addon_price)
-        elif base_count == 0 and not entrance_exam:
+        if base_count == 0:
             base_total = (addons_count * addon_price)
         else:
             base_total = (base_classes * main_price) + (addons_count * addon_price)
@@ -229,11 +228,6 @@ else:
         
         credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
         final_total = max(0.0, base_total - credits_sum)
-        
-        with col_calc_input:
-            if (base_total >= 14500) and (base_count > 0):
-                st.sidebar.warning("⚠️ Package limit reached ($14,500 Floor). Add-on triggers forced off.")
-                
         pending_bal = max(0.0, final_total - deposit_input)
         
         if is_cna == "CNA/CMA":
@@ -250,17 +244,11 @@ else:
             elif total_classes <= 10: reg_fee = 375
             elif total_classes <= 15: reg_fee = 475
             else: reg_fee = 600
-            
-        room_left = 14500.0 - final_total
-        max_additional_addons = max(0, int(room_left // 749))
-        projected_addons = addons_count + max_additional_addons
 
-        # OPTION A VISUAL MASK: Overrides display variables to a clean $0.00 if form has no active items
         txt_base_total = "$0.00" if is_completely_empty else f"${base_total:,.2f}"
         txt_reg_fee = "$0.00" if is_completely_empty else f"${reg_fee:,.2f}"
         txt_final_total = "$0.00" if is_completely_empty else f"${final_total:,.2f}"
         txt_pending_bal = "$0.00" if is_completely_empty else f"${pending_bal:,.2f}"
-        txt_projected_addons = "19 max courses" if is_completely_empty else f"{projected_addons} max courses"
 
         m1, m2 = st.columns(2)
         m1.metric("Base Total", txt_base_total)
@@ -269,8 +257,6 @@ else:
         m3, m4 = st.columns(2)
         m3.metric("Final Balance", txt_final_total)
         m4.metric("Pending Balance", txt_pending_bal)
-        
-        st.metric("Max Add-ons Headroom", txt_projected_addons)
 
     st.divider()
 
@@ -314,9 +300,11 @@ else:
         status_log = []
         cash_yield_margins = []
         deficiencies_resolved_log = []
+        exam_requirements_list = []
         
         for _, school_row in filtered_df.iterrows():
             raw_name = str(school_row["School Name"]).strip()
+            exam_requirements_list.append(str(school_row.get("Entrance Exam", "--")).strip())
             
             if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
                 word_pattern = "HERZ|HERI"
@@ -371,8 +359,117 @@ else:
         filtered_df["Match Status"] = status_log
         filtered_df["Estimated Revenue Profit"] = cash_yield_margins
         filtered_df["Deficiencies Met"] = deficiencies_resolved_log
+        filtered_df["Entrance Exam Requirement"] = exam_requirements_list
 
-        preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Clinical Travel?", "Deficiencies Met"]
+        # --- THE WORKFLOW CONTROL SYSTEM SELECTOR ---
+        matching_school_names = filtered_df["School Name"].tolist()
+        
+        col_select_element, _ = st.columns([1, 1])
+        with col_select_element:
+            chosen_school_target = st.selectbox("🎯 Ready to Finalize Package? Select matching school:", ["Choose an institution..."] + matching_school_names)
+
+        # STAKEHOLDER DIALOG INTERACTIVE MODAL FUNCTION
+        @st.dialog("Confirm & Lock Enrollment Package")
+        def render_institutional_modal(school_name, target_row):
+            exam_type = str(target_row["Entrance Exam Requirement"].values[0]).strip()
+            st.markdown(f"### 📋 Reviewing: **{school_name}**")
+            st.markdown("---")
+            
+            # Local mathematical mirror copies
+            modal_base_count = len(needed_courses)
+            modal_addons = 2 if has_addons else 0
+            
+            # Logic Branch Core
+            if exam_type == "--":
+                st.info("ℹ️ **No Entrance Exam Required:** This institution does not mandate an entrance examination baseline parameter.")
+                include_exam_prep = False
+            else:
+                st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
+                user_has_passed = st.radio(f"Have you already taken and passed the required **{exam_type}** exam?", ["No", "Yes"], horizontal=True)
+                
+                if user_has_passed == "Yes":
+                    st.success(f"✅ Verified: Applicant is already compliant for the {exam_type} test track.")
+                    include_exam_prep = False
+                else:
+                    # Run live modal pre-calculation boundaries
+                    current_test_base = (modal_base_count if modal_base_count > 0 else 1)
+                    current_test_total = current_test_base + modal_addons
+                    current_main_p = 1179 if current_test_base >= 10 else (1229 if current_test_base >= 4 else 1289)
+                    current_addon_p = 749 if current_test_total >= 10 else (799 if current_test_total >= 4 else 859)
+                    
+                    if modal_base_count == 0:
+                        current_pre_total = (modal_addons * current_addon_p)
+                    else:
+                        current_pre_total = (current_test_base * current_main_p) + (modal_addons * current_addon_p)
+                        
+                    current_final_total = max(0.0, current_pre_total - credits_sum)
+                    
+                    if current_final_total >= 14500:
+                        st.warning("⚠️ **Exam Prep Unavailable:** The current package layout has reached the $14,500 threshold limitation.")
+                        include_exam_prep = False
+                    else:
+                        include_exam_prep = st.checkbox(f"Add **{exam_type}** Prep Course to Package? (+$1,289 Floor Baseline)")
+
+            st.markdown("---")
+            st.markdown("#### Itemized Balance Preview")
+            
+            # Recalculate ultimate values for real-time ledger viewing
+            final_base_classes = modal_base_count if modal_base_count > 0 else 1
+            if include_exam_prep:
+                final_base_classes = modal_base_count + 1 if modal_base_count > 0 else 1
+                
+            final_total_classes = (modal_base_count if modal_base_count > 0 else 0) + (1 if include_exam_prep else 0) + modal_addons
+            
+            m_main_p = 1179 if final_base_classes >= 10 else (1229 if final_base_classes >= 4 else 1289)
+            m_addon_p = 749 if final_total_classes >= 10 else (799 if final_total_classes >= 4 else 859)
+            
+            if modal_base_count == 0 and include_exam_prep:
+                final_base_total = (1 * m_main_p) + (modal_addons * m_addon_p)
+            elif modal_base_count == 0 and not include_exam_prep:
+                final_base_total = (modal_addons * m_addon_p)
+            else:
+                final_base_total = (final_base_classes * m_main_p) + (modal_addons * m_addon_p)
+                
+            modal_final_total = max(0.0, final_base_total - credits_sum)
+            
+            if is_cna == "CNA/CMA":
+                if final_total_classes == 0: m_reg = 0
+                elif final_total_classes <= 2: m_reg = 150
+                elif final_total_classes <= 7: m_reg = 175
+                elif final_total_classes <= 10: m_reg = 200
+                elif final_total_classes <= 15: m_reg = 250
+                else: m_reg = 300
+            else:
+                if final_total_classes == 0: m_reg = 0
+                elif final_total_classes <= 2: m_reg = 300
+                elif final_total_classes <= 7: m_reg = 325
+                elif final_total_classes <= 10: m_reg = 375
+                elif final_total_classes <= 15: m_reg = 475
+                else: m_reg = 600
+
+            c1, c2 = st.columns(2)
+            c1.metric("Adjusted Base Total", f"${final_base_total:,.2f}")
+            c2.metric("Registration Fee", f"${m_reg:,.2f}")
+            st.metric("Final Balance Due", f"${modal_final_total:,.2f}")
+            
+            if st.button("🔒 Lock in Enrollment Package"):
+                st.session_state["confirmed_package"] = {
+                    "school_name": school_name,
+                    "student_name": student_name if student_name else "Unnamed Applicant",
+                    "base_total": final_base_total,
+                    "reg_fee": m_reg,
+                    "final_total": modal_final_total,
+                    "courses_included": needed_courses,
+                    "entrance_exam_prep_added": include_exam_prep,
+                    "addons_active": has_addons
+                }
+                st.rerun()
+
+        if chosen_school_target != "Choose an institution...":
+            target_school_row = filtered_df[filtered_df["School Name"] == chosen_school_target]
+            render_institutional_modal(chosen_school_target, target_school_row)
+
+        preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Entrance Exam Requirement", "Deficiencies Met"]
         columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
 
         if dismissal_y and "Reentry Requirements" in filtered_df.columns:
@@ -383,7 +480,6 @@ else:
 
         if "Estimated Revenue Profit" in final_display_df.columns:
             final_display_df["Estimated Revenue Profit"] = final_display_df["Estimated Revenue Profit"].apply(lambda x: f"${x:,.2f}")
-        
         if "Min GPA" in final_display_df.columns:
             final_display_df["Min GPA"] = final_display_df["Min GPA"].apply(lambda x: f"{x:.2f}")
 
@@ -394,10 +490,7 @@ else:
             style_matrix.loc[mismatch_mask, "School Name"] = 'color: #D97706; font-weight: bold;'
             return style_matrix
 
-        if not final_display_df.empty:
-            styled_df = final_display_df.style.apply(style_legibility_flags, axis=None)
-            st.dataframe(styled_df, use_container_width=True, hide_index=True)
-        else:
-            st.warning("No schools match your base profile parameters or dismissal compliance rules.")
+        styled_df = final_display_df.style.apply(style_legibility_flags, axis=None)
+        st.dataframe(styled_df, use_container_width=True, hide_index=True)
     else:
         st.warning("No schools match your base profile parameters or dismissal compliance rules.")
