@@ -23,21 +23,40 @@ st.markdown("### **Self-Serve Enrollment Matrix**")
 st.divider()
 
 # ==============================================================================
-# 1. DUAL-DATABASE DATA LOADER
+# 1. DUAL-DATABASE DATA LOADER (FAULT-TOLERANT ENCODING PATCH)
 # ==============================================================================
 SCHOOLS_CSV = "schools.csv"
 TRANSCRIPT_CSV = "transcript_rules.csv"
 
+# Safe multi-encoding file loader for school rules database
 if os.path.exists(SCHOOLS_CSV):
-    master_schools_df = pd.read_csv(SCHOOLS_CSV)
+    try:
+        # Step A: Attempt clean standard load layout
+        master_schools_df = pd.read_csv(SCHOOLS_CSV, encoding='utf-8')
+    except UnicodeDecodeError:
+        try:
+            # Step B: Fallback to classic Microsoft Excel CSV standard export layout formats
+            master_schools_df = pd.read_csv(SCHOOLS_CSV, encoding='latin1')
+        except Exception:
+            # Step C: Total fallback safety bypass layer to prevent app crashes
+            master_schools_df = pd.read_csv(SCHOOLS_CSV, encoding='utf-8', errors='replace')
+            
     for col in master_schools_df.select_dtypes(include=['object']).columns:
         master_schools_df[col] = master_schools_df[col].astype(str).str.strip()
 else:
     st.error("⚠️ Master database file schools.csv not found.")
     st.stop()
 
+# Safe multi-encoding file loader for transcript rules database
 if os.path.exists(TRANSCRIPT_CSV):
-    transcript_rules_df = pd.read_csv(TRANSCRIPT_CSV)
+    try:
+        transcript_rules_df = pd.read_csv(TRANSCRIPT_CSV, encoding='utf-8')
+    except UnicodeDecodeError:
+        try:
+            transcript_rules_df = pd.read_csv(TRANSCRIPT_CSV, encoding='latin1')
+        except Exception:
+            transcript_rules_df = pd.read_csv(TRANSCRIPT_CSV, encoding='utf-8', errors='replace')
+            
     for col in transcript_rules_df.select_dtypes(include=['object']).columns:
         transcript_rules_df[col] = transcript_rules_df[col].astype(str).str.strip()
     transcript_rules_df.columns = transcript_rules_df.columns.str.strip()
@@ -88,7 +107,7 @@ student_zip = st.sidebar.text_input("Zip Code", placeholder="Enter Your Zip", va
 is_adult = st.sidebar.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=0, key=f"adult_{version}")
 gpa_val = st.sidebar.number_input("What is your GPA Score?", min_value=0.0, max_value=4.0, value=4.00, step=0.01, key=f"gpa_{version}")
 
-dismissal_selection = st.sidebar.selectbox("Prior nursing school dismissal?", options=DISMISSAL_OPTIONS, index=0, key=f"dismiss_{version}")
+dismissal_selection = st.sidebar.selectbox("Do you have a prior nursing dismissal?", options=DISMISSAL_OPTIONS, index=0, key=f"dismiss_{version}")
 dismissal_y = True if dismissal_selection == "Yes" else False
 
 dismissal_months = 0
@@ -469,7 +488,6 @@ else:
 
         st.markdown("#### Click 'Select School' directly on any partner row to process enrollment setup:")
         
-        # Grid Column Sizing Array Mapping
         h_col1, h_col2, h_col3, h_col4, h_col5, h_col6, h_col7 = st.columns([1.5, 2.5, 1.2, 1, 1.8, 1.5, 2.5])
         h_col1.markdown("**Action Matrix**")
         h_col2.markdown("**School Name**")
