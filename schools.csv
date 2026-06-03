@@ -1,69 +1,37 @@
 School Name,School State,County,States Accepted,ASN/BSN,Min Work Experience Required (mos),Min GPA,LPN Required?,Clinical Travel?,In-County Tuition,In-StateTuition,Out-of-State Tuition,Prior Nursing Dismissal Policy,Reentry Requirements,Max ODts/NCLEX Allowed,Entrance Exam,Entrance Exam Notes,Science/Math ODTs,Science/Math ODT Notes,RN ODTs,Non-ODT GenEds That Can't Test Out Of
-Allegany College of Maryland,MD,Allegany,"DE, FL, ID, KY, ME, MD, MO, NH, NC, OH, PA, SC, TX, VT, VA, WV, WY",ASN,6,2,Y,N,272,576,784,ACCEPTS,None,8,HESI Mobility,Min score 700. Scores of 900+ exempt the student from Nursing 3. Scores of 700–899 may retest for exemption of Nursing 3 (9 credits),"Microbiology
-AP1
-AP2",ACM recommends repeating Microbiology and A&P I/II if over 10 years old.,4,
-Herizng University ASN,WI,,"FL, IL, IN, KY, MI, MO, MT, NC, OH, SC, WI",ASN,,2,N,Y,925,925,925,DOES NOT ACCEPT,None,8,TEAS,Minimum score is 66%,"Microbiology
-AP1
-AP2",,4,"Information Literacy
+Allegany College of Maryland,MD,Allegany,"DE, FL, ID, KY, ME, MD, MO, NH, NC, OH, PA, SC, TX, VT, VA, WV, WY",ASN,6,2,Y,N,272,576,784,ACCEPTS,None,8,HESI Mobility,Min score 700. Scores of 900+ exempt the student from Nursing 3. Scores of 700–899 may retest for exemption of Nursing 3 (9 credits),"Microbiology, AP1, AP2",ACM recommends repeating Microbiology and A&P I/II if over 10 years old.,4,
+Herizng University ASN,WI,,"FL, IL, IN, KY, MI, MO, MT, NC, OH, SC, WI",ASN,,2,N,Y,925,925,925,DOES NOT ACCEPT,None,8,TEAS,Minimum score is 66%,"Microbiology, AP1, AP2",,4,"Information Literacy
 Professional Development"
-Salem University,WI,,IN; OH; PA; WV,ASN,,2.5,N,N,475,475,475,ACCEPTS,None,8,TEAS,,"Microbiology
-AP1
-AP2",,4,"Philosophy
+Salem University,WI,,IN; OH; PA; WV,ASN,,2.5,N,N,475,475,475,ACCEPTS,None,8,TEAS,,"Microbiology, AP1, AP2",,4,"Philosophy
 Life Science (Any)"
-Excelsior University,NY,,"CT, FL, GA, IN, KY, MN, MO, NJ, NY, OH, PA, SC, TN, TX, VA, WV",ASN,,1.5,Y,Y,550,550,550,ACCEPTS,None,8,TEAS,Minimum score is 58.7%,"Microbiology
-AP1
-AP2",Sciences can not be older than 5 years,4,"Ethics
+Excelsior University,NY,,"CT, FL, GA, IN, KY, MN, MO, NJ, NY, OH, PA, SC, TN, TX, VA, WV",ASN,,1.5,Y,Y,550,550,550,ACCEPTS,None,8,TEAS,Minimum score is 58.7%,"Microbiology, AP1, AP2",Sciences can not be older than 5 years,4,"Ethics
 Developmental Psychology
 Sociology"
-Herizng University BSN,WI,,"FL, IL, IN, KY, MI, MO, NC, OH, SC, TN, TX, VA, WI",BSN,,2,N,Y,755,755,755,DOES NOT ACCEPT,None,12,TEAS,Minimum score is 66%,"Microbiology
-AP1
-AP2
-Chemistry",,7,"Information Literacy
+Herizng University BSN,WI,,"FL, IL, IN, KY, MI, MO, NC, OH, SC, TN, TX, VA, WI",BSN,,2,N,Y,755,755,755,DOES NOT ACCEPT,None,12,TEAS,Minimum score is 66%,"Microbiology, AP1, AP2, Chemistry",,7,"Information Literacy
 English Composition 2
 Professional Development
 Nutrition"
-Chamberlain University,IL,,"AL, AK, AR, CA, CO, DE, DC, FL, HI, ID, IL, IN, IA, KS, KY, ME, MD, MA, MI, MN, MO, MT, NV, NH, NM, ND, OH, OK, OR, PA, SC, SD, TX, UT, VT, VA, WV, WI, WY",BSN,,2.25,N,Y,780,780,780,ACCEPTS,None,13,HESI,Minimum score is 73%,"Microbiology
-AP1
-AP2
-Statistics",Sciences can not be older than 5 years,7,"English Composition 2
+Chamberlain University,IL,,"AL, AK, AR, CA, CO, DE, DC, FL, HI, ID, IL, IN, IA, KS, KY, ME, MD, MA, MI, MN, MO, MT, NV, NH, NM, ND, OH, OK, OR, PA, SC, SD, TX, UT, VT, VA, WV, WI, WY",BSN,,2.25,N,Y,780,780,780,ACCEPTS,None,13,HESI,Minimum score is 73%,"Microbiology, AP1, AP2, Statistics",Sciences can not be older than 5 years,7,"English Composition 2
 Speech
 2 Humanities"
-Western Governors University,UT,,"AR, FL, ID, IN, IA, KS, KY, MI, MN, MS, MO, NE, NV, NM, OH, OK, SC, SD, TN, TX, UT, VA, WV, WI",BSN,,2,N,Y,442,442,442,ACCEPTS,None,12,HESI,Minimum score is 60%,"Microbiology
-AP1
-AP2
-Pathophysiology",Sciences can not be older than 5 years,7,A 2nd Humanities
-University of South Alabama,AL,,"AL, MS",BSN,,1.5,Y,N,594,594,594,ACCEPTS,Need good standing letter from previous schol,12,TEAS,,"Microbiology
-AP1
-AP2
-Statistics",,7,"Speech
+Western Governors University,UT,,"AR, FL, ID, IN, IA, KS, KY, MI, MN, MS, MO, NE, NV, NM, OH, OK, SC, SD, TN, TX, UT, VA, WV, WI",BSN,,2,N,Y,442,442,442,ACCEPTS,None,12,HESI,Minimum score is 60%,"Microbiology, AP1, AP2, Pathophysiology",Sciences can not be older than 5 years,7,A 2nd Humanities
+University of South Alabama,AL,,"AL, MS",BSN,,1.5,Y,N,594,594,594,ACCEPTS,Need good standing letter from previous schol,12,TEAS,,"Microbiology, AP1, AP2, Statistics",,7,"Speech
 Art
 Literature
 English Composition 2
 Computer course
 College Math"
-Wilson College,PA,,"DE, FL, LA, ME, MD, NJ, NY, PA, SC, VA, WV",BSN,,2.5,Y,Y,465,465,465,ACCEPTS,None,12,TEAS,Minimum score is 65% and it can not be older than 4 years,"Microbiology
-AP1
-AP2
-Statistics","If Microbiology and A/P 1&2 are older then 7 years, Wilson recommends that they be repeated",7,"Literature
+Wilson College,PA,,"DE, FL, LA, ME, MD, NJ, NY, PA, SC, VA, WV",BSN,,2.5,Y,Y,465,465,465,ACCEPTS,None,12,TEAS,Minimum score is 65% and it can not be older than 4 years,"Microbiology, AP1, AP2, Statistics","If Microbiology and A/P 1&2 are older then 7 years, Wilson recommends that they be repeated",7,"Literature
 English Composition 2
 Medical Terminology
 Religion course
 8 Liberal Art courses"
-University of Arkansas,AR,,AL; AR; KS; MO; TX,BSN,6,1.5,Y,N,329,329,329,ACCEPTS,Need good standing letter from previous schol,11,TEAS,Minimum score is 65% and it can not be older than 2 years,"Microbiology
-AP1
-AP2",Sciences can not be older than 10 years,7,"3 Electives
+University of Arkansas,AR,,AL; AR; KS; MO; TX,BSN,6,1.5,Y,N,329,329,329,ACCEPTS,Need good standing letter from previous schol,11,TEAS,Minimum score is 65% and it can not be older than 2 years,"Microbiology, AP1, AP2",Sciences can not be older than 10 years,7,"3 Electives
 English Composition 2
 Art
 Humanities course"
-Indiana St University,IN,,"CO, FL, GA, IL, IN, IA, KS, KY, ME, MD, MI, MN, MO, NE, NM, NC, OH, OR, PA, RI, TX, UT, WA, WI",BSN,,2.25,Y,N,333,333,459,ACCEPTS,Must wait 5 years post dismissal to apply,13,--,,"Microbiology
-AP1
-AP2
-Pathophysiology
-Chemistry",,7,"English Composition 2
+Indiana St University,IN,,"CO, FL, GA, IL, IN, IA, KS, KY, ME, MD, MI, MN, MO, NE, NM, NC, OH, OR, PA, RI, TX, UT, WA, WI",BSN,,2.25,Y,N,333,333,459,ACCEPTS,Must wait 5 years post dismissal to apply,13,--,,"Microbiology, AP1, AP2, Pathophysiology, Chemistry",,7,"English Composition 2
 Speech"
-Capella University,MN,,"CO, IN, IA, KS, KY, MN, NC, SD, WI",BSN,,2,N,Y,375,375,375,ACCEPTS,None,12,TEAS,Minimum score is 63%,"Microbiology
-AP1
-AP2
-Pathophysiology",,7,"English Composition 2
+Capella University,MN,,"CO, IN, IA, KS, KY, MN, NC, SD, WI",BSN,,2,N,Y,375,375,375,ACCEPTS,None,12,TEAS,Minimum score is 63%,"Microbiology, AP1, AP2, Pathophysiology",,7,"English Composition 2
 Nutrition
 Physical Science"
