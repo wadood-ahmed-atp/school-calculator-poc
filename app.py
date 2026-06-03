@@ -88,7 +88,7 @@ student_zip = st.sidebar.text_input("Zip Code", placeholder="Enter Your Zip", va
 is_adult = st.sidebar.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=0, key=f"adult_{version}")
 gpa_val = st.sidebar.number_input("What is your GPA Score?", min_value=0.0, max_value=4.0, value=4.00, step=0.01, key=f"gpa_{version}")
 
-dismissal_selection = st.sidebar.selectbox("Do you have a prior nursing dismissal?", options=DISMISSAL_OPTIONS, index=0, key=f"dismiss_{version}")
+dismissal_selection = st.sidebar.selectbox("Prior nursing school dismissal?", options=DISMISSAL_OPTIONS, index=0, key=f"dismiss_{version}")
 dismissal_y = True if dismissal_selection == "Yes" else False
 
 dismissal_months = 0
