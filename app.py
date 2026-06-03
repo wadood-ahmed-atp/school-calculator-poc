@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import re
 
 # ==============================================================================
 # 0. WEB PAGE CONFIG & STYLING
@@ -23,7 +24,7 @@ st.markdown("### **Self-Serve Enrollment Matrix**")
 st.divider()
 
 # ==============================================================================
-# 1. DUAL-DATABASE DATA LOADER (FAULT-TOLERANT)
+# 1. DATA LOADER
 # ==============================================================================
 SCHOOLS_CSV = "schools.csv"
 TRANSCRIPT_CSV = "transcript_rules.csv"
@@ -31,11 +32,8 @@ TRANSCRIPT_CSV = "transcript_rules.csv"
 if os.path.exists(SCHOOLS_CSV):
     try:
         master_schools_df = pd.read_csv(SCHOOLS_CSV, encoding='utf-8')
-    except UnicodeDecodeError:
-        try:
-            master_schools_df = pd.read_csv(SCHOOLS_CSV, encoding='latin1')
-        except Exception:
-            master_schools_df = pd.read_csv(SCHOOLS_CSV, encoding='utf-8', errors='replace')
+    except Exception:
+        master_schools_df = pd.read_csv(SCHOOLS_CSV, encoding='latin1', errors='replace')
             
     for col in master_schools_df.select_dtypes(include=['object']).columns:
         master_schools_df[col] = master_schools_df[col].astype(str).str.strip()
@@ -46,11 +44,8 @@ else:
 if os.path.exists(TRANSCRIPT_CSV):
     try:
         transcript_rules_df = pd.read_csv(TRANSCRIPT_CSV, encoding='utf-8')
-    except UnicodeDecodeError:
-        try:
-            transcript_rules_df = pd.read_csv(TRANSCRIPT_CSV, encoding='latin1')
-        except Exception:
-            transcript_rules_df = pd.read_csv(TRANSCRIPT_CSV, encoding='utf-8', errors='replace')
+    except Exception:
+        transcript_rules_df = pd.read_csv(TRANSCRIPT_CSV, encoding='latin1', errors='replace')
             
     for col in transcript_rules_df.select_dtypes(include=['object']).columns:
         transcript_rules_df[col] = transcript_rules_df[col].astype(str).str.strip()
@@ -60,26 +55,22 @@ else:
     st.stop()
 
 # ==============================================================================
-# 2. DEFINED ARRAYS WITH STAKEHOLDER PLACEHOLDERS
+# 2. DEFINED ARRAYS WITH STATE OPTIONS
 # ==============================================================================
 STATE_OPTIONS = [
-    "Select state", 
-    "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", "HI", "IA", 
-    "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN", "MO", "MS", 
-    "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH", "OK", "OR", "PA", 
-    "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY"
+    "Select state", "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
+    "HI", "IA", "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN", 
+    "MO", "MS", "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH", "OK", 
+    "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY"
 ]
 BINARY_OPTIONS = ["Yes", "No"]
 DISMISSAL_OPTIONS = ["No", "Yes"]
 LICENSE_OPTIONS = ["None", "LPN", "CNA/CMA"]
 TRACK_OPTIONS = ["BSN", "ASN"]
 
-if "reset_counter" not in st.session_state: 
-    st.session_state["reset_counter"] = 0
-if "addon_state" not in st.session_state: 
-    st.session_state["addon_state"] = False
-if "confirmed_package" not in st.session_state:
-    st.session_state["confirmed_package"] = None
+if "reset_counter" not in st.session_state: st.session_state["reset_counter"] = 0
+if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
+if "confirmed_package" not in st.session_state: st.session_state["confirmed_package"] = None
 
 st.sidebar.header("📋 Lead Profile")
 
@@ -92,7 +83,7 @@ if st.sidebar.button("🔄 Reset Form"):
 version = st.session_state["reset_counter"]
 
 # ==============================================================================
-# 3. SIDEBAR WITH WIDGET PLACEHOLDERS
+# 3. SIDEBAR LEAD INPUT FIELDS
 # ==============================================================================
 student_name = st.sidebar.text_input("Student Name", placeholder="Enter Your name", value="", key=f"name_{version}")
 student_state = st.sidebar.selectbox("Lead State", options=STATE_OPTIONS, index=0, key=f"state_{version}")
@@ -122,19 +113,13 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("📚 Transcript Review")
 
 course_list = [
-    "Eng Comp 1", "College Algebra", "Statistics", "Humanities 1", 
-    "Humanities 2", "Humanities 3", "Human Growth & Development", 
-    "Psychology", "Sociology", "Speech", "General Biology", 
-    "Chemistry", "Government", "History", "Foreign Language", 
+    "Eng Comp 1", "College Algebra", "Statistics", "Humanities 1", "Humanities 2", 
+    "Humanities 3", "Human Growth & Development", "Psychology", "Sociology", "Speech", 
+    "General Biology", "Chemistry", "Government", "History", "Foreign Language", 
     "Macro/Micro Economics", "Elective 1", "Elective 2"
 ]
 
-needed_courses = st.sidebar.multiselect(
-    "Select Needed Courses:",
-    options=course_list,
-    default=[],
-    key=f"courses_{version}"
-)
+needed_courses = st.sidebar.multiselect("Select Needed Courses:", options=course_list, default=[], key=f"courses_{version}")
 
 selected_track = str(program_interest).strip().upper()
 selected_state = str(student_state).strip().upper()
@@ -144,7 +129,7 @@ selected_state = str(student_state).strip().upper()
 # ==============================================================================
 if is_adult == "No":
     st.error("🛑 **Self-Serve Checkout Unavailable**")
-    st.info(f"### **Next Steps Required for {student_name if student_name else 'Applicant'}:**\nApplicants under the age of 18 are not permitted to complete an independent digital registration.")
+    st.info(f"### **Next Steps Required for {student_name if student_name else 'Applicant'}:**\nApplicants under the age of 18 require internal agent validation processing.")
 elif student_state == "Select state":
     st.warning("⚠️ **Lead State Required:** Please select a valid state territory from the sidebar dropdown list.")
 else:
@@ -272,8 +257,8 @@ else:
     st.divider()
 
     # ==============================================================================
-    # 5. ELIGIBLE INSTITUTION MATRIX VIEW
-# ==============================================================================
+    # 5. ELIGIBLE INSTITUTION MATRIX VIEW & ALGORITHMIC PARSER
+    # ==============================================================================
     st.header("🏫 Eligible Institution Matches")
     available_cols = master_schools_df.columns.tolist()
 
@@ -309,7 +294,9 @@ else:
 
     filtered_df = working_schools_df.copy()
 
-    # REFINED DIALOG MODAL EXECUTION ENGINE
+    # ==============================================================================
+    # 🧠 ALGORITHMIC DIALOG MODAL LOOP FOR ENTRANCE EXAMS
+    # ==============================================================================
     @st.dialog("Confirm & Lock Enrollment Package")
     def render_institutional_modal(school_name, school_exam_type, school_exam_notes):
         st.markdown(f"### 📋 Reviewing: **{school_name}**")
@@ -317,53 +304,116 @@ else:
         
         modal_base_count = len(needed_courses)
         modal_addons = 2 if has_addons else 0
-        score_value = None
         
-        if school_exam_type == "--" or school_exam_type == "" or pd.isna(school_exam_type):
+        # State Tracking Variables
+        include_exam_prep = False
+        classes_waived = 0
+        waived_course_name = ""
+        user_score_logged = ""
+        
+        # Guard clause for schools requiring no entrance exam
+        if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
             st.info("ℹ️ **No Entrance Exam Required:** This institution does not mandate an entrance examination baseline parameter.")
-            include_exam_prep = False
         else:
             st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
             user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], horizontal=True)
             
             if user_has_passed == "Yes":
-                include_exam_prep = False
+                raw_input_score = st.text_input("Enter your official exam score or percentage number:", placeholder="e.g., 75 or 740")
+                user_score_logged = raw_input_score
                 
-                # REFINED CRITERIA CHECK: If notes exist, force score entry collection
-                clean_notes = str(school_exam_notes).strip()
-                if clean_notes and clean_notes != "nan" and clean_notes != "--":
-                    st.markdown("##### 📝 Institutional Score Requirements:")
-                    st.info(f"*{clean_notes}*")
-                    score_value = st.text_input("Enter your official exam score or percentage:", placeholder="e.g., 75% or 720")
-                else:
-                    st.success(f"✅ Verified: Applicant is already compliant for the {school_exam_type} test track.")
-            else:
-                current_test_base = (modal_base_count if modal_base_count > 0 else 1)
-                current_test_total = current_test_base + modal_addons
-                current_main_p = 1179 if current_test_base >= 10 else (1229 if current_test_base >= 4 else 1289)
-                current_addon_p = 749 if current_test_total >= 10 else (799 if current_test_total >= 4 else 859)
-                
-                if modal_base_count == 0:
-                    current_pre_total = (modal_addons * current_addon_p)
-                else:
-                    current_pre_total = (current_test_base * current_main_p) + (modal_addons * current_addon_p)
+                if raw_input_score:
+                    # Strip symbols to extract clean digits for numerical evaluation
+                    clean_score_str = re.sub(r'[^\d.]', '', raw_input_score)
+                    score_num = float(clean_score_str) if clean_score_str else 0.0
                     
-                current_final_total = max(0.0, current_pre_total - credits_sum)
-                
-                if current_final_total >= 14500:
-                    st.warning("⚠️ **Exam Prep Unavailable:** The current package layout has reached the $14,500 threshold limitation.")
-                    include_exam_prep = False
-                else:
-                    include_exam_prep = st.checkbox(f"Add **{school_exam_type}** Prep Course to Package? (+$1,289 Floor Baseline)")
+                    # Core String Parsing Layer
+                    notes_str = str(school_exam_notes).strip()
+                    rules = notes_str.split('|')
+                    
+                    matched_rule_type = "fail" # Fallback initial state
+                    custom_message = ""
+                    age_limit_years = None
+                    age_question_text = ""
+                    
+                    # Evaluate structural string syntax parameters
+                    for rule in rules:
+                        parts = rule.split(':')
+                        if not parts or parts[0] == "": continue
+                        
+                        condition = parts[0].strip()
+                        
+                        # Handle standard range bounds (e.g. "700-899")
+                        if '-' in condition:
+                            try:
+                                low, high = map(float, condition.split('-'))
+                                if low <= score_num <= high:
+                                    matched_rule_type = parts[1].strip()
+                                    custom_message = parts[2].strip() if len(parts) > 2 else ""
+                            except ValueError: pass
+                        
+                        # Handle ceiling logic parameters (e.g. "900+" or "66+")
+                        elif '+' in condition:
+                            try:
+                                floor_val = float(condition.replace('+', ''))
+                                if score_num >= floor_val:
+                                    matched_rule_type = parts[1].strip()
+                                    if matched_rule_type == "exempt":
+                                        classes_waived = int(parts[2].strip())
+                                        waived_course_name = parts[3].strip()
+                                    elif matched_rule_type == "pass" and len(parts) > 2:
+                                        custom_message = parts[2].strip()
+                            except ValueError: pass
+                        
+                        # Handle the smart dynamic age verification trigger parameter block
+                        elif condition == "age":
+                            age_limit_years = int(parts[1].strip())
+                            age_question_text = parts[2].strip()
+
+                    # Executing UI States Based On Parsed Matches
+                    if score_num > 0:
+                        # Tier Check 1: Score fell completely short of lowest range requirements
+                        if matched_rule_type == "fail" and not any('+' in r or '-' in r for r in rules if r.split(':')[0] != 'age'):
+                            st.error(f"🛑 **Score Below Target:** This score is below the baseline requirements for {school_name}.")
+                            include_exam_prep = st.checkbox(f"Add **{school_exam_type}** Prep Course to Package? (+$1,289 Floor Baseline)")
+                        
+                        # Tier Check 2: Passing Score Found - Look for Expiration Constraints
+                        elif matched_rule_type == "pass":
+                            if age_limit_years:
+                                st.markdown("##### ⏳ Verification Check Required:")
+                                exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=0)
+                                if exam_age > age_limit_years:
+                                    st.error(f"🛑 **Score Expired:** {school_name} does not accept scores older than {age_limit_years} years.")
+                                    include_exam_prep = st.checkbox(f"Add **{school_exam_type}** Prep Course to Package? (+$1,289 Floor Baseline)")
+                                else:
+                                    st.success(f"✅ Verified: Score is active and compliant for enrollment!")
+                            else:
+                                st.success(f"✅ Verified: Applicant is compliant for the {school_exam_type} track.")
+                        
+                        # Tier Check 3: Mid-Tier Retest State Found (Allegany Loop)
+                        elif matched_rule_type == "retest":
+                            st.warning(f"⚠️ **Admission Approved!** {custom_message}")
+                            include_exam_prep = st.checkbox("Add Advanced Retest Prep Bundle? (+$1,289 to maximize credit exemptions)")
+                        
+                        # Tier Check 4: Elite Merit Exemption Achieved (Allegany Loop)
+                        elif matched_rule_type == "exempt":
+                            st.success(f"🎉 **Elite Score Unlocked!** Automatic exemption granted from **{waived_course_name}** (Saves {classes_waived * 3} credits).")
+            else:
+                # If they select "No", default back to offering standard prep course
+                include_exam_prep = st.checkbox(f"Add **{school_exam_type}** Prep Course to Package? (+$1,289 Floor Baseline)")
 
         st.markdown("---")
         st.markdown("#### Itemized Balance Preview")
         
+        # Calculate Ledger Live for lead expanding/shrinking classes based on score
         final_base_classes = modal_base_count if modal_base_count > 0 else 1
         if include_exam_prep:
-            final_base_classes = modal_base_count + 1 if modal_base_count > 0 else 1
+            final_base_classes = (modal_base_count + 1) if modal_base_count > 0 else 1
+        elif classes_waived > 0:
+            final_base_classes = max(0, modal_base_count - classes_waived)
             
-        final_total_classes = (modal_base_count if modal_base_count > 0 else 0) + (1 if include_exam_prep else 0) + modal_addons
+        final_total_classes = (modal_base_count if modal_base_count > 0 else 0) + (1 if include_exam_prep else 0) + modal_addons - classes_waived
+        final_total_classes = max(0, final_total_classes)
         
         m_main_p = 1179 if final_base_classes >= 10 else (1229 if final_base_classes >= 4 else 1289)
         m_addon_p = 749 if final_total_classes >= 10 else (799 if final_total_classes >= 4 else 859)
@@ -377,6 +427,7 @@ else:
             
         modal_final_total = max(0.0, final_base_total - credits_sum)
         
+        # Handle Registration Tiering Matrix
         if is_cna == "CNA/CMA":
             if final_total_classes == 0: m_reg = 0
             elif final_total_classes <= 2: m_reg = 150
@@ -400,37 +451,33 @@ else:
         if st.button("🔒 Lock in Enrollment Package", key="modal_lock_btn"):
             st.session_state["confirmed_package"] = {
                 "school_name": school_name,
-                "student_name": student_name if student_name else "Unnamed Applicant",
+                "student_name": student_name if student_name else "Unnamed Lead",
                 "base_total": final_base_total,
                 "reg_fee": m_reg,
                 "final_total": modal_final_total,
                 "courses_included": needed_courses,
                 "entrance_exam_prep_added": include_exam_prep,
-                "entrance_exam_score_logged": score_value,
+                "entrance_exam_score_logged": user_score_logged,
+                "classes_waived_count": classes_waived,
                 "addons_active": has_addons
             }
             st.rerun()
 
+    # ==============================================================================
+    # 6. ROW RENDERING ENGINE FOR THE INTERACTIVE TABLE
+    # ==============================================================================
     if not filtered_df.empty:
-        status_log = []
-        cash_yield_margins = []
-        deficiencies_resolved_log = []
-        exam_requirements_list = []
-        exam_notes_list = []
+        status_log, cash_yield_margins, deficiencies_resolved_log, exam_requirements_list, exam_notes_list = [], [], [], [], []
         
         for _, school_row in filtered_df.iterrows():
             raw_name = str(school_row["School Name"]).strip()
             exam_requirements_list.append(str(school_row.get("Entrance Exam", "--")).strip())
-            
-            # Extract standard clean notes text fallback variables securely
             exam_notes_list.append(str(school_row.get("Entrance Exam Notes", "")).strip())
             
             if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
-                word_pattern = "HERZ|HERI"
-                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains(word_pattern, na=False, case=False)]
+                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains("HERZ|HERI", na=False, case=False)]
             elif "EXCEL" in raw_name.upper():
-                word_pattern = "EXCEL"
-                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains(word_pattern, na=False, case=False)]
+                rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains("EXCEL", na=False, case=False)]
             else:
                 rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
             
@@ -445,35 +492,17 @@ else:
                         if accepted_status == "Y":
                             offered_courses_count += 1
                             school_accepted_list.append(required_course)
-                        else:
-                            has_all_courses = False
-                    else:
-                        has_all_courses = False
+                        else: has_all_courses = False
+                    else: has_all_courses = False
+                status_log.append("Perfect Match" if (len(needed_courses) == 0 or has_all_courses) else "Missing Needed CBE Courses")
+            else: status_log.append("Perfect Match")
                 
-                if len(needed_courses) == 0:
-                    status_log.append("Perfect Match")
-                elif has_all_courses:
-                    status_log.append("Perfect Match")
-                else:
-                    status_log.append("Missing Needed CBE Courses")
-            else:
-                status_log.append("Perfect Match")
-                
-            if school_accepted_list:
-                deficiencies_resolved_log.append(", ".join(school_accepted_list))
-            else:
-                deficiencies_resolved_log.append("None")
-                
-            revenue_per_course = float(main_price)
-            school_revenue_potential = offered_courses_count * revenue_per_course
+            deficiencies_resolved_log.append(", ".join(school_accepted_list) if school_accepted_list else "None")
             
+            school_revenue_potential = offered_courses_count * float(main_price)
             tuition_cost_raw = str(school_row.get("Tuition", "0")).replace("$", "").replace(",", "").strip()
-            tuition_cost = pd.to_numeric(tuition_cost_raw, errors='coerce')
-            if pd.isna(tuition_cost):
-                tuition_cost = 0.0
-                
-            calculated_margin = max(0.0, school_revenue_potential - float(tuition_cost))
-            cash_yield_margins.append(calculated_margin)
+            tuition_cost = pd.to_numeric(tuition_cost_raw, errors='coerce') if pd.isna(pd.to_numeric(tuition_cost_raw, errors='coerce')) == False else 0.0
+            cash_yield_margins.append(max(0.0, school_revenue_potential - float(tuition_cost)))
                 
         filtered_df["Match Status"] = status_log
         filtered_df["Estimated Revenue Profit"] = cash_yield_margins
@@ -483,16 +512,10 @@ else:
 
         preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Entrance Exam Requirement", "Entrance Exam Notes Column", "Deficiencies Met"]
         columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
-
-        if dismissal_y and "Reentry Requirements" in filtered_df.columns:
-            columns_to_show.append("Reentry Requirements")
+        if dismissal_y and "Reentry Requirements" in filtered_df.columns: columns_to_show.append("Reentry Requirements")
 
         final_display_df = filtered_df[columns_to_show].copy()
-        
-        final_display_df["_sort_profit"] = pd.to_numeric(
-            final_display_df["Estimated Revenue Profit"].astype(str).str.replace("$", "").str.replace(",", ""), 
-            errors="coerce"
-        ).fillna(0.0)
+        final_display_df["_sort_profit"] = pd.to_numeric(final_display_df["Estimated Revenue Profit"], errors="coerce").fillna(0.0)
         final_display_df = final_display_df.sort_values(by="_sort_profit", ascending=False)
 
         st.markdown("#### Click 'Select School' directly on any partner row to process enrollment setup:")
@@ -516,25 +539,21 @@ else:
             s_status = row["Match Status"]
             s_met = row.get("Deficiencies Met", "None")
             
-            txt_profit = f"${s_profit_raw:,.2f}" if isinstance(s_profit_raw, (int, float)) else str(row["Estimated Revenue Profit"])
-            
             row_col1, row_col2, row_col3, row_col4, row_col5, row_col6, row_col7 = st.columns([1.5, 2.5, 1.2, 1, 1.8, 1.5, 2.5])
             
             if row_col1.button("Select School", key=f"btn_select_{idx}_{version}"):
                 render_institutional_modal(s_name, s_exam, s_notes)
                 
             row_col2.markdown(f"**{s_name}**")
-            row_col3.markdown(txt_profit)
+            row_col3.markdown(f"${s_profit_raw:,.2f}")
             row_col4.markdown(s_track)
             
             if s_status == "Missing Needed CBE Courses":
                 row_col5.markdown(f"<span style='color: #DC2626; font-weight: bold;'>{s_status}</span>", unsafe_allow_html=True)
-            else:
-                row_col5.markdown(s_status)
+            else: row_col5.markdown(s_status)
                 
             row_col6.markdown(f"`{s_exam}`")
             row_col7.markdown(f"_{s_met}_")
             st.markdown("<hr style='margin: 5px 0px; border-color: #f1f5f9;'>", unsafe_allow_html=True)
-
     else:
         st.warning("No schools match your base profile parameters or dismissal compliance rules.")
