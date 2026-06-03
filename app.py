@@ -257,7 +257,7 @@ else:
     st.divider()
 
     # ==============================================================================
-    # 5. ELIGIBLE INSTITUTION MATRIX VIEW & ALGORITHMIC PARSER
+    # 5. ELIGIBLE INSTITUTION MATRIX VIEW
     # ==============================================================================
     st.header("🏫 Eligible Institution Matches")
     available_cols = master_schools_df.columns.tolist()
@@ -295,7 +295,7 @@ else:
     filtered_df = working_schools_df.copy()
 
     # ==============================================================================
-    # 🧠 ALGORITHMIC DIALOG MODAL LOOP FOR ENTRANCE EXAMS
+    # 🧠 OPT-OUT AUTOMATED PREP COURSE ENGINE
     # ==============================================================================
     @st.dialog("Confirm & Lock Enrollment Package")
     def render_institutional_modal(school_name, school_exam_type, school_exam_notes):
@@ -305,45 +305,44 @@ else:
         modal_base_count = len(needed_courses)
         modal_addons = 2 if has_addons else 0
         
-        # State Tracking Variables
         include_exam_prep = False
         classes_waived = 0
         waived_course_name = ""
         user_score_logged = ""
         
-        # Guard clause for schools requiring no entrance exam
         if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
             st.info("ℹ️ **No Entrance Exam Required:** This institution does not mandate an entrance examination baseline parameter.")
         else:
             st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
             user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], horizontal=True)
             
-            if user_has_passed == "Yes":
+            if user_has_passed == "No":
+                # AUTO-ADD PREP COURSE SYSTEM (Opt-Out format)
+                st.warning(f"⚠️ **Notice:** A passing {school_exam_type} score is required for enrollment. We have added the **{school_exam_type} Prep Course** to your bundle automatically.")
+                include_exam_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in cart?", value=True)
+            
+            else:
                 raw_input_score = st.text_input("Enter your official exam score or percentage number:", placeholder="e.g., 75 or 740")
                 user_score_logged = raw_input_score
                 
                 if raw_input_score:
-                    # Strip symbols to extract clean digits for numerical evaluation
                     clean_score_str = re.sub(r'[^\d.]', '', raw_input_score)
                     score_num = float(clean_score_str) if clean_score_str else 0.0
                     
-                    # Core String Parsing Layer
                     notes_str = str(school_exam_notes).strip()
                     rules = notes_str.split('|')
                     
-                    matched_rule_type = "fail" # Fallback initial state
+                    matched_rule_type = "fail" 
                     custom_message = ""
                     age_limit_years = None
                     age_question_text = ""
                     
-                    # Evaluate structural string syntax parameters
                     for rule in rules:
                         parts = rule.split(':')
                         if not parts or parts[0] == "": continue
                         
                         condition = parts[0].strip()
                         
-                        # Handle standard range bounds (e.g. "700-899")
                         if '-' in condition:
                             try:
                                 low, high = map(float, condition.split('-'))
@@ -352,7 +351,6 @@ else:
                                     custom_message = parts[2].strip() if len(parts) > 2 else ""
                             except ValueError: pass
                         
-                        # Handle ceiling logic parameters (e.g. "900+" or "66+")
                         elif '+' in condition:
                             try:
                                 floor_val = float(condition.replace('+', ''))
@@ -365,47 +363,38 @@ else:
                                         custom_message = parts[2].strip()
                             except ValueError: pass
                         
-                        # Handle the smart dynamic age verification trigger parameter block
                         elif condition == "age":
                             age_limit_years = int(parts[1].strip())
                             age_question_text = parts[2].strip()
 
-                    # Executing UI States Based On Parsed Matches
+                    # Execute UI Rendering Paths based on Score Numerical Evaluation
                     if score_num > 0:
-                        # Tier Check 1: Score fell completely short of lowest range requirements
-                        if matched_rule_type == "fail" and not any('+' in r or '-' in r for r in rules if r.split(':')[0] != 'age'):
-                            st.error(f"🛑 **Score Below Target:** This score is below the baseline requirements for {school_name}.")
-                            include_exam_prep = st.checkbox(f"Add **{school_exam_type}** Prep Course to Package? (+$1,289 Floor Baseline)")
+                        if matched_rule_type == "fail":
+                            st.error(f"🛑 **Score Below Target:** This score does not clear minimum admission requirements. We have added the **{school_exam_type} Prep Course** to help you bridge the gap.")
+                            include_exam_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in cart?", value=True)
                         
-                        # Tier Check 2: Passing Score Found - Look for Expiration Constraints
                         elif matched_rule_type == "pass":
                             if age_limit_years:
                                 st.markdown("##### ⏳ Verification Check Required:")
                                 exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=0)
                                 if exam_age > age_limit_years:
-                                    st.error(f"🛑 **Score Expired:** {school_name} does not accept scores older than {age_limit_years} years.")
-                                    include_exam_prep = st.checkbox(f"Add **{school_exam_type}** Prep Course to Package? (+$1,289 Floor Baseline)")
+                                    st.error(f"🛑 **Score Expired:** Outdated score parameter. Adding **{school_exam_type} Prep Course** to cart.")
+                                    include_exam_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in cart?", value=True)
                                 else:
                                     st.success(f"✅ Verified: Score is active and compliant for enrollment!")
                             else:
                                 st.success(f"✅ Verified: Applicant is compliant for the {school_exam_type} track.")
                         
-                        # Tier Check 3: Mid-Tier Retest State Found (Allegany Loop)
                         elif matched_rule_type == "retest":
                             st.warning(f"⚠️ **Admission Approved!** {custom_message}")
-                            include_exam_prep = st.checkbox("Add Advanced Retest Prep Bundle? (+$1,289 to maximize credit exemptions)")
+                            include_exam_prep = st.checkbox(f"Add **{school_exam_type} Advanced Retest Prep** to maximize credit exemptions?", value=True)
                         
-                        # Tier Check 4: Elite Merit Exemption Achieved (Allegany Loop)
                         elif matched_rule_type == "exempt":
                             st.success(f"🎉 **Elite Score Unlocked!** Automatic exemption granted from **{waived_course_name}** (Saves {classes_waived * 3} credits).")
-            else:
-                # If they select "No", default back to offering standard prep course
-                include_exam_prep = st.checkbox(f"Add **{school_exam_type}** Prep Course to Package? (+$1,289 Floor Baseline)")
 
         st.markdown("---")
         st.markdown("#### Itemized Balance Preview")
         
-        # Calculate Ledger Live for lead expanding/shrinking classes based on score
         final_base_classes = modal_base_count if modal_base_count > 0 else 1
         if include_exam_prep:
             final_base_classes = (modal_base_count + 1) if modal_base_count > 0 else 1
@@ -427,7 +416,6 @@ else:
             
         modal_final_total = max(0.0, final_base_total - credits_sum)
         
-        # Handle Registration Tiering Matrix
         if is_cna == "CNA/CMA":
             if final_total_classes == 0: m_reg = 0
             elif final_total_classes <= 2: m_reg = 150
