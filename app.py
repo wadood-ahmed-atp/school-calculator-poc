@@ -23,22 +23,18 @@ st.markdown("### **Self-Serve Enrollment Matrix**")
 st.divider()
 
 # ==============================================================================
-# 1. DUAL-DATABASE DATA LOADER (FAULT-TOLERANT ENCODING PATCH)
+# 1. DUAL-DATABASE DATA LOADER (FAULT-TOLERANT)
 # ==============================================================================
 SCHOOLS_CSV = "schools.csv"
 TRANSCRIPT_CSV = "transcript_rules.csv"
 
-# Safe multi-encoding file loader for school rules database
 if os.path.exists(SCHOOLS_CSV):
     try:
-        # Step A: Attempt clean standard load layout
         master_schools_df = pd.read_csv(SCHOOLS_CSV, encoding='utf-8')
     except UnicodeDecodeError:
         try:
-            # Step B: Fallback to classic Microsoft Excel CSV standard export layout formats
             master_schools_df = pd.read_csv(SCHOOLS_CSV, encoding='latin1')
         except Exception:
-            # Step C: Total fallback safety bypass layer to prevent app crashes
             master_schools_df = pd.read_csv(SCHOOLS_CSV, encoding='utf-8', errors='replace')
             
     for col in master_schools_df.select_dtypes(include=['object']).columns:
@@ -47,7 +43,6 @@ else:
     st.error("⚠️ Master database file schools.csv not found.")
     st.stop()
 
-# Safe multi-encoding file loader for transcript rules database
 if os.path.exists(TRANSCRIPT_CSV):
     try:
         transcript_rules_df = pd.read_csv(TRANSCRIPT_CSV, encoding='utf-8')
@@ -88,7 +83,6 @@ if "confirmed_package" not in st.session_state:
 
 st.sidebar.header("📋 Lead Profile")
 
-# Clear Reset Flow
 if st.sidebar.button("🔄 Reset Form"):
     st.session_state["reset_counter"] += 1
     st.session_state["addon_state"] = False
@@ -98,7 +92,7 @@ if st.sidebar.button("🔄 Reset Form"):
 version = st.session_state["reset_counter"]
 
 # ==============================================================================
-# 3. SIDEBAR WITH WIDGET PLACEHOLDERS & CONDITIONAL VISIBILITY
+# 3. SIDEBAR WITH WIDGET PLACEHOLDERS
 # ==============================================================================
 student_name = st.sidebar.text_input("Student Name", placeholder="Enter Your name", value="", key=f"name_{version}")
 student_state = st.sidebar.selectbox("Lead State", options=STATE_OPTIONS, index=0, key=f"state_{version}")
@@ -150,9 +144,9 @@ selected_state = str(student_state).strip().upper()
 # ==============================================================================
 if is_adult == "No":
     st.error("🛑 **Self-Serve Checkout Unavailable**")
-    st.info(f"### **Next Steps Required for {student_name if student_name else 'Applicant'}:**\nApplicants under the age of 18 are not permitted to complete an independent digital registration or contract confirmation.")
+    st.info(f"### **Next Steps Required for {student_name if student_name else 'Applicant'}:**\nApplicants under the age of 18 are not permitted to complete an independent digital registration.")
 elif student_state == "Select state":
-    st.warning("⚠️ **Lead State Required:** Please select a valid state territory from the sidebar dropdown list to unlock matrix filtering features.")
+    st.warning("⚠️ **Lead State Required:** Please select a valid state territory from the sidebar dropdown list.")
 else:
     base_count = len(needed_courses)
     raw_base_classes = base_count if base_count > 0 else 1
@@ -184,7 +178,6 @@ else:
         else:
             st.session_state["addon_state"] = has_addons
 
-    # --- SHOW CONFIRMED PACKAGE CELEBRATION CARD ---
     if st.session_state["confirmed_package"]:
         pkg = st.session_state["confirmed_package"]
         st.balloons()
@@ -199,7 +192,6 @@ else:
             st.json(pkg)
         st.divider()
 
-    # --- FINANCIAL LEDGER ENGINE VIEW ---
     st.header("⚡ Financial Ledger")
     col_calc_input, col_calc_output = st.columns([1, 1])
 
@@ -279,7 +271,9 @@ else:
 
     st.divider()
 
-    # --- ELIGIBLE INSTITUTION MATRIX VIEW ---
+    # ==============================================================================
+    # 5. ELIGIBLE INSTITUTION MATRIX VIEW
+# ==============================================================================
     st.header("🏫 Eligible Institution Matches")
     available_cols = master_schools_df.columns.tolist()
 
@@ -315,16 +309,17 @@ else:
 
     filtered_df = working_schools_df.copy()
 
-    # DIALOG MODAL EXECUTION ENGINE
+    # REFINED DIALOG MODAL EXECUTION ENGINE
     @st.dialog("Confirm & Lock Enrollment Package")
-    def render_institutional_modal(school_name, school_exam_type):
+    def render_institutional_modal(school_name, school_exam_type, school_exam_notes):
         st.markdown(f"### 📋 Reviewing: **{school_name}**")
         st.markdown("---")
         
         modal_base_count = len(needed_courses)
         modal_addons = 2 if has_addons else 0
+        score_value = None
         
-        if school_exam_type == "--" or school_exam_type == "":
+        if school_exam_type == "--" or school_exam_type == "" or pd.isna(school_exam_type):
             st.info("ℹ️ **No Entrance Exam Required:** This institution does not mandate an entrance examination baseline parameter.")
             include_exam_prep = False
         else:
@@ -332,8 +327,16 @@ else:
             user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], horizontal=True)
             
             if user_has_passed == "Yes":
-                st.success(f"✅ Verified: Applicant is already compliant for the {school_exam_type} test track.")
                 include_exam_prep = False
+                
+                # REFINED CRITERIA CHECK: If notes exist, force score entry collection
+                clean_notes = str(school_exam_notes).strip()
+                if clean_notes and clean_notes != "nan" and clean_notes != "--":
+                    st.markdown("##### 📝 Institutional Score Requirements:")
+                    st.info(f"*{clean_notes}*")
+                    score_value = st.text_input("Enter your official exam score or percentage:", placeholder="e.g., 75% or 720")
+                else:
+                    st.success(f"✅ Verified: Applicant is already compliant for the {school_exam_type} test track.")
             else:
                 current_test_base = (modal_base_count if modal_base_count > 0 else 1)
                 current_test_total = current_test_base + modal_addons
@@ -403,6 +406,7 @@ else:
                 "final_total": modal_final_total,
                 "courses_included": needed_courses,
                 "entrance_exam_prep_added": include_exam_prep,
+                "entrance_exam_score_logged": score_value,
                 "addons_active": has_addons
             }
             st.rerun()
@@ -412,10 +416,14 @@ else:
         cash_yield_margins = []
         deficiencies_resolved_log = []
         exam_requirements_list = []
+        exam_notes_list = []
         
         for _, school_row in filtered_df.iterrows():
             raw_name = str(school_row["School Name"]).strip()
             exam_requirements_list.append(str(school_row.get("Entrance Exam", "--")).strip())
+            
+            # Extract standard clean notes text fallback variables securely
+            exam_notes_list.append(str(school_row.get("Entrance Exam Notes", "")).strip())
             
             if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
                 word_pattern = "HERZ|HERI"
@@ -471,8 +479,9 @@ else:
         filtered_df["Estimated Revenue Profit"] = cash_yield_margins
         filtered_df["Deficiencies Met"] = deficiencies_resolved_log
         filtered_df["Entrance Exam Requirement"] = exam_requirements_list
+        filtered_df["Entrance Exam Notes Column"] = exam_notes_list
 
-        preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Entrance Exam Requirement", "Deficiencies Met"]
+        preferred_cols = ["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Min GPA", "Entrance Exam Requirement", "Entrance Exam Notes Column", "Deficiencies Met"]
         columns_to_show = [col for col in preferred_cols if col in filtered_df.columns]
 
         if dismissal_y and "Reentry Requirements" in filtered_df.columns:
@@ -501,6 +510,7 @@ else:
         for idx, row in final_display_df.iterrows():
             s_name = row["School Name"]
             s_exam = row["Entrance Exam Requirement"]
+            s_notes = row["Entrance Exam Notes Column"]
             s_profit_raw = row["_sort_profit"]
             s_track = row["ASN/BSN"]
             s_status = row["Match Status"]
@@ -511,7 +521,7 @@ else:
             row_col1, row_col2, row_col3, row_col4, row_col5, row_col6, row_col7 = st.columns([1.5, 2.5, 1.2, 1, 1.8, 1.5, 2.5])
             
             if row_col1.button("Select School", key=f"btn_select_{idx}_{version}"):
-                render_institutional_modal(s_name, s_exam)
+                render_institutional_modal(s_name, s_exam, s_notes)
                 
             row_col2.markdown(f"**{s_name}**")
             row_col3.markdown(txt_profit)
