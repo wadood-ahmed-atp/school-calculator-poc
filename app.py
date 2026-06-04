@@ -4,7 +4,7 @@ import os
 import re
 
 # ==============================================================================
-# 0. DESKTOP WORKSPACE VIEW RESIZINGS & INFRASTRUCTURE TOOLBAR BLOCKS
+# 0. DESKTOP GRID & ENTERPRISE CSS INJECTIONS
 # ==============================================================================
 st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
@@ -32,15 +32,6 @@ st.markdown("""
     .stButton>button {
         border-radius: 8px !important;
         font-weight: 600 !important;
-    }
-    
-    /* 🎨 HIGH-IMPACT SELECTION WORKSPACE SYSTEM */
-    .premium-selected-card {
-        background-color: #f0f4f8 !important;
-        border: 3px solid #1E3A8A !important;
-        border-radius: 12px !important;
-        padding: 20px !important;
-        margin-bottom: 15px !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -116,7 +107,7 @@ else:
     st.stop()
 
 # ==============================================================================
-# 3. OPTIONS LOOKUP DICTIONARY CONFIGS
+# 3. GLOBAL LOOKUP PARAMETERS
 # ==============================================================================
 STATE_OPTIONS = [
     "Select state", "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -158,9 +149,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ==============================================================================
-# 4. GLOBALLY SCOPED ADMISSIONS GATING DIALOG WINDOW MODULE
-# ==============================================================================
+# Globally Scoped Admissions GATING DIALOG WINDOW MODULE
 @st.dialog("Verify Entrance Exam Compliance")
 def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list, school_card_ref, school_unique_id):
     st.markdown(f"### 📋 Checking Gating for: **{school_name}**")
@@ -173,7 +162,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
     local_include_prep = False
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-        st.info("ℹ️ Entrance testing validation controls waived for this partner track blueprint.")
+        st.info("ℹ️ Entrance testing validation controls bypassed for this partner track blueprint.")
         local_include_prep = False
     else:
         st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
@@ -431,7 +420,7 @@ with col_input_flow:
         if not filtered_df.empty:
             card_rows = []
             for idx, school_row in filtered_df.iterrows():
-                # 🔑 PARSE EXPLICIT CHARACTER GUARD: Prevents stripping errors from rendering blank string containers
+                # 🔑 Safeguard parser keeps character encodings fully text-readable without generating blank markdown titles
                 raw_name = str(school_row["School Name"]).strip()
                 if raw_name in ["", "nan"] or pd.isna(school_row["School Name"]):
                     raw_name = f"Partner Institution Platform Ref #{idx}"
@@ -485,33 +474,32 @@ with col_input_flow:
             
             card_rows = sorted(card_rows, key=lambda x: x["profit"], reverse=True)
 
+            # 🔑 REMOVED CSS BOX INJECTIONS FROM THE ACTIVE CONTAINER LOOPS:
+            # Native borders eliminate the trailing white blocks overhead completely.
             for card in card_rows:
                 is_this_card_selected = (st.session_state["selected_school_id"] == card["id"])
                 
-                card_style_div = "<div class='premium-selected-card'>" if is_this_card_selected else "<div style='border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; margin-bottom: 15px; background-color: #ffffff;'>"
-                st.markdown(card_style_div, unsafe_allow_html=True)
-                
-                courses_text_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
-                
-                s_left_col, s_right_col = st.columns([2.8, 1.2])
-                with s_left_col:
+                # Dynamic border assignments highlight the card cleanly without generating ghost bars
+                with st.container(border=True):
                     if is_this_card_selected:
-                        st.markdown(f"### 🏫 **{card['name']} <span style='background-color:#1E3A8A; color:white; font-size:12px; padding:3px 10px; border-radius:12px; margin-left:12px; font-weight:600;'>🎯 SELECTED PARTNER</span>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='background-color:#f0f4f8; padding:10px; border-radius:6px; border-left:5px solid #1E3A8A; margin-bottom:10px;'><h3>🏫 {card['name']} <span style='background-color:#1E3A8A; color:white; font-size:11px; padding:2px 8px; border-radius:10px; margin-left:10px; font-weight:600; vertical-align:middle;'>🎯 SELECTED</span></h3></div>", unsafe_allow_html=True)
                     else:
-                        st.markdown(f"### 🏫 **")
-                    st.markdown(f"**Degree Track Program:** `{card['track']}`")
-                    st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* **{courses_text_string}**")
-                with s_right_col:
-                    st.metric(label="Est Profit Margin", value=f"${card['profit']:,.2f}")
-                
-                btn_label = "✓ Active Selection Unlocked" if is_this_card_selected else "Select School & Fulfill Deficiencies"
-                
-                if st.button(btn_label, key=f"btn_card_sel_{card['id']}", use_container_width=True, type="secondary" if is_this_card_selected else "primary", disabled=is_finalized):
-                    st.session_state["active_school_view"] = card
-                    st.session_state["selected_school_id"] = card["id"]
-                    render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"], card, card["id"])
-                
-                st.markdown("</div>", unsafe_allow_html=True)
+                        st.markdown(f"### 🏫 {card['name']}")
+                    
+                    courses_text_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
+                    
+                    s_left_col, s_right_col = st.columns([2.8, 1.2])
+                    with s_left_col:
+                        st.markdown(f"**Degree Track Program:** `{card['track']}`")
+                        st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* **{courses_text_string}**")
+                    with s_right_col:
+                        st.metric(label="Est Profit Margin", value=f"${card['profit']:,.2f}")
+                    
+                    btn_label = "✓ Active Selection Unlocked" if is_this_card_selected else "Select School & Fulfill Deficiencies"
+                    if st.button(btn_label, key=f"btn_card_sel_{card['id']}", use_container_width=True, type="secondary" if is_this_card_selected else "primary", disabled=is_finalized):
+                        st.session_state["active_school_view"] = card
+                        st.session_state["selected_school_id"] = card["id"]
+                        render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"], card, card["id"])
         else:
             st.warning("No partner institutions match your background parameters configuration parameters.")
         
@@ -527,7 +515,7 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# SHOPPING CART ITEMIZATION LEDGER MANIFEST 
+# 🛒 ITEMIZED SIDEBAR INVOICE CART (FULLY DISSOLVED DISCOUNTS BREAKDOWN)
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -566,6 +554,7 @@ if col_ledger_flow is not None:
                 st.session_state["val_promo"] = "No"
                 q_promo = "No"
 
+            # Compute individual credit accounts values line-by-line metrics
             calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= 300) else 0.0
             calc_referral = 50.0 if q_ref == "Yes" else 0.0
             calc_military = 200.0 if q_mil == "Yes" else 0.0
@@ -576,7 +565,25 @@ if col_ledger_flow is not None:
 
             st.divider()
             st.markdown(f"**Gross Base Tuition Balance:** `${0.00 if is_completely_empty else base_total:,.2f}`")
-            st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
+            
+            # ==============================================================================
+            # 🆕 EXPLICIT LINE-BY-LINE VERBAL BREAKDOWN INVOICE RECEIPT LEDGER
+            # ==============================================================================
+            st.markdown("##### 🎖️ Applied Fee Waivers & Adjustments:")
+            if calc_dep_match > 0:
+                st.markdown(f"• 🤝 *Deposit Match Program Incentive:* `-${calc_dep_match:,.2f}`")
+            if calc_referral > 0:
+                st.markdown(f"• 👥 *Student/Agent Referral Credit:* `-${calc_referral:,.2f}`")
+            if calc_military > 0:
+                st.markdown(f"• 🎖️ *Active/Veteran Military Waiver:* `-${calc_military:,.2f}`")
+            if calc_free_course > 0:
+                st.markdown(f"• 🎟️ *Complimentary Course Promo Code:* `-${calc_free_course:,.2f}`")
+            if grant_input > 0:
+                st.markdown(f"• 🏫 *Direct Institutional Grant Award:* `-${grant_input:,.2f}`")
+            if credits_sum == 0:
+                st.markdown("• *No programmatic credits applied to this profile context.*")
+                
+            st.markdown(f"**Total Consolidated Deductions:** `-${credits_sum:,.2f}`")
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
             
             st.divider()
@@ -595,7 +602,7 @@ if col_ledger_flow is not None:
                 }
                 st.rerun()
 
-# Final voucher manifest summary generator block
+# Manifest generation blocks
 if is_finalized:
     pkg = st.session_state["confirmed_package"]
     st.balloons()
