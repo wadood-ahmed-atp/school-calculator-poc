@@ -4,12 +4,19 @@ import os
 import re
 
 # ==============================================================================
-# 0. DESKTOP GRID & DESIGN CONFIG OVERRIDES
+# 0. 🖥️ WIDESCREEN CAP BLOCK & INFRASTRUCTURE TOOLBAR REMOVAL
 # ==============================================================================
 st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
 st.markdown("""
     <style>
+    /* 🚫 OBLITERATE THE TOP-RIGHT INFRASTRUCTURE TOOLBAR (SHARE, EDIT, GITHUB, STAR) */
+    .stToolbar, div[data-testid="stStatusWidget"], .stAppHeader {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0px !important;
+    }
+    
     /* Centers and caps the main form body layout so fields don't stretch infinitely */
     .block-container {
         max-width: 1200px !important;
@@ -35,7 +42,7 @@ if "addon_state" not in st.session_state: st.session_state["addon_state"] = Fals
 if "active_school_view" not in st.session_state: st.session_state["active_school_view"] = None
 if "modal_include_exam_prep" not in st.session_state: st.session_state["modal_include_exam_prep"] = False
 
-# Persistent Memory Stores
+# Persistent Memory Stores (Protected from Garbage Collection)
 if "val_name" not in st.session_state: st.session_state["val_name"] = ""
 if "val_state" not in st.session_state: st.session_state["val_state"] = "Select state"
 if "val_zip" not in st.session_state: st.session_state["val_zip"] = ""
@@ -64,7 +71,7 @@ def restart_wizard():
     st.rerun()
 
 # ==============================================================================
-# 2. DATA SOURCE IMPORTERS (STABLE LOADER PIPELINE)
+# 2. DATA SOURCE IMPORT PIPELINE LOADER
 # ==============================================================================
 SCHOOLS_CSV = "schools.csv"
 TRANSCRIPT_CSV = "transcript_rules.csv"
@@ -89,7 +96,7 @@ else:
     st.stop()
 
 # ==============================================================================
-# 3. GLOBAL ROUTING OPTIONS MATRIX
+# 3. GLOBAL LOOKUP PARAMETERS
 # ==============================================================================
 STATE_OPTIONS = [
     "Select state", "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -110,9 +117,6 @@ course_list = [
 ]
 
 current_step = st.session_state["wizard_step"]
-
-# Main Interface App Header
-st.title("🗺️ Bridge Plan Generator")
 
 # Clean Text-Based Progress Bar Configuration
 st.markdown(
@@ -199,15 +203,15 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
                         age_question_text = parts[2].strip()
 
                 if score_num > 0:
-                    if matched_rule_type == "fail":
-                        st.error(f"🛑 Testing standard parameters report sub-admissions averages. Injecting **{school_exam_type} Prep Course** layout options.")
+                    if matched_rule_type =="fail":
+                        st.error(f"🛑 Testing parameters fall below target. Injecting **{school_exam_type} Prep Course** bundle options.")
                         local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_2")
                     elif matched_rule_type == "pass":
                         if age_limit_years:
                             st.markdown("##### ⏳ Verification Check Required:")
                             exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1)
                             if exam_age > age_limit_years:
-                                st.error(f"🛑 Active testing score profile has expired. Pre-adding verification bundle.")
+                                st.error(f"🛑 Active testing context has expired. Pre-adding verification bundle parameter controls.")
                                 local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_3")
                             else:
                                 st.success(f"✅ Verified: Compliance testing variables remain valid and verified!")
@@ -262,7 +266,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
             }
             st.rerun()
 
-# Set up form view grids based on step indices
+# Set layout parameters dynamically
 if current_step == 4:
     col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
 else:
@@ -292,7 +296,6 @@ with col_input_flow:
             i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=st.session_state["val_gpa"], step=0.01, disabled=False)
         
         st.divider()
-        # 🔄 REPOSITIONED: Placed cleanly side-by-side inside the form card control bar
         b_reset_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
         with b_reset_col:
             if st.button("🔄 Reset Data", use_container_width=True, type="secondary", key="step1_reset_btn"):
@@ -314,7 +317,7 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 2: PROFESSIONAL BACKGROUND HISTORY
+    # STEP 2: PROFESSIONAL BACKGROUND History
     # --------------------------------------------------------------------------
     elif current_step == 2:
         st.subheader("Step 2: Professional Licensing & History")
@@ -335,7 +338,6 @@ with col_input_flow:
         i_track = st.selectbox("Which nursing track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]))
         
         st.divider()
-        # 🔄 REPOSITIONED: Placed cleanly side-by-side inside the form card control bar
         b_reset_col, b_spacer, b_back_col, b_continue_col = st.columns([1.0, 0.5, 1.0, 1.0])
         with b_reset_col:
             if st.button("🔄 Reset Data", use_container_width=True, type="secondary", key="step2_reset_btn"):
@@ -362,7 +364,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT review FORM
+    # STEP 3: TRANSCRIPT review CHECKLIST PANEL view
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Transcript Review")
@@ -392,7 +394,6 @@ with col_input_flow:
         st.session_state["addon_state"] = False
 
         st.divider()
-        # 🔄 REPOSITIONED: Placed cleanly side-by-side inside the form card control bar
         b_reset_col, b_spacer, b_back_col, b_continue_col = st.columns([1.0, 0.5, 1.0, 1.0])
         with b_reset_col:
             if st.button("🔄 Reset Data", use_container_width=True, type="secondary", key="step3_reset_btn"):
@@ -408,7 +409,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: CAMPUS CARD LISTINGS MATCHES
+    # STEP 4: SCHOOL RESULTS
     # --------------------------------------------------------------------------
     elif current_step == 4:
         student_state = st.session_state["val_state"]
@@ -512,7 +513,6 @@ with col_input_flow:
             st.warning("No partner institutions match your background parameters configuration parameters.")
         
         st.divider()
-        # 🔄 REPOSITIONED: Placed cleanly side-by-side inside the form card control bar
         b_reset_col, b_spacer, b_back_col = st.columns([1.0, 1.5, 1.0])
         with b_reset_col:
             if st.button("🔄 Reset Data", use_container_width=True, type="secondary", key="step4_reset_btn"):
@@ -574,8 +574,6 @@ if col_ledger_flow is not None:
             st.markdown(f"**Gross Base Tuition Balance:** `${0.00 if is_completely_empty else base_total:,.2f}`")
             st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
-
-# Global baseline footer area button completely obliterated.
 
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
