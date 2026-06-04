@@ -4,7 +4,7 @@ import os
 import re
 
 # ==============================================================================
-# 0. DESKTOP GRID & SELECTION CHIP CSS INJECTION
+# 0. DESKTOP GRID & DESIGN CONFIG OVERRIDES
 # ==============================================================================
 st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
@@ -114,9 +114,23 @@ current_step = st.session_state["wizard_step"]
 # Main Interface App Header
 st.title("🗺️ Bridge Plan Generator")
 
-# ==============================================================================
-# 🔧 GLOBALLY SCOPED INTERPRETER DIALOG BOX (CRASH IMMUNE)
-# ==============================================================================
+# Clean Text-Based Progress Bar Configuration
+st.markdown(
+    f"""
+    <div style="font-family: sans-serif; font-size: 15px; font-weight: 500; color: #475569; padding-bottom: 20px;">
+        <span style="color: {'#1E3A8A' if current_step==1 else '#10B981'}; font-weight: {'bold' if current_step==1 else 'normal'};">{'✅ ' if current_step>1 else ''}1. Identity</span> 
+        <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
+        <span style="color: {'#1E3A8A' if current_step==2 else ('#10B981' if current_step>2 else '#94a3b8')}; font-weight: {'bold' if current_step==2 else 'normal'};">{'✅ ' if current_step>2 else ''}2. Baseline</span> 
+        <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
+        <span style="color: {'#1E3A8A' if current_step==3 else ('#10B981' if current_step>3 else '#94a3b8')}; font-weight: {'bold' if current_step==3 else 'normal'};">{'✅ ' if current_step>3 else ''}3. Transcripts Review</span> 
+        <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
+        <span style="color: {'#1E3A8A' if current_step==4 else '#94a3b8'}; font-weight: {'bold' if current_step==4 else 'normal'};">4. School Matches</span>
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
+
+# Globally Scoped Dialog Box Modal
 @st.dialog("Confirm & Lock Enrollment Package")
 def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list, school_card_ref):
     st.markdown(f"### 📋 Reviewing: **{school_name}**")
@@ -224,8 +238,6 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
         calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= 300) else 0.0
         calc_referral = 50.0 if st.session_state["val_ref"] == "Yes" else 0.0
         calc_military = 200.0 if st.session_state["val_mil"] == "Yes" else 0.0
-        
-        # Lookahead verification hook
         calc_free_course = float(m_price_tier) if (st.session_state["val_promo"] == "Yes" and modal_base_count >= 3) else 0.0
         modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
         modal_final_total = max(0.0, final_base_total - modal_credits_sum)
@@ -250,25 +262,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
             }
             st.rerun()
 
-# ==============================================================================
-# 🔧 NATIVE TEXT PROGRESS BAR (NO WHITE BACKGROUND BOXES)
-# ==============================================================================
-st.markdown(
-    f"""
-    <div style="font-family: sans-serif; font-size: 15px; font-weight: 500; color: #475569; padding-bottom: 20px;">
-        <span style="color: {'#1E3A8A' if current_step==1 else '#10B981'}; font-weight: {'bold' if current_step==1 else 'normal'};">{'✅ ' if current_step>1 else ''}1. Identity</span> 
-        <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
-        <span style="color: {'#1E3A8A' if current_step==2 else ('#10B981' if current_step>2 else '#94a3b8')}; font-weight: {'bold' if current_step==2 else 'normal'};">{'✅ ' if current_step>2 else ''}2. Baseline</span> 
-        <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
-        <span style="color: {'#1E3A8A' if current_step==3 else ('#10B981' if current_step>3 else '#94a3b8')}; font-weight: {'bold' if current_step==3 else 'normal'};">{'✅ ' if current_step>3 else ''}3. Transcripts Review</span> 
-        <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
-        <span style="color: {'#1E3A8A' if current_step==4 else '#94a3b8'}; font-weight: {'bold' if current_step==4 else 'normal'};">4. School Matches</span>
-    </div>
-    """, 
-    unsafe_allow_html=True
-)
-
-# Set grid containers
+# Set up form view grids based on step indices
 if current_step == 4:
     col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
 else:
@@ -281,7 +275,7 @@ with col_input_flow:
     # STEP 1: IDENTITY PROFILE AREA
     # --------------------------------------------------------------------------
     if current_step == 1:
-        st.subheader("Step 1: Identity Profile Parameters")
+        st.subheader("Step 1: Identity & Territory Parameters")
         st.markdown("Capture your residency territory parameters to verify regional institutional compliance channels.")
         st.divider()
         
@@ -290,9 +284,7 @@ with col_input_flow:
         i_zip = st.text_input("What is your zip code?", value=st.session_state["val_zip"], placeholder="e.g. 19013", max_chars=14)
         i_adult = st.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_adult"]))
         
-        # 🔑 GPA UNKNOWN SAFEGUARD OVERRIDE FIELD
         i_gpa_unknown = st.checkbox("I don't know my cumulative GPA", value=st.session_state["val_gpa_unknown"])
-        
         if i_gpa_unknown:
             st.session_state["val_gpa"] = 4.00
             i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=4.00, step=0.01, disabled=True)
@@ -300,8 +292,12 @@ with col_input_flow:
             i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=st.session_state["val_gpa"], step=0.01, disabled=False)
         
         st.divider()
-        btn_spacer, btn_continue = st.columns([3.0, 1.0])
-        with btn_continue:
+        # 🔄 REPOSITIONED: Placed cleanly side-by-side inside the form card control bar
+        b_reset_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
+        with b_reset_col:
+            if st.button("🔄 Reset Data", use_container_width=True, type="secondary", key="step1_reset_btn"):
+                restart_wizard()
+        with b_continue_col:
             if st.button("Continue ➡️", use_container_width=True, type="primary", key="step1_continue_action"):
                 if i_state == "Select state":
                     st.warning("⚠️ Please select a valid state territory before moving forward.")
@@ -318,7 +314,7 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 2: PROFESSIONAL HISTORY LAYERS
+    # STEP 2: PROFESSIONAL BACKGROUND HISTORY
     # --------------------------------------------------------------------------
     elif current_step == 2:
         st.subheader("Step 2: Professional Licensing & History")
@@ -339,8 +335,12 @@ with col_input_flow:
         i_track = st.selectbox("Which nursing track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]))
         
         st.divider()
-        btn_spacer, btn_back, btn_continue = st.columns([2.0, 1.0, 1.0])
-        with btn_back:
+        # 🔄 REPOSITIONED: Placed cleanly side-by-side inside the form card control bar
+        b_reset_col, b_spacer, b_back_col, b_continue_col = st.columns([1.0, 0.5, 1.0, 1.0])
+        with b_reset_col:
+            if st.button("🔄 Reset Data", use_container_width=True, type="secondary", key="step2_reset_btn"):
+                restart_wizard()
+        with b_back_col:
             if st.button("⬅️ Back", use_container_width=True, key="step2_back_action"):
                 st.session_state["val_lic"] = i_lic
                 st.session_state["val_exp"] = i_exp
@@ -350,7 +350,7 @@ with col_input_flow:
                 st.session_state["val_track"] = i_track
                 st.session_state["wizard_step"] = 1
                 st.rerun()
-        with btn_continue:
+        with b_continue_col:
             if st.button("Continue ➡️", use_container_width=True, type="primary", key="step2_continue_action"):
                 st.session_state["val_lic"] = i_lic
                 st.session_state["val_exp"] = i_exp
@@ -362,11 +362,11 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT DEFICIENCIES SUBMITTAL CHECKLIST
+    # STEP 3: TRANSCRIPT review FORM
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Transcript Review")
-        st.markdown("Select your required prerequisite deficiencies and apply discount criteria parameters.")
+        st.markdown("Check off any credit course deficiencies you still need to fulfill through a partner track program.")
         st.divider()
         
         st.multiselect(
@@ -377,7 +377,7 @@ with col_input_flow:
         )
         st.session_state["val_courses"] = st.session_state["temp_courses"]
         
-        st.markdown("#### Promotional Qualifications & Discounts")
+        st.markdown("#### **Promotional Qualifications & Discounts**")
         w_ref = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True)
         w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True)
         
@@ -392,19 +392,23 @@ with col_input_flow:
         st.session_state["addon_state"] = False
 
         st.divider()
-        btn_spacer, btn_back, btn_continue = st.columns([2.0, 1.0, 1.0])
-        with btn_back:
+        # 🔄 REPOSITIONED: Placed cleanly side-by-side inside the form card control bar
+        b_reset_col, b_spacer, b_back_col, b_continue_col = st.columns([1.0, 0.5, 1.0, 1.0])
+        with b_reset_col:
+            if st.button("🔄 Reset Data", use_container_width=True, type="secondary", key="step3_reset_btn"):
+                restart_wizard()
+        with b_back_col:
             if st.button("⬅️ Back", use_container_width=True, key="step3_back_action"):
                 st.session_state["wizard_step"] = 2
                 st.rerun()
-        with btn_continue:
+        with b_continue_col:
             if st.button("Find Matches ➡️", use_container_width=True, type="primary", key="step3_continue_action"):
                 st.session_state["active_school_view"] = None
                 st.session_state["wizard_step"] = 4
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: SCHOOL RESULTS
+    # STEP 4: CAMPUS CARD LISTINGS MATCHES
     # --------------------------------------------------------------------------
     elif current_step == 4:
         student_state = st.session_state["val_state"]
@@ -440,7 +444,6 @@ with col_input_flow:
 
         filtered_df = working_schools_df.copy()
 
-        # 🔑 SECURE METRICS BLOCK RENDERING (WIDESCREEN ADJUSTED CODES)
         if not filtered_df.empty:
             card_rows = []
             for idx, school_row in filtered_df.iterrows():
@@ -495,22 +498,26 @@ with col_input_flow:
                 with st.container(border=True):
                     courses_text_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
                     
-                    s_left_col, s_right_col = st.columns([3.0, 1.0])
+                    s_left_col, s_right_col = st.columns([2.8, 1.2])
                     with s_left_col:
                         st.markdown(f"### 🏫 **{card['name']}**")
-                        st.markdown(f"**Graduation Degree Track:** `{card['track']} Tier`")
-                        st.markdown(f"🧬 *Deficiencies Met ({len(card['accepted_courses'])}):* **{courses_text_string}**")
+                        st.markdown(f"**Degree Track Program:** `{card['track']}`")
+                        st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* **{courses_text_string}**")
                     with s_right_col:
                         st.metric(label="Est Profit Margin", value=f"${card['profit']:,.2f}")
                     
                     if st.button("Select School & Fulfill Deficiencies", key=f"btn_card_sel_{card['idx']}", use_container_width=True, type="primary"):
                         render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"], card)
         else:
-            st.warning("No partner institutions match your background parameters filter arrays.")
+            st.warning("No partner institutions match your background parameters configuration parameters.")
         
         st.divider()
-        b_spacer, b_back = st.columns([3.0, 1.0])
-        with b_back:
+        # 🔄 REPOSITIONED: Placed cleanly side-by-side inside the form card control bar
+        b_reset_col, b_spacer, b_back_col = st.columns([1.0, 1.5, 1.0])
+        with b_reset_col:
+            if st.button("🔄 Reset Data", use_container_width=True, type="secondary", key="step4_reset_btn"):
+                restart_wizard()
+        with b_back_col:
             if st.button("⬅️ Back to Review", use_container_width=True, key="step4_reverse_button_action"):
                 st.session_state["val_courses"] = list(st.session_state["val_courses"])
                 st.session_state["wizard_step"] = 3
@@ -524,7 +531,7 @@ if col_ledger_flow is not None:
         st.subheader("🛒 Itemized Invoice Cart")
         
         if st.session_state["confirmed_package"] is None:
-            st.info("👉 Please click 'Select School' on any partner institution row option on the left to verify compliance parameters and display invoice data calculations.")
+            st.info("👉 Please click 'Select School' on any partner institution row option on the left to verify compliance data and unlock itemized ledger statements calculations details.")
         else:
             needed_courses = st.session_state["active_school_view"]["accepted_courses"]
             st.success(f"🎯 Target Locked: **{st.session_state['active_school_view']['name']}**")
@@ -568,12 +575,7 @@ if col_ledger_flow is not None:
             st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
 
-# Restart Process layout
-st.markdown("<br><br>", unsafe_allow_html=True)
-f_col1, f_col2 = st.columns([3.0, 1.0])
-with f_col2:
-    if st.button("🔄 Restart Process Flow", use_container_width=True, type="secondary", key="global_footer_restart_btn"):
-        restart_wizard()
+# Global baseline footer area button completely obliterated.
 
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
