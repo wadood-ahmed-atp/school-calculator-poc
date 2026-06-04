@@ -16,6 +16,7 @@ st.markdown("""
     header[data-testid="stHeader"] {
         display: none !important;
         visibility: hidden !important;
+        width: 0px !important;
         height: 0px !important;
     }
     
@@ -55,9 +56,9 @@ if "val_gpa" not in st.session_state: st.session_state["val_gpa"] = 4.00
 if "val_gpa_unknown" not in st.session_state: st.session_state["val_gpa_unknown"] = False
 
 if "val_lic" not in st.session_state: st.session_state["val_lic"] = "None / Other"
-if "val_exp" not in st.session_state: st.session_state["val_exp"] = 0
+if "val_exp" not in st.session_state: st.session_state["val_exp"] = None # 🔧 Value set to None to prevent sticking zero artifacts
 if "val_dismiss" not in st.session_state: st.session_state["val_dismiss"] = "No"
-if "val_dismiss_mos" not in st.session_state: st.session_state["val_dismiss_mos"] = 72
+if "val_dismiss_mos" not in st.session_state: st.session_state["val_dismiss_mos"] = None # 🔧 Value set to None to prevent sticking zero artifacts
 if "val_travel" not in st.session_state: st.session_state["val_travel"] = "Yes"
 if "val_track" not in st.session_state: st.session_state["val_track"] = "BSN"
 
@@ -121,14 +122,15 @@ course_list = [
 ]
 
 current_step = st.session_state["wizard_step"]
-
-# 🔑 READ-ONLY LOOKAHEAD TRIGGER: Evaluates true if candidate layout package has finalized successfully
 is_finalized = st.session_state["confirmed_package"] is not None
+
+# Permanent Branding Header Anchor
+st.markdown("## 🗺️ Bridge Plan Generator")
 
 # Clean Progress Indicator Bar
 st.markdown(
     f"""
-    <div style="font-family: sans-serif; font-size: 15px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 10px;">
+    <div style="font-family: sans-serif; font-size: 15px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 5px;">
         <span style="color: {'#1E3A8A' if current_step==1 else '#10B981'}; font-weight: {'bold' if current_step==1 else 'normal'};">{'✅ ' if current_step>1 else ''}1. Identity Profile</span> 
         <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
         <span style="color: {'#1E3A8A' if current_step==2 else ('#10B981' if current_step>2 else '#94a3b8')}; font-weight: {'bold' if current_step==2 else 'normal'};">{'✅ ' if current_step>2 else ''}2. Baseline Profile</span> 
@@ -230,7 +232,6 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
                         local_include_prep = False
 
     st.markdown("---")
-    #### Itemized Balance Preview
     if st.button("🟢 OK", key="modal_ok_btn", use_container_width=True):
         st.session_state["modal_include_exam_prep"] = local_include_prep
         st.session_state["modal_score_logged"] = user_score_logged
@@ -255,7 +256,6 @@ with col_input_flow:
         st.markdown("Capture your residency parameters to parse localized regional partner program accessibility options.")
         st.divider()
         
-        # 🔑 ALL FIELDS BIND WITH is_finalized CONTROL ARGUMENTS TO FREEZE MODIFICATIONS
         i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name", disabled=is_finalized)
         i_state = st.selectbox("Select your residency home state:", options=STATE_OPTIONS, index=STATE_OPTIONS.index(st.session_state["val_state"]), disabled=is_finalized)
         i_zip = st.text_input("What is your zip code?", value=st.session_state["val_zip"], placeholder="e.g. 19013", max_chars=14, disabled=is_finalized)
@@ -271,7 +271,6 @@ with col_input_flow:
         st.divider()
         b_reset_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
         with b_reset_col:
-            # 🔄 RENAMED TO "Restart Process" — Always remains active as our escape route
             if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step1_reset_btn"):
                 restart_wizard()
         with b_continue_col:
@@ -299,14 +298,18 @@ with col_input_flow:
         st.divider()
         
         i_lic = st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=LICENSE_OPTIONS.index(st.session_state["val_lic"]), disabled=is_finalized)
+        
+        # Hydrate active session bounds securely
         i_exp = st.session_state["val_exp"]
         if i_lic == "LPN":
-            i_exp = st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=st.session_state["val_exp"], step=1, disabled=is_finalized)
+            # 🔑 STICKY ZERO FIXED: Initialized with value=None and dynamic placeholders to wipe text padding issues
+            i_exp = st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=st.session_state["val_exp"], step=1, placeholder="0", disabled=is_finalized)
             
         i_dismiss = st.selectbox("Do you possess a prior academic nursing program dismissal?", options=DISMISSAL_OPTIONS, index=DISMISSAL_OPTIONS.index(st.session_state["val_dismiss"]), disabled=is_finalized)
         i_dismiss_mos = st.session_state["val_dismiss_mos"]
         if i_dismiss == "Yes":
-            i_dismiss_mos = st.number_input("Months elapsed since your historical academic dismissal date:", min_value=0, max_value=300, value=st.session_state["val_dismiss_mos"], step=1, disabled=is_finalized)
+            # 🔑 STICKY ZERO FIXED: Initialized with value=None and dynamic placeholders to wipe text padding issues
+            i_dismiss_mos = st.number_input("Months elapsed since your historical academic dismissal date:", min_value=0, max_value=300, value=st.session_state["val_dismiss_mos"], step=1, placeholder="0", disabled=is_finalized)
             
         i_travel = st.selectbox("Are you amenable to regional clinical onsite travel loops?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]), disabled=is_finalized)
         i_track = st.selectbox("Which nursing track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]), disabled=is_finalized)
@@ -329,9 +332,9 @@ with col_input_flow:
         with b_continue_col:
             if st.button("Continue ➡️", use_container_width=True, type="primary", key="step2_continue_action", disabled=is_finalized):
                 st.session_state["val_lic"] = i_lic
-                st.session_state["val_exp"] = i_exp
+                st.session_state["val_exp"] = i_exp if i_exp is not None else 0
                 st.session_state["val_dismiss"] = i_dismiss
-                st.session_state["val_dismiss_mos"] = i_dismiss_mos
+                st.session_state["val_dismiss_mos"] = i_dismiss_mos if i_dismiss_mos is not None else 0
                 st.session_state["val_travel"] = i_travel
                 st.session_state["val_track"] = i_track
                 st.session_state["wizard_step"] = 3
@@ -390,11 +393,11 @@ with col_input_flow:
         selected_state = str(student_state).strip().upper()
         selected_track = str(st.session_state["val_track"]).strip().upper()
         license_type = st.session_state["val_lic"]
-        lpn_exp = st.session_state["val_exp"]
+        lpn_exp = st.session_state["val_exp"] if st.session_state["val_exp"] is not None else 0
         gpa_val = st.session_state["val_gpa"]
         travel_ok = st.session_state["val_travel"]
         dismissal_y = True if st.session_state["val_dismiss"] == "Yes" else False
-        dismissal_months = st.session_state["val_dismiss_mos"]
+        dismissal_months = st.session_state["val_dismiss_mos"] if st.session_state["val_dismiss_mos"] is not None else 0
         needed_courses = st.session_state["val_courses"]
 
         working_schools_df = master_schools_df.copy()
@@ -470,18 +473,30 @@ with col_input_flow:
             card_rows = sorted(card_rows, key=lambda x: x["profit"], reverse=True)
 
             for card in card_rows:
+                # 🔑 CHECK CARD TO SEE IF IT MATCHES ACTIVE SELECTION
+                is_this_card_selected = False
+                if st.session_state["active_school_view"] is not None:
+                    if st.session_state["active_school_view"]["name"] == card["name"]:
+                        is_this_card_selected = True
+                
                 with st.container(border=True):
                     courses_text_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
                     
                     s_left_col, s_right_col = st.columns([2.8, 1.2])
                     with s_left_col:
-                        st.markdown(f"### 🏫 **{card['name']}**")
+                        # 🎯 VISUAL SELECTED BADGE SYSTEM INSTALLED
+                        if is_this_card_selected:
+                            st.markdown(f"### 🏫 **{card['name']} <span style='background-color:#d1fae5; color:#065f46; font-size:13px; padding:3px 8px; border-radius:12px; margin-left:10px; font-weight:600;'>🎯 Selected Partner</span>", unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"### 🏫 **")
                         st.markdown(f"**Degree Track Program:** `{card['track']}`")
                         st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* **{courses_text_string}**")
                     with s_right_col:
                         st.metric(label="Est Profit Margin", value=f"${card['profit']:,.2f}")
                     
-                    if st.button("Select School & Fulfill Deficiencies", key=f"btn_card_sel_{card['idx']}", use_container_width=True, type="primary", disabled=is_finalized):
+                    # Alter button messaging conditionally based on active selections status checks
+                    btn_label = "✓ Verified - Package Unlocked" if is_this_card_selected else "Select School & Fulfill Deficiencies"
+                    if st.button(btn_label, key=f"btn_card_sel_{card['idx']}", use_container_width=True, type="secondary" if is_this_card_selected else "primary", disabled=is_finalized):
                         render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"], card)
         else:
             st.warning("No partner institutions match your background parameters configuration parameters.")
@@ -498,7 +513,7 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# SHOPPING CART LEDGER COMPONENT (FULLY DEACTIVATED ON FINAL VALIDATIONS)
+# SHOPPING CART LEDGER COMPONENT (LOOKAHEAD BUG RESOLVED)
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
