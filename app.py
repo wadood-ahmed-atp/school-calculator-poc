@@ -43,6 +43,8 @@ if "confirmed_package" not in st.session_state: st.session_state["confirmed_pack
 if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
 if "active_school_view" not in st.session_state: st.session_state["active_school_view"] = None
 if "modal_include_exam_prep" not in st.session_state: st.session_state["modal_include_exam_prep"] = False
+if "modal_score_logged" not in st.session_state: st.session_state["modal_score_logged"] = ""
+if "modal_classes_waived" not in st.session_state: st.session_state["modal_classes_waived"] = 0
 
 # Persistent Memory Stores
 if "val_name" not in st.session_state: st.session_state["val_name"] = ""
@@ -136,23 +138,22 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Globally Scoped Dialog Box Modal
-@st.dialog("Confirm & Lock Enrollment Package")
+# ==============================================================================
+# 🔧 RE-ENGINEERED DIALOG BOX (REPLACED COMMIT BUTTON WITH AN "OK" SELECTION)
+# ==============================================================================
+@st.dialog("Verify Entrance Exam Compliance")
 def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list, school_card_ref):
-    st.markdown(f"### 📋 Reviewing: **{school_name}**")
+    st.markdown(f"### 📋 Checking Gating for: **{school_name}**")
     st.markdown("---")
     
     modal_base_count = len(valid_courses_list)
     classes_waived = 0
     waived_course_name = ""
     user_score_logged = ""
-    
-    deposit_input = st.session_state["val_deposit"]
-    grant_input = st.session_state["val_grant"]
     local_include_prep = False
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-        st.info("ℹ️ Entrance testing validation controls bypassed for this partner track blueprint.")
+        st.info("ℹ️ Entrance testing validation controls waived for this partner track blueprint.")
         local_include_prep = False
     else:
         st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
@@ -171,7 +172,6 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
                 
                 notes_str = str(school_exam_notes).strip()
                 rules = notes_str.split('|')
-                
                 matched_rule_type = "fail" 
                 custom_message = ""
                 age_limit_years = None
@@ -206,7 +206,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
 
                 if score_num > 0:
                     if matched_rule_type == "fail":
-                        st.error(f"🛑 Testing standard parameters report sub-admissions averages. Injecting **{school_exam_type} Prep Course** layout options.")
+                        st.error(f"🛑 Testing averages sit below entry thresholds. Appending **{school_exam_type} Prep Course** options.")
                         local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_2")
                     elif matched_rule_type == "pass":
                         if age_limit_years:
@@ -214,7 +214,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
                             exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1)
                             if exam_age > age_limit_years:
                                 st.error(f"🛑 Active testing score profile has expired. Pre-adding verification bundle.")
-                                local_include_prep = False
+                                local_include_prep = True
                             else:
                                 st.success(f"✅ Verified: Compliance testing variables remain valid and verified!")
                                 local_include_prep = False
@@ -228,47 +228,14 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
                         st.success(f"🎉 Exemption waiver layer unlocked from **{waived_course_name}**.")
                         local_include_prep = False
 
-        st.markdown("---")
-        st.markdown("#### Itemized Balance Preview")
-        
-        final_base_classes = modal_base_count
-        if local_include_prep:
-            final_base_classes = modal_base_count + 1
-        elif classes_waived > 0:
-            final_base_classes = max(0, modal_base_count - classes_waived)
-            
-        m_classes_tier = final_base_classes if final_base_classes > 0 else 1
-        m_price_tier = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
-        final_base_total = final_base_classes * m_price_tier
-        
-        calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= 300) else 0.0
-        calc_referral = 50.0 if st.session_state["val_ref"] == "Yes" else 0.0
-        calc_military = 200.0 if st.session_state["val_mil"] == "Yes" else 0.0
-        
-        # Lookahead valuation gate
-        calc_free_course = float(m_price_tier) if (st.session_state["val_promo"] == "Yes" and modal_base_count >= 3) else 0.0
-        modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
-        modal_final_total = max(0.0, final_base_total - modal_credits_sum)
-
-        st.metric("Adjusted Base Tuition Cost", f"${final_base_total:,.2f}")
-        st.metric("Final Balance Due", f"${modal_final_total:,.2f}")
-        
-        if st.button("🔒 Lock in Enrollment Package", key="modal_lock_btn", use_container_width=True):
-            st.session_state["modal_include_exam_prep"] = local_include_prep
-            st.session_state["active_school_view"] = school_card_ref
-            st.session_state["confirmed_package"] = {
-                "school_name": school_name,
-                "student_name": st.session_state["val_name"],
-                "base_total": final_base_total,
-                "reg_fee": 0.0,
-                "final_total": modal_final_total,
-                "courses_included": valid_courses_list,
-                "entrance_exam_prep_added": local_include_prep,
-                "entrance_exam_score_logged": user_score_logged,
-                "classes_waived_count": classes_waived,
-                "addons_active": False
-            }
-            st.rerun()
+    st.markdown("---")
+    # 🔑 REPLACED LOCK IN WITH A SIMPLE OK CONFIRMATION: Saves variables locally and safely transfers execution back to master layout
+    if st.button("🟢 OK", key="modal_ok_btn", use_container_width=True):
+        st.session_state["modal_include_exam_prep"] = local_include_prep
+        st.session_state["modal_score_logged"] = user_score_logged
+        st.session_state["modal_classes_waived"] = classes_waived
+        st.session_state["active_school_view"] = school_card_ref
+        st.rerun()
 
 # Set up form view grids based on step indices
 if current_step == 4:
@@ -368,7 +335,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT REVIEW (PROMO-CODE QUESTION DELETED FROM HERE)
+    # STEP 3: TRANSCRIPT review CHECKLIST PANEL view
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Transcript Review")
@@ -411,6 +378,10 @@ with col_input_flow:
     # STEP 4: SCHOOL RESULTS
     # --------------------------------------------------------------------------
     elif current_step == 4:
+        st.subheader("Secure Institutional Match Alignment")
+        st.markdown("Review eligible program choices generated by your background profiles filter arrays:")
+        st.divider()
+        
         student_state = st.session_state["val_state"]
         selected_state = str(student_state).strip().upper()
         selected_track = str(st.session_state["val_track"]).strip().upper()
@@ -523,17 +494,18 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# SHOPPING CART LEDGER COMPONENT (PROMO CODE LOGIC ANCHORED HERE EXCLUSIVELY)
+# SHOPPING CART LEDGER COMPONENT (WITH DYNAMIC LOCK IN SUBMISSION DECK)
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Itemized Invoice Cart")
         
-        if st.session_state["active_school_view"] is None or st.session_state["confirmed_package"] is None:
+        if st.session_state["active_school_view"] is None:
             st.info("👉 Please click 'Select School' on any partner institution row option on the left to verify compliance data and unlock itemized ledger statements calculations details.")
         else:
             needed_courses = st.session_state["active_school_view"]["accepted_courses"]
-            st.success(f"🎯 Target Locked: **{st.session_state['active_school_view']['name']}**")
+            school_name = st.session_state["active_school_view"]["name"]
+            st.success(f"🎯 Target Locked: **{school_name}**")
 
             extra_exam_count = 1 if st.session_state.get("modal_include_exam_prep", False) else 0
             base_classes = len(needed_courses) + extra_exam_count
@@ -554,7 +526,6 @@ if col_ledger_flow is not None:
             q_ref = st.session_state["val_ref"]
             q_mil = st.session_state["val_mil"]
             
-            # 🔑 CRITICAL RELOCATION VALUE: Promo codes are managed exclusively on Step 4 checkout based on selection array count filters
             if len(needed_courses) >= 3:
                 q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio")
                 st.session_state["val_promo"] = q_promo
@@ -574,6 +545,25 @@ if col_ledger_flow is not None:
             st.markdown(f"**Gross Base Tuition Balance:** `${0.00 if is_completely_empty else base_total:,.2f}`")
             st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
+            
+            # ==============================================================================
+            # 🆕 FINAL SUBMISSION DECK (ANCHORED GRACEFULLY INSIDE MAIN WORKSPACE PAGE LEDGER)
+            # ==============================================================================
+            st.divider()
+            if st.button("🔒 Lock in Enrollment Package", key="ledger_final_lock_action_btn", use_container_width=True, type="primary"):
+                st.session_state["confirmed_package"] = {
+                    "school_name": school_name,
+                    "student_name": st.session_state["val_name"],
+                    "base_total": base_total,
+                    "reg_fee": 0.0,
+                    "final_total": final_total,
+                    "courses_included": needed_courses,
+                    "entrance_exam_prep_added": st.session_state["modal_include_exam_prep"],
+                    "entrance_exam_score_logged": st.session_state["modal_score_logged"],
+                    "classes_waived_count": st.session_state["modal_classes_waived"],
+                    "addons_active": False
+                }
+                st.rerun()
 
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
