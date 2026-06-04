@@ -280,6 +280,9 @@ with col_input_flow:
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
+    # --------------------------------------------------------------------------
+    # STEP 3: TRANSCRIPT & SMART DISCOUNTS ENFORCEMENT
+    # --------------------------------------------------------------------------
     elif current_step == 3:
         st.markdown("### **Step 3: Transcript Review & Qualifications**")
         st.markdown("Select your prerequisite deficiencies and apply your discount triggers here.")
@@ -296,11 +299,18 @@ with col_input_flow:
         st.markdown("#### 🎖️ Promotional Qualifications & Discounts")
         w_ref = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True)
         w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True)
-        w_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True)
+        
+        # 🔑 FIXED: Conditional Visibility & Guard Loop Engine
+        if len(st.session_state["val_courses"]) >= 3:
+            w_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True)
+            st.session_state["val_promo"] = w_promo
+        else:
+            # Defensive Cache Reset: If they deselect courses below 3, force code back to "No"
+            st.session_state["val_promo"] = "No"
+            st.caption("ℹ️ *Notice: Promotional code qualification requires selecting 3 or more prerequisite courses.*")
         
         st.session_state["val_ref"] = w_ref
         st.session_state["val_mil"] = w_mil
-        st.session_state["val_promo"] = w_promo
         st.session_state["addon_state"] = False
 
         st.divider()
@@ -320,7 +330,7 @@ with col_input_flow:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL MATCHES & MODAL COMPLIANCE GATING
+    # STEP 4: INSTITUTIONAL MATCHES
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.markdown("### **Step 4: Secure Institutional Match Alignment**")
@@ -362,7 +372,7 @@ with col_input_flow:
         filtered_df = working_schools_df.copy()
 
         # ==============================================================================
-        # 🧠 ADVANCED COMPLIANCE DIALOG MODAL (FEE-FREE SPECIFICATION)
+        # MODAL EXAM INTERPRETER DIALOG BOX
         # ==============================================================================
         @st.dialog("Confirm & Lock Enrollment Package")
         def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list):
@@ -432,7 +442,7 @@ with col_input_flow:
 
                         if score_num > 0:
                             if matched_rule_type == "fail":
-                                st.error(f"🛑 **Score Below Target:** Pre-adding the **{school_exam_type} Prep Course** bundle to bridge the proficiency gap.")
+                                st.error(f"🛑 **Score Below Target:** Pre-adding the **{school_exam_type} Prep Course** bundle.")
                                 st.session_state["modal_include_exam_prep"] = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_2")
                             elif matched_rule_type == "pass":
                                 if age_limit_years:
@@ -473,7 +483,6 @@ with col_input_flow:
             calc_free_course = float(m_price_tier) if (st.session_state["val_promo"] == "Yes" and len(needed_courses) >= 3) else 0.0
             modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
 
-            # 🛠️ FEE-FREE MASTER FORMULA: Base Tuition Cost - Applied Credits
             modal_final_total = max(0.0, final_base_total - modal_credits_sum)
 
             st.metric("Adjusted Base Tuition", f"${final_base_total:,.2f}")
@@ -576,7 +585,7 @@ with col_input_flow:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. SHOPPING CART LEDGER COMPONENT (FEE-FREE REDESIGN)
+# 5. SHOPPING CART LEDGER COMPONENT
 # ==============================================================================
 if current_step >= 3 and col_ledger_flow is not None:
     with col_ledger_flow:
@@ -616,11 +625,11 @@ if current_step >= 3 and col_ledger_flow is not None:
             calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= 300) else 0.0
             calc_referral = 50.0 if q_ref == "Yes" else 0.0
             calc_military = 200.0 if q_mil == "Yes" else 0.0
+            
+            # Safe back-end checkout valuation safeguard calculation
             calc_free_course = float(main_price) if (q_promo == "Yes" and len(needed_courses) >= 3) else 0.0
             
             credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
-            
-            # 🛠️ CLEANED MATHEMATICAL LEDGER FORMULA: Pure Tuition - Applied Credits
             final_total = max(0.0, base_total - credits_sum)
 
             st.divider()
