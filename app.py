@@ -4,41 +4,56 @@ import os
 import re
 
 # ==============================================================================
-# 0. WEB PAGE CONFIG & ADVANCED RESPONSIVE CSS INJECTION
+# 0. WEB PAGE CONFIG & PREMIUM BRANDED CSS INJECTION
 # ==============================================================================
 st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
+# Custom premium UI styling overrides
 st.markdown("""
     <style>
-    .main {background-color: #f8f9fa;}
-    h1, h2, h3 {color: #1E3A8A;}
+    /* 🚫 HIDE DEFAULT WHITE TOP BAR & MENU INFRASTRUCTURE */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    .stAppDeployButton {display: none;}
     
+    /* Global Layout Adjustments */
+    .main {background-color: #f8f9fa; padding-top: 0px !important;}
+    h1, h2, h3 {color: #1E3A8A; font-family: 'Inter', sans-serif;}
+    
+    /* Elevated content card style */
     .content-card {
         background-color: #ffffff;
         padding: 30px;
         border-radius: 12px;
         border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 12px rgba(30, 58, 138, 0.03);
         margin-bottom: 20px;
     }
     
+    /* 🎨 PREMIUM INTERACTIVE BUTTON STYLING OVERRIDES */
     .stButton>button {
-        border-radius: 6px;
-        height: 42px;
-        font-weight: bold;
-        transition: all 0.2s ease-in-out;
+        border-radius: 8px !important;
+        height: 44px !important;
+        font-weight: 600 !important;
+        font-size: 15px !important;
+        letter-spacing: 0.3px !important;
+        transition: all 0.2s ease-in-out !important;
     }
     
+    /* Primary dynamic action button layout (Dark Blue) */
     div.primary-btn>div>button {
         background-color: #1E3A8A !important;
         color: white !important;
         border: none !important;
     }
     div.primary-btn>div>button:hover {
-        background-color: #3B82F6 !important;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        background-color: #2563EB !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
     }
     
+    /* Secondary step back button layout (Clean Slate Style) */
     div.secondary-btn>div>button {
         background-color: #ffffff !important;
         color: #475569 !important;
@@ -47,8 +62,24 @@ st.markdown("""
     div.secondary-btn>div>button:hover {
         background-color: #f8f9fa !important;
         border-color: #94a3b8 !important;
+        color: #1e293b !important;
+    }
+    
+    /* Minimalist Top Utility Restart Button Style */
+    div.utility-btn>div>button {
+        background-color: transparent !important;
+        color: #94a3b8 !important;
+        border: 1px dashed #cbd5e1 !important;
+        height: 34px !important;
+        font-size: 13px !important;
+    }
+    div.utility-btn>div>button:hover {
+        color: #ef4444 !important;
+        border-color: #fca5a5 !important;
+        background-color: #fef2f2 !important;
     }
 
+    /* Responsive Mobile/Tablet Breakpoint Configuration */
     @media (max-width: 992px) {
         div[data-testid="stHorizontalBlock"] {
             flex-direction: column !important;
@@ -71,7 +102,7 @@ if "confirmed_package" not in st.session_state: st.session_state["confirmed_pack
 if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
 if "active_school_view" not in st.session_state: st.session_state["active_school_view"] = None
 
-# Backstage Global Repositories
+# Backstage Caching Repositories
 if "val_name" not in st.session_state: st.session_state["val_name"] = ""
 if "val_state" not in st.session_state: st.session_state["val_state"] = "Select state"
 if "val_zip" not in st.session_state: st.session_state["val_zip"] = ""
@@ -123,7 +154,7 @@ else:
     st.stop()
 
 # ==============================================================================
-# 3. GLOBAL CONFIG MATRICES
+# 3. GLOBAL MATRIX CONFIG
 # ==============================================================================
 STATE_OPTIONS = [
     "Select state", "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -145,7 +176,18 @@ course_list = [
 
 current_step = st.session_state["wizard_step"]
 
-# Progress Indicators Header Bars
+# REPOSITIONED RESTART ROW: Utility reset block top layer configuration
+header_title_col, header_utility_col = st.columns([3.0, 1.0])
+with header_title_col:
+    st.title("🗺️ Bridge Plan Generator")
+    st.markdown("### **Self-Serve Enrollment Matrix**")
+with header_utility_col:
+    st.markdown("<div class='utility-btn' style='padding-top: 25px;'>", unsafe_allow_html=True)
+    if st.button("🔄 Reset Form Data", use_container_width=True):
+        restart_wizard()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# Progress indicator wizard timeline step boxes
 step_cols = st.columns(4)
 step_names = ["1. Identity Profile", "2. Baseline Profile", "3. Transcripts Review", "4. School Matches"]
 for i, name in enumerate(step_names):
@@ -186,7 +228,7 @@ with col_input_flow:
         i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=st.session_state["val_gpa"], step=0.01)
         
         st.divider()
-        btn_spacer, btn_container = st.columns([2.5, 1.0])
+        btn_spacer, btn_container = st.columns([2.3, 1.2])
         with btn_container:
             st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
             if st.button("Continue to Profile ➡️", use_container_width=True):
@@ -229,7 +271,7 @@ with col_input_flow:
         i_track = st.selectbox("Which nursing program graduation credential tier are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]))
         
         st.divider()
-        btn_spacer, btn_b1, btn_b2 = st.columns([1.5, 0.9, 1.1])
+        btn_spacer, btn_b1, btn_b2 = st.columns([1.5, 1.0, 1.0])
         with btn_b1:
             st.markdown("<div class='secondary-btn'>", unsafe_allow_html=True)
             if st.button("⬅️ Back", use_container_width=True):
@@ -273,7 +315,8 @@ with col_input_flow:
         )
         st.session_state["val_courses"] = st.session_state["temp_courses"]
         
-        st.markdown("<br>#### 🎖️ Promotional Qualifications & Discounts", unsafe_allow_html=True)
+        # 🔑 FIXED STRUSTURAL TYPE MESSAGES: Rendered using explicit native markdown wrappers
+        st.markdown("#### 🎖️ Promotional Qualifications & Discounts")
         w_ref = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True)
         w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True)
         w_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True)
@@ -282,33 +325,11 @@ with col_input_flow:
         st.session_state["val_mil"] = w_mil
         st.session_state["val_promo"] = w_promo
         
-        st.markdown("<br>#### Add-on Packages Configuration", unsafe_allow_html=True)
-        active_courses_count = len(st.session_state["val_courses"])
-        temp_base_classes = active_courses_count if active_courses_count > 0 else 1
-        temp_main_p = 1179 if temp_base_classes >= 10 else (1229 if temp_base_classes >= 4 else 1289)
-        baseline_only_total = temp_base_classes * temp_main_p
-        
-        if baseline_only_total >= 14500 and active_courses_count > 0:
-            st.warning("⚠️ Package limit reached ($14,500 Floor cap). Advanced add-on switches forced offline.")
-            st.session_state["addon_state"] = False
-            has_addons = False
-        else:
-            has_addons = st.checkbox("Include General Platform Support Add-ons?", value=st.session_state["addon_state"])
-            t_addons = 2 if has_addons else 0
-            t_total_classes = temp_base_classes + t_addons
-            t_main_p = 1179 if temp_base_classes >= 10 else (1229 if temp_base_classes >= 4 else 1289)
-            t_addon_p = 749 if t_total_classes >= 10 else (799 if t_total_classes >= 4 else 859)
-            projected_total = (temp_base_classes * t_main_p) + (t_addons * t_addon_p)
-            
-            if projected_total >= 14500 and (active_courses_count > 0 or has_addons):
-                st.error("🛑 Selection Defeated: Combined total breaches the $14,500 Package threshold rules.")
-                st.session_state["addon_state"] = False
-                st.rerun()
-            else:
-                st.session_state["addon_state"] = has_addons
+        # 🚫 OBLITERATED: Add-on section hidden completely from layout view fields
+        st.session_state["addon_state"] = False
 
         st.divider()
-        btn_spacer, btn_b1, btn_b2 = st.columns([1.5, 0.9, 1.1])
+        btn_spacer, btn_b1, btn_b2 = st.columns([1.5, 1.0, 1.0])
         with btn_b1:
             st.markdown("<div class='secondary-btn'>", unsafe_allow_html=True)
             if st.button("⬅️ Back", use_container_width=True):
@@ -318,7 +339,6 @@ with col_input_flow:
         with btn_b2:
             st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
             if st.button("Find Matches ➡️", use_container_width=True):
-                # Wipe any residual active school state cache when moving to matches
                 st.session_state["active_school_view"] = None
                 st.session_state["wizard_step"] = 4
                 st.rerun()
@@ -367,7 +387,7 @@ with col_input_flow:
         filtered_df = working_schools_df.copy()
 
         # ==============================================================================
-        # CONFIRMATION MODAL INTERPRETER LAYOUT BLOCK
+        # MODAL EXAM INTERPRETER DIALOG BOX
         # ==============================================================================
         @st.dialog("Confirm & Lock Enrollment Package")
         def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list):
@@ -522,7 +542,7 @@ with col_input_flow:
                 }
                 st.rerun()
 
-        # Compile matching layout rows
+        # Render lists engine
         if not filtered_df.empty:
             card_rows = []
             for idx, school_row in filtered_df.iterrows():
@@ -579,7 +599,6 @@ with col_input_flow:
                     with sc1:
                         st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
                         if st.button("Select School", key=f"btn_card_sel_{card['idx']}", use_container_width=True):
-                            # 🔑 SYNC HOOK: Inform the floating ledger which university is actively highlighted
                             st.session_state["active_school_view"] = card
                             render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"])
                         st.markdown("</div>", unsafe_allow_html=True)
@@ -593,7 +612,7 @@ with col_input_flow:
             st.warning("No partner institutions match your core background or geofencing matrix filters.")
 
         st.divider()
-        btn_spacer, btn_b1 = st.columns([2.5, 1.0])
+        btn_spacer, btn_b1 = st.columns([1.5, 1.0])
         with btn_b1:
             st.markdown("<div class='secondary-btn'>", unsafe_allow_html=True)
             if st.button("⬅️ Back to Review", use_container_width=True):
@@ -605,7 +624,7 @@ with col_input_flow:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. FIXED SMART SHOPPING CART LEDGER ENGINE 
+# 5. SMART SHOPPING CART LEDGER COMPONENT
 # ==============================================================================
 if current_step >= 3 and col_ledger_flow is not None:
     with col_ledger_flow:
@@ -615,19 +634,10 @@ if current_step >= 3 and col_ledger_flow is not None:
         has_addons = st.session_state["addon_state"]
         license_type = st.session_state["val_lic"]
         
-        # 🔑 FIXED RE-ENGINEERING CHECK: If on step 4, look for active selection parameter mapping
         if current_step == 4 and st.session_state["active_school_view"] is None:
-            # Placeholder State: Prevent math mismatches until selection occurs
             st.info("👉 Please select an institutional partner row on the left to unlock your customized invoice checkout matrix.")
-            base_total = 0.0
-            reg_fee = 0.0
-            credits_sum = 0.0
-            final_total = 0.0
-            is_completely_empty = True
         else:
-            # Resolve dynamic courses mapping pool based on state positioning
             if current_step == 4 and st.session_state["active_school_view"] is not None:
-                # Sync ledger directly to school accepted list length!
                 needed_courses = st.session_state["active_school_view"]["accepted_courses"]
                 st.markdown(f"🎯 *Active Ledger Context:* **{st.session_state['active_school_view']['name']}**")
             else:
@@ -644,7 +654,8 @@ if current_step >= 3 and col_ledger_flow is not None:
             if len(needed_courses) == 0: base_total = (addons_count * addon_price)
             else: base_total = (base_classes * main_price) + (addons_count * addon_price)
             
-            st.markdown("#### **Adjustments & Grants**")
+            # 🔑 FIXED HEADER CONTAINER LAYER
+            st.markdown("#### Adjustments & Grants")
             deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0.0, value=st.session_state["val_deposit"], step=50.0)
             grant_input = st.number_input("Institutional Grant Amount ($)", min_value=0.0, value=st.session_state["val_grant"], step=50.0)
             
@@ -691,14 +702,14 @@ if current_step >= 3 and col_ledger_flow is not None:
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
         st.markdown("</div>", unsafe_allow_html=True)
 
-# Global Clear / Reset Footer Button
+# Global Clear Footer Reset Button
 st.markdown("<br>", unsafe_allow_html=True)
 reset_spacer, reset_btn_block = st.columns([3.0, 1.0])
 with reset_btn_block:
     if st.button("🔄 Restart Process", type="secondary", use_container_width=True):
         restart_wizard()
 
-# Success state print container
+# Final manifestations voucher outputs
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
     st.balloons()
