@@ -4,19 +4,69 @@ import os
 import re
 
 # ==============================================================================
-# 0. WEB PAGE CONFIG & STYLING
+# 0. WEB PAGE CONFIG & ADVANCED RESPONSIVE CSS INJECTION
 # ==============================================================================
 st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
+# Custom CSS to force responsive layout, card styling, and right-aligned button flexboxes
 st.markdown("""
     <style>
+    /* Global Background and Typography styling */
     .main {background-color: #f8f9fa;}
     h1, h2, h3 {color: #1E3A8A;}
-    .stButton>button {background-color: #1E3A8A; color: white; border-radius: 5px; width: 100%; height: 40px; font-weight: bold;}
-    .stButton>button:hover {background-color: #3B82F6; color: white;}
-    div[data-testid="stMetricValue"] {font-size: 24px; color: #10B981;}
-    .wizard-header {background-color: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 25px; text-align: center;}
-    .step-badge {background-color: #1E3A8A; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: bold;}
+    
+    /* Make standard form areas feel like an elevated application card */
+    .content-card {
+        background-color: #ffffff;
+        padding: 30px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+    }
+    
+    /* Global button style customization */
+    .stButton>button {
+        border-radius: 6px;
+        height: 42px;
+        font-weight: bold;
+        transition: all 0.2s ease-in-out;
+    }
+    
+    /* Primary dynamic action button formatting */
+    div.primary-btn>div>button {
+        background-color: #1E3A8A !important;
+        color: white !important;
+        border: none !important;
+    }
+    div.primary-btn>div>button:hover {
+        background-color: #3B82F6 !important;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    
+    /* Secondary back button layout aesthetics */
+    div.secondary-btn>div>button {
+        background-color: #ffffff !important;
+        color: #475569 !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+    div.secondary-btn>div>button:hover {
+        background-color: #f8f9fa !important;
+        border-color: #94a3b8 !important;
+    }
+
+    /* 📱 ADAPTIVE BREAKPOINT LAYER: Forcing native columns to stack on mobile/tablet devices */
+    @media (max-width: 992px) {
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: column !important;
+        }
+        div[data-testid="stColumn"] {
+            width: 100% !important;
+            margin-left: 0px !important;
+            margin-right: 0px !important;
+            margin-bottom: 20px !important;
+        }
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -31,7 +81,6 @@ if "addon_state" not in st.session_state:
     st.session_state["addon_state"] = False
 
 def restart_wizard():
-    # Clear selections but preserve structural infrastructure states
     for key in list(st.session_state.keys()):
         if key not in ["schools_df", "transcript_df"]:
             del st.session_state[key]
@@ -70,7 +119,7 @@ else:
     st.stop()
 
 # ==============================================================================
-# 3. GLOBAL OPTIONS ARRAYS
+# 3. GLOBAL ARRAYS
 # ==============================================================================
 STATE_OPTIONS = [
     "Select state", "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -90,17 +139,14 @@ course_list = [
     "Macro/Micro Economics", "Elective 1", "Elective 2"
 ]
 
-# ==============================================================================
-# 4. WIZARD PROGRESS TRACKER RENDERER
-# ==============================================================================
 current_step = st.session_state["wizard_step"]
 
 st.title("🗺️ Bridge Plan Generator")
 st.markdown("### **Self-Serve Enrollment Matrix**")
 
-# Interactive Progress Steps Bar Layout
+# Interactive Progress Indicator Bar Layout
 step_cols = st.columns(4)
-step_names = ["1. Identity Profile", "2. Professional Baseline", "3. Transcript Review", "4. Institutional Matches"]
+step_names = ["1. Identity Profile", "2. Baseline Profile", "3. Transcripts Review", "4. School Matches"]
 for i, name in enumerate(step_names):
     step_num = i + 1
     with step_cols[i]:
@@ -113,22 +159,24 @@ for i, name in enumerate(step_names):
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. DYNAMIC WORKFLOW ROUTER CHANNELS
+# 4. ADAPTIVE RESPONSIVE LAYOUT ENGINE ROUTER
 # ==============================================================================
-# Determine Layout Split Strategy: Full-width for steps 1-2, Split-width with Ledger for steps 3-4
 if current_step >= 3:
-    col_input_flow, col_ledger_flow = st.columns([1.4, 1.0], gap="large")
+    col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
 else:
     col_input_flow = st.container()
     col_ledger_flow = None
 
 with col_input_flow:
+    # Open application styling card block
+    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+
     # --------------------------------------------------------------------------
-    # WIZARD STEP 1: IDENTITY PROFILE
+    # STEP 1: IDENTITY PROFILE
     # --------------------------------------------------------------------------
     if current_step == 1:
         st.markdown("### **Step 1: Welcome & Identity Profile**")
-        st.markdown("Let's capture your baseline state territory parameters to filter institutional availability rules.")
+        st.markdown("Let's capture your baseline territory parameters to filter institutional regional availability.")
         st.divider()
         
         st.text_input("What is your name?", placeholder="Enter full name", key="w_name")
@@ -137,18 +185,23 @@ with col_input_flow:
         st.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=0, key="w_adult")
         st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=4.00, step=0.01, key="w_gpa")
         
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("Continue to Professional Baseline ➡️"):
-            if st.session_state.get("w_state") == "Select state":
-                st.warning("⚠️ Please select a valid state territory before moving forward.")
-            elif st.session_state.get("w_adult") == "No":
-                st.error("🛑 Registration Blocked: Applicants under 18 require internal agent authorization verification.")
-            else:
-                st.session_state["wizard_step"] = 2
-                st.rerun()
+        st.divider()
+        # ➡️ NAVIGATION: Right-Aligned Single Action Row Using Flexible Columns
+        btn_spacer, btn_container = st.columns([2.5, 1.0])
+        with btn_container:
+            st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
+            if st.button("Continue to Profile ➡️", use_container_width=True):
+                if st.session_state.get("w_state") == "Select state":
+                    st.warning("⚠️ Please select a valid state territory before moving forward.")
+                elif st.session_state.get("w_adult") == "No":
+                    st.error("🛑 Registration Blocked: Applicants under 18 require internal agent validation verification.")
+                else:
+                    st.session_state["wizard_step"] = 2
+                    st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # WIZARD STEP 2: PROFESSIONAL BASELINE
+    # STEP 2: PROFESSIONAL BASELINE
     # --------------------------------------------------------------------------
     elif current_step == 2:
         st.markdown("### **Step 2: Professional Licensing & History**")
@@ -156,31 +209,34 @@ with col_input_flow:
         st.divider()
         
         st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=0, key="w_lic")
-        
-        # Conditional expansion based on license selected
         if st.session_state.get("w_lic") == "LPN":
             st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=0, step=1, key="w_exp")
             
         st.selectbox("Do you possess a prior academic nursing program dismissal?", options=DISMISSAL_OPTIONS, index=0, key="w_dismiss")
-        
-        # Conditional expansion based on dismissal selection
         if st.session_state.get("w_dismiss") == "Yes":
             st.number_input("Months elapsed since your historical academic dismissal date:", min_value=0, max_value=300, value=72, step=1, key="w_dismiss_mos")
             
         st.selectbox("Are you amenable to regional clinical onsite travel loops?", options=BINARY_OPTIONS, index=0, key="w_travel")
         st.selectbox("Which nursing program graduation credential tier are you targeting?", options=TRACK_OPTIONS, index=0, key="w_track")
         
-        st.markdown("<br>", unsafe_allow_html=True)
-        nav_b1, nav_b2 = st.columns(2)
-        if nav_b1.button("⬅️ Back"):
-            st.session_state["wizard_step"] = 1
-            st.rerun()
-        if nav_b2.button("Continue to Transcript Review ➡️"):
-            st.session_state["wizard_step"] = 3
-            st.rerun()
+        st.divider()
+        # ➡️ NAVIGATION: Right-Aligned Double Button Flex Block
+        btn_spacer, btn_b1, btn_b2 = st.columns([1.5, 0.9, 1.1])
+        with btn_b1:
+            st.markdown("<div class='secondary-btn'>", unsafe_allow_html=True)
+            if st.button("⬅️ Back", use_container_width=True):
+                st.session_state["wizard_step"] = 1
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+        with btn_b2:
+            st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
+            if st.button("Continue ➡️", use_container_width=True):
+                st.session_state["wizard_step"] = 3
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # WIZARD STEP 3: TRANSCRIPT REVIEW
+    # STEP 3: TRANSCRIPT REVIEW
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.markdown("### **Step 3: Foundational Transcript Review**")
@@ -194,7 +250,6 @@ with col_input_flow:
             key="w_courses"
         )
         
-        # Core Class Addon Validation Triggers Area (Locked inside layout floor safety parameters)
         st.markdown("#### Add-on Packages Configuration")
         base_count = len(needed_courses)
         temp_base_classes = base_count if base_count > 0 else 1
@@ -207,8 +262,6 @@ with col_input_flow:
             has_addons = False
         else:
             has_addons = st.checkbox("Include General Platform Support Add-ons?", value=st.session_state["addon_state"], key="chk_addon_wizard")
-            
-            # Recalculate package breach variables
             t_addons = 2 if has_addons else 0
             t_total_classes = temp_base_classes + t_addons
             t_main_p = 1179 if temp_base_classes >= 10 else (1229 if temp_base_classes >= 4 else 1289)
@@ -222,24 +275,30 @@ with col_input_flow:
             else:
                 st.session_state["addon_state"] = has_addons
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        nav_b1, nav_b2 = st.columns(2)
-        if nav_b1.button("⬅️ Back"):
-            st.session_state["wizard_step"] = 2
-            st.rerun()
-        if nav_b2.button("Generate Institutional Matches ➡️"):
-            st.session_state["wizard_step"] = 4
-            st.rerun()
+        st.divider()
+        # ➡️ NAVIGATION: Right-Aligned Double Button Flex Block
+        btn_spacer, btn_b1, btn_b2 = st.columns([1.5, 0.9, 1.1])
+        with btn_b1:
+            st.markdown("<div class='secondary-btn'>", unsafe_allow_html=True)
+            if st.button("⬅️ Back", use_container_width=True):
+                st.session_state["wizard_step"] = 2
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+        with btn_b2:
+            st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
+            if st.button("Find Matches ➡️", use_container_width=True):
+                st.session_state["wizard_step"] = 4
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # WIZARD STEP 4: INSTITUTIONAL MATCHES
+    # STEP 4: INSTITUTIONAL MATCHES
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.markdown("### **Step 4: Secure Institutional Match Alignment**")
         st.markdown("Review the eligible educational institutions calculated from your intake profile parameters:")
         st.divider()
         
-        # Extraction logic variables mapping
         student_state = st.session_state.get("w_state", "Select state")
         selected_state = str(student_state).strip().upper()
         selected_track = str(st.session_state.get("w_track", "ASN")).strip().upper()
@@ -252,7 +311,6 @@ with col_input_flow:
         needed_courses = st.session_state.get("w_courses", [])
         has_addons = st.session_state.get("addon_state", False)
         
-        # Financial variables mirroring values parsed dynamically
         base_count = len(needed_courses)
         base_classes = base_count if base_count > 0 else 1
         main_price = 1179 if base_classes >= 10 else (1229 if base_classes >= 4 else 1289)
@@ -280,7 +338,7 @@ with col_input_flow:
         filtered_df = working_schools_df.copy()
 
         # ==============================================================================
-        # MODAL INTELLIGENT INTERPRETER DIALOG MECHANISM
+        # MODAL INTELLIGENT EXAM INTERPRETER DIALOG MECHANISM
         # ==============================================================================
         @st.dialog("Confirm & Lock Enrollment Package")
         def render_institutional_modal(school_name, school_exam_type, school_exam_notes):
@@ -295,13 +353,12 @@ with col_input_flow:
             waived_course_name = ""
             user_score_logged = ""
             
-            # Calculation variables injection mapping parameters
             deposit_input = st.session_state.get("w_deposit_input", 0.0)
             grant_input = st.session_state.get("w_grant_input", 0.0)
             discount_match = True
             is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
             
-            calc_dep_match = min(deposit_input, 1000.0) if (discount_match and deposit_input >= (150 if is_cna == "CNA/CMA" else 300)) else 0.0
+            calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= (150 if is_cna == "CNA/CMA" else 300)) else 0.0
             calc_referral = 50.0 if st.session_state.get("w_ref_input") == "Yes" else 0.0
             calc_military = 200.0 if st.session_state.get("w_mil_input") == "Yes" else 0.0
             calc_free_course = float(main_price) if st.session_state.get("w_promo_input") == "Yes" else 0.0
@@ -432,7 +489,7 @@ with col_input_flow:
                 }
                 st.rerun()
 
-        # Render list of dynamic cards
+        # Render list of dynamic matching cards
         if not filtered_df.empty:
             status_log, cash_yield_margins, deficiencies_resolved_log, exam_requirements_list, exam_notes_list = [], [], [], [], []
             for _, school_row in filtered_df.iterrows():
@@ -481,8 +538,10 @@ with col_input_flow:
                 with st.container(border=True):
                     sc1, sc2, sc3 = st.columns([1.5, 3.0, 1.5])
                     with sc1:
-                        if st.button("Select School", key=f"btn_wiz_sel_{idx}"):
+                        st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
+                        if st.button("Select School", key=f"btn_wiz_sel_{idx}", use_container_width=True):
                             render_institutional_modal(row["School Name"], row["Entrance Exam Requirement"], row["Entrance Exam Notes Column"])
+                        st.markdown("</div>", unsafe_allow_html=True)
                     with sc2:
                         st.markdown(f"🏫 **{row['School Name']}** ({row['ASN/BSN']} Track)")
                         st.markdown(f"🧬 *Deficiencies Fulfilled:* `{row['Deficiencies Met']}`")
@@ -491,17 +550,25 @@ with col_input_flow:
         else:
             st.warning("No partner institutions match your core background or geofencing matrix filters.")
 
-        st.markdown("<hr>", unsafe_allow_html=True)
-        if st.button("⬅️ Back to Transcript Review"):
-            st.session_state["wizard_step"] = 3
-            st.rerun()
+        st.divider()
+        # ➡️ NAVIGATION: Right-Aligned Single Back Button Row
+        btn_spacer, btn_b1 = st.columns([2.5, 1.0])
+        with btn_b1:
+            st.markdown("<div class='secondary-btn'>", unsafe_allow_html=True)
+            if st.button("⬅️ Back to Review", use_container_width=True):
+                st.session_state["wizard_step"] = 3
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # Close application content card container block
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ==============================================================================
-# 6. SLIDING FINANCIAL LEDGER SHOPPING CART COMPONENT
+# 5. SLIDING ADAPTIVE INVOICE SHOPPING CART LEDGER
 # ==============================================================================
 if current_step >= 3 and col_ledger_flow is not None:
     with col_ledger_flow:
-        st.markdown("<div style='background-color: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #1E3A8A;'>", unsafe_allow_html=True)
+        st.markdown("<div style='background-color: #ffffff; padding: 25px; border-radius: 12px; border: 2px solid #1E3A8A; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>", unsafe_allow_html=True)
         st.subheader("🛒 Itemized Invoice Cart")
         
         needed_courses = st.session_state.get("w_courses", [])
@@ -530,7 +597,7 @@ if current_step >= 3 and col_ledger_flow is not None:
         if len(needed_courses) >= 3:
             q_promo = st.radio("Possess free course promo code?", ["No", "Yes"], horizontal=True, key="w_promo_input")
 
-        # Calculations
+        # Calculations Ledger Flow
         dep_min = 150 if license_type == "CNA/CMA" else 300
         calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= dep_min) else 0.0
         calc_referral = 50.0 if q_ref == "Yes" else 0.0
@@ -565,11 +632,13 @@ if current_step >= 3 and col_ledger_flow is not None:
         st.markdown("</div>", unsafe_allow_html=True)
 
 # Global Clear / Reset Footer Button
-st.markdown("<br><br>", unsafe_allow_html=True)
-if st.button("🔄 Restart Process from Beginning", type="secondary"):
-    restart_wizard()
+st.markdown("<br>", unsafe_allow_html=True)
+reset_spacer, reset_btn_block = st.columns([3.0, 1.0])
+with reset_btn_block:
+    if st.button("🔄 Restart Process", type="secondary", use_container_width=True):
+        restart_wizard()
 
-# Success state print block container
+# Success state block container injection
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
     st.balloons()
