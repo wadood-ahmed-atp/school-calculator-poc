@@ -4,14 +4,16 @@ import os
 import re
 
 # ==============================================================================
-# 0. 🖥️ WIDESCREEN CAP BLOCK & INFRASTRUCTURE TOOLBAR REMOVAL
+# 0. 🖥️ WIDESCREEN CAP BLOCK & TOOLBAR REMOVAL (HEADER SAFE PRESERVATION)
 # ==============================================================================
 st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
 st.markdown("""
     <style>
-    /* 🚫 OBLITERATE THE TOP-RIGHT INFRASTRUCTURE TOOLBAR (SHARE, EDIT, GITHUB, STAR) */
-    .stToolbar, div[data-testid="stStatusWidget"], .stAppHeader {
+    /* 🚫 SURGICALLY REMOVE ONLY TOOLBAR CONTROL ITEMS (SHARE, EDIT, GITHUB, STAR) */
+    div[data-testid="stStatusWidget"], 
+    .stToolbar, 
+    header[data-testid="stHeader"] {
         display: none !important;
         visibility: hidden !important;
         height: 0px !important;
@@ -42,7 +44,7 @@ if "addon_state" not in st.session_state: st.session_state["addon_state"] = Fals
 if "active_school_view" not in st.session_state: st.session_state["active_school_view"] = None
 if "modal_include_exam_prep" not in st.session_state: st.session_state["modal_include_exam_prep"] = False
 
-# Persistent Memory Stores (Protected from Garbage Collection)
+# Persistent Memory Stores
 if "val_name" not in st.session_state: st.session_state["val_name"] = ""
 if "val_state" not in st.session_state: st.session_state["val_state"] = "Select state"
 if "val_zip" not in st.session_state: st.session_state["val_zip"] = ""
@@ -118,13 +120,16 @@ course_list = [
 
 current_step = st.session_state["wizard_step"]
 
-# Clean Text-Based Progress Bar Configuration
+# Safe Base-Level App Title Branded Callout
+st.markdown("<h1 style='margin: 0; padding-bottom: 5px;'>🗺️ Bridge Plan Generator</h1>", unsafe_allow_html=True)
+
+# Clean Progress Indicator Bar (Preserves straight horizontal line layouts without background box bleeds)
 st.markdown(
     f"""
-    <div style="font-family: sans-serif; font-size: 15px; font-weight: 500; color: #475569; padding-bottom: 20px;">
-        <span style="color: {'#1E3A8A' if current_step==1 else '#10B981'}; font-weight: {'bold' if current_step==1 else 'normal'};">{'✅ ' if current_step>1 else ''}1. Identity</span> 
+    <div style="font-family: sans-serif; font-size: 15px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 10px;">
+        <span style="color: {'#1E3A8A' if current_step==1 else '#10B981'}; font-weight: {'bold' if current_step==1 else 'normal'};">{'✅ ' if current_step>1 else ''}1. Identity Profile</span> 
         <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
-        <span style="color: {'#1E3A8A' if current_step==2 else ('#10B981' if current_step>2 else '#94a3b8')}; font-weight: {'bold' if current_step==2 else 'normal'};">{'✅ ' if current_step>2 else ''}2. Baseline</span> 
+        <span style="color: {'#1E3A8A' if current_step==2 else ('#10B981' if current_step>2 else '#94a3b8')}; font-weight: {'bold' if current_step==2 else 'normal'};">{'✅ ' if current_step>2 else ''}2. Baseline Profile</span> 
         <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
         <span style="color: {'#1E3A8A' if current_step==3 else ('#10B981' if current_step>3 else '#94a3b8')}; font-weight: {'bold' if current_step==3 else 'normal'};">{'✅ ' if current_step>3 else ''}3. Transcripts Review</span> 
         <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
@@ -203,15 +208,15 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
                         age_question_text = parts[2].strip()
 
                 if score_num > 0:
-                    if matched_rule_type =="fail":
-                        st.error(f"🛑 Testing parameters fall below target. Injecting **{school_exam_type} Prep Course** bundle options.")
+                    if matched_rule_type == "fail":
+                        st.error(f"🛑 Testing standard parameters report sub-admissions averages. Injecting **{school_exam_type} Prep Course** layout options.")
                         local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_2")
                     elif matched_rule_type == "pass":
                         if age_limit_years:
                             st.markdown("##### ⏳ Verification Check Required:")
                             exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1)
                             if exam_age > age_limit_years:
-                                st.error(f"🛑 Active testing context has expired. Pre-adding verification bundle parameter controls.")
+                                st.error(f"🛑 Active testing score profile has expired. Pre-adding verification bundle.")
                                 local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_3")
                             else:
                                 st.success(f"✅ Verified: Compliance testing variables remain valid and verified!")
@@ -266,7 +271,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
             }
             st.rerun()
 
-# Set layout parameters dynamically
+# Set up form view grids based on step indices
 if current_step == 4:
     col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
 else:
@@ -279,8 +284,8 @@ with col_input_flow:
     # STEP 1: IDENTITY PROFILE AREA
     # --------------------------------------------------------------------------
     if current_step == 1:
-        st.subheader("Step 1: Identity & Territory Parameters")
-        st.markdown("Capture your residency territory parameters to verify regional institutional compliance channels.")
+        st.subheader("Step 1: Identity Profile Parameters")
+        st.markdown("Capture your residency parameters to parse localized regional partner program accessibility options.")
         st.divider()
         
         i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name")
