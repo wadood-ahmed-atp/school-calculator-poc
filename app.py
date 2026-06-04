@@ -4,6 +4,30 @@ import os
 import re
 
 # ==============================================================================
+# 0. NATIVE 100% FULL-SCREEN WIDESCREEN CSS INJECTION
+# ==============================================================================
+st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
+
+# 🔑 CRITICAL RESOLUTION: Overrides native padding limits to use 100% screen real estate
+st.markdown("""
+    <style>
+    /* Force container canvas block to span 100% maximum widescreen utility margins */
+    .block-container {
+        max-width: 100% !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+        padding-top: 1.5rem !important;
+    }
+    
+    /* Premium responsiveness overrides for buttons */
+    .stButton>button {
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# ==============================================================================
 # 1. PERSISTENT SYSTEM STATE STORAGE PIPELINE
 # ==============================================================================
 if "wizard_step" not in st.session_state: st.session_state["wizard_step"] = 1
@@ -40,7 +64,7 @@ def restart_wizard():
     st.rerun()
 
 # ==============================================================================
-# 2. DATA SOURCE VALIDATION INFRASTRUCTURE LOADER
+# 2. DATA SOURCE VALIDATION PIPELINE LOADER
 # ==============================================================================
 SCHOOLS_CSV = "schools.csv"
 TRANSCRIPT_CSV = "transcript_rules.csv"
@@ -51,7 +75,7 @@ if os.path.exists(SCHOOLS_CSV):
     for col in master_schools_df.select_dtypes(include=['object']).columns:
         master_schools_df[col] = master_schools_df[col].astype(str).str.strip()
 else:
-    st.error("⚠️ Master database file schools.csv input missing.")
+    st.error("⚠️ Master database schools.csv input missing.")
     st.stop()
 
 if os.path.exists(TRANSCRIPT_CSV):
@@ -65,7 +89,7 @@ else:
     st.stop()
 
 # ==============================================================================
-# 3. MAPPING ARRAYS
+# 3. GLOBAL ROUTING OPTIONS ARRAYS
 # ==============================================================================
 STATE_OPTIONS = [
     "Select state", "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -87,18 +111,16 @@ course_list = [
 
 current_step = st.session_state["wizard_step"]
 
-# Branded App Title
+# Main Frame Header
 st.title("🗺️ Bridge Plan Generator")
 
-# ==============================================================================
-# 🔧 SINGLE-LINE TIMELINE INDICATOR BAR
-# ==============================================================================
+# 🔧 FIXED TIMELINE BAR (PREVENTS SUB-TEXT WRAPPING EFFECT)
 st.markdown(
     f"""
-    <div style="display: flex; justify-content: space-between; align-items: center; background-color: #ffffff; padding: 15px 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 25px;">
-        <span style="font-weight: {'bold' if current_step==1 else 'normal'}; color: {'#1E3A8A' if current_step==1 else ('#10B981' if current_step>1 else '#94a3b8')};">{'✅ ' if current_step>1 else ''}1. Identity</span>
+    <div style="display: flex; justify-content: space-between; align-items: center; background-color: #ffffff; padding: 15px 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 25px; width: 100%;">
+        <span style="font-weight: {'bold' if current_step==1 else 'normal'}; color: {'#1E3A8A' if current_step==1 else ('#10B981' if current_step>1 else '#94a3b8')};">{'✅ ' if current_step>1 else ''}1. Identity Profile</span>
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
-        <span style="font-weight: {'bold' if current_step==2 else 'normal'}; color: {'#1E3A8A' if current_step==2 else ('#10B981' if current_step>2 else '#94a3b8')};">{'✅ ' if current_step>2 else ''}2. Baseline</span>
+        <span style="font-weight: {'bold' if current_step==2 else 'normal'}; color: {'#1E3A8A' if current_step==2 else ('#10B981' if current_step>2 else '#94a3b8')};">{'✅ ' if current_step>2 else ''}2. Baseline Profile</span>
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
         <span style="font-weight: {'bold' if current_step==3 else 'normal'}; color: {'#1E3A8A' if current_step==3 else ('#10B981' if current_step>3 else '#94a3b8')};">{'✅ ' if current_step>3 else ''}3. Transcripts Review</span>
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
@@ -112,8 +134,8 @@ st.markdown(
 # STEP 1: IDENTITY PROFILE AREA
 # --------------------------------------------------------------------------
 if current_step == 1:
-    st.subheader("Step 1: Identity Profile Parameters")
-    st.markdown("Capture your residency territory parameters to verify regional institutional compliance channels.")
+    st.subheader("Step 1: Welcome & Identity Profile")
+    st.markdown("Capture your residency parameters to parse localized regional partner program accessibility options.")
     st.divider()
     
     i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name")
@@ -140,11 +162,11 @@ if current_step == 1:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# STEP 2: PROFESSIONAL BACKGROUND History
+# STEP 2: PROFESSIONAL HISTORY LAYERS
 # --------------------------------------------------------------------------
 elif current_step == 2:
     st.subheader("Step 2: Professional Licensing & History")
-    st.markdown("Tell us about your healthcare background parameters to clear licensing experience rows.")
+    st.markdown("Tell us about your background to clear validation checkpoint criteria rules.")
     st.divider()
     
     i_lic = st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=LICENSE_OPTIONS.index(st.session_state["val_lic"]))
@@ -155,7 +177,7 @@ elif current_step == 2:
     i_dismiss = st.selectbox("Do you possess a prior academic nursing program dismissal?", options=DISMISSAL_OPTIONS, index=DISMISSAL_OPTIONS.index(st.session_state["val_dismiss"]))
     i_dismiss_mos = st.session_state["val_dismiss_mos"]
     if i_dismiss == "Yes":
-        i_dismiss_mos = st.number_input("Months elapsed since your historical academic dismissal date:", min_value=0, max_value=300, value=st.session_state["val_dismiss_mos"], step=1)
+        i_dismiss_mos = st.number_input("Months elapsed since your historical dismissal date:", min_value=0, max_value=300, value=st.session_state["val_dismiss_mos"], step=1)
         
     i_travel = st.selectbox("Are you amenable to regional clinical onsite travel loops?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]))
     i_track = st.selectbox("Which nursing track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]))
@@ -184,11 +206,11 @@ elif current_step == 2:
             st.rerun()
 
 # --------------------------------------------------------------------------
-# STEP 3: TRANSCRIPT review CHECKLIST PANEL view
+# STEP 3: TRANSCRIPT DEFICIENCIES SUBMITTAL CHECKLIST
 # --------------------------------------------------------------------------
 elif current_step == 3:
     st.subheader("Step 3: Foundational Transcript Review")
-    st.markdown("Check off any credit course deficiencies you still need to fulfill through a partner track program.")
+    st.markdown("Select your required prerequisite deficiencies and apply discount criteria parameters.")
     st.divider()
     
     st.multiselect(
@@ -199,7 +221,7 @@ elif current_step == 3:
     )
     st.session_state["val_courses"] = st.session_state["temp_courses"]
     
-    st.markdown("#### **Promotional Qualifications & Discounts**")
+    st.markdown("#### Promotional Qualifications & Discounts")
     w_ref = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True)
     w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True)
     
@@ -226,10 +248,10 @@ elif current_step == 3:
             st.rerun()
 
 # --------------------------------------------------------------------------
-# 🔑 STEP 4: BULLETPROOF STABLE CALCULATION GRID FLOW
+# STEP 4: COHORT MATCH RESULTS SPLIT WIDESCREEN WORKSPACE VIEW
 # --------------------------------------------------------------------------
 elif current_step == 4:
-    # 🛠️ CRITICAL RESOLUTION: Modal definition placed at the top layer level to resolve the NameError completely
+    # Modal dialogue container definition 
     @st.dialog("Confirm & Lock Enrollment Package")
     def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list, school_card_ref):
         st.markdown(f"### 📋 Reviewing: **{school_name}**")
@@ -245,17 +267,17 @@ elif current_step == 4:
         local_include_prep = False
         
         if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-            st.info("ℹ️ Entrance testing controls waived for this campus partner blueprint.")
+            st.info("ℹ️ Entrance testing validation steps bypassed for this partner track blueprint.")
             local_include_prep = False
         else:
             st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
             user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], horizontal=True, key="modal_has_passed_radio")
             
             if user_has_passed == "No":
-                st.warning(f"⚠️ Notice: We have added the required **{school_exam_type} Prep Course** to your bundle list.")
+                st.warning(f"⚠️ Notice: We have added the required **{school_exam_type} Prep Course** package to your shopping bundle checklist.")
                 local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_1")
             else:
-                raw_input_score = st.text_input("Enter your official testing score number:", placeholder="e.g., 75 or 740")
+                raw_input_score = st.text_input("Enter your official tracking score number metrics:", placeholder="e.g., 75 or 740")
                 user_score_logged = raw_input_score
                 
                 if raw_input_score:
@@ -299,26 +321,26 @@ elif current_step == 4:
 
                     if score_num > 0:
                         if matched_rule_type == "fail":
-                            st.error(f"🛑 Testing metrics fall below target. Injecting **{school_exam_type} Prep Course** bundle options.")
+                            st.error(f"🛑 Testing metrics register below baseline standards. Appending **{school_exam_type} Prep Course** layout variables.")
                             local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_2")
                         elif matched_rule_type == "pass":
                             if age_limit_years:
                                 st.markdown("##### ⏳ Verification Check Required:")
                                 exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1)
                                 if exam_age > age_limit_years:
-                                    st.error(f"🛑 Active testing context has expired. Pre-adding verification bundle parameter controls.")
+                                    st.error(f"🛑 Active testing score profile has expired. Pre-adding verification bundle.")
                                     local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_3")
                                 else:
-                                    st.success(f"✅ Verified: Compliance testing variables remain valid and verified!")
+                                    st.success(f"✅ Verified: Compliance testing metrics are valid and active for enrollment!")
                                     local_include_prep = False
                             else:
-                                st.success(f"✅ Verified: Gating layer parameters cleared safely.")
+                                st.success(f"✅ Verified: Application parameters confirmed compliant.")
                                 local_include_prep = False
                         elif matched_rule_type == "retest":
                             st.warning(f"⚠️ Registration parameters update checked. {custom_message}")
-                            local_include_prep = st.checkbox(f"Add **{school_exam_type} Advanced Retest Prep** variables?", value=True, key="opt_out_chk_4")
+                            local_include_prep = st.checkbox(f"Add **{school_exam_type} Advanced Retest Prep** elements?", value=True, key="opt_out_chk_4")
                         elif matched_rule_type == "exempt":
-                            st.success(f"🎉 Exemption waiver layer unlocked from **{waived_course_name}**.")
+                            st.success(f"🎉 Exemption credit layer unlocked from **{waived_course_name}**.")
                             local_include_prep = False
 
         st.markdown("---")
@@ -361,12 +383,12 @@ elif current_step == 4:
             }
             st.rerun()
 
-    # 🤝 FIXED SPLIT GRID: Gives the main school text 75% wide real estate clearance so numbers never wrap
-    col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
+    # 🔑 WIDESCREEN WIDE LAYOUT GRID OVERHAUL: Allocates highly wide ratio weights for full pixel screen coverage
+    col_input_flow, col_ledger_flow = st.columns([2.2, 1.0], gap="large")
 
     with col_input_flow:
         st.subheader("Secure Institutional Match Alignment")
-        st.markdown("Review eligible program choices generated by your background profiles filter arrays:")
+        st.markdown("Review eligible program options generated by your geofencing profile parameters:")
         st.divider()
         
         student_state = st.session_state["val_state"]
@@ -452,25 +474,24 @@ elif current_step == 4:
             
             card_rows = sorted(card_rows, key=lambda x: x["profit"], reverse=True)
 
-            # 🔑 NATIVE INTERPOLATION VIEW RENDERING: 100% Legibility and wide-margin formatting blocks
+            # Render full width clean data rows
             for card in card_rows:
                 with st.container(border=True):
                     courses_text_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
                     
-                    # 🛠️ FIXED STRUCTURAL FRAGMENTS: Forces wide row structures so profit margins are never cropped out
-                    s_left_col, s_right_col = st.columns([2.8, 1.2])
-                    with s_left_col:
+                    # 🛠️ FULL REAL ESTATE RESOLUTION ROW SPLIT: Spreads numbers safely across high width space
+                    s_card_left_grid, s_card_right_grid = st.columns([3.0, 1.2])
+                    with s_card_left_grid:
                         st.markdown(f"### 🏫 **{card['name']}**")
-                        st.markdown(f"**Degree Track Program:** `{card['track']}`")
-                        # 🔑 HIGH VISIBILITY TEXT TRICK: Standard bold markdown string forces pristine readability over ghost chips
-                        st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* **{courses_text_string}**")
-                    with s_right_col:
+                        st.markdown(f"**Program Graduation Tier Track:** `{card['track']}`")
+                        st.markdown(f"🧬 *Deficiencies Met ({len(card['accepted_courses'])}):* **{courses_text_string}**")
+                    with s_card_right_grid:
                         st.metric(label="Est Profit Margin", value=f"${card['profit']:,.2f}")
                     
                     if st.button("Select School & Fulfill Deficiencies", key=f"btn_card_sel_{card['idx']}", use_container_width=True, type="primary"):
                         render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"], card)
         else:
-            st.warning("No partner institutions match your core profile parameters filters.")
+            st.warning("No partner institutions match your background parameters configuration variables parameters.")
         
         st.divider()
         b_spacer, b_back = st.columns([3.0, 1.0])
@@ -481,13 +502,15 @@ elif current_step == 4:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # SHOPPING CART LEDGER COMPONENT (SYNCHRONIZED DEEP BIND LOOP)
+    # SHOPPING CART LEDGER CONTAINER (SYNCHRONIZED METRICS DEEP SPLIT VIEW)
     # --------------------------------------------------------------------------
     with col_ledger_flow:
         st.subheader("🛒 Itemized Invoice Cart")
         
+        license_type = st.session_state["val_lic"]
+        
         if st.session_state["confirmed_package"] is None:
-            st.info("👉 Please click 'Select School' on any partner institution row option on the left to verify compliance parameters and display invoice data calculations.")
+            st.info("👉 Please click 'Select School' on any partner institution option on the left to verify compliance data and unlock itemized ledger statements calculations details.")
         else:
             needed_courses = st.session_state["active_school_view"]["accepted_courses"]
             st.success(f"🎯 Target Locked: **{st.session_state['active_school_view']['name']}**")
@@ -511,7 +534,7 @@ elif current_step == 4:
             q_ref = st.session_state["val_ref"]
             q_mil = st.session_state["val_mil"]
             
-            # 🔑 LOOKAHEAD CONTEXT ENGAGING GUARD ENGINE: Links promotional codes strictly to school specifications counts
+            # 🔑 LOOKAHEAD SAFET BLOCK ENGINE: Evaluates directly against locked campus course criteria availability length metrics
             if len(needed_courses) >= 3:
                 q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio")
                 st.session_state["val_promo"] = q_promo
@@ -528,7 +551,7 @@ elif current_step == 4:
             final_total = max(0.0, base_total - credits_sum)
 
             st.divider()
-            st.markdown(f"**Gross Base Tuition Balance:** `${0.00 if is_completely_empty else base_total:,.2f}`")
+            st.markdown(f"**Gross Base Tuition Cost:** `${0.00 if is_completely_empty else base_total:,.2f}`")
             st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
 
@@ -544,6 +567,6 @@ if st.session_state["confirmed_package"]:
     st.balloons()
     st.success(f"🎉 **Bridge Plan Successfully Finalized for {pkg['student_name']}!**")
     st.markdown(f"### Selected School Locked: **{pkg['school_name']}**")
-    st.metric("Final Bill Statement Due", f"${pkg['final_total']:,.2f}")
+    st.metric("Final Adjusted Price Due Statement", f"${pkg['final_total']:,.2f}")
     with st.expander("📄 View Final Signed Voucher Audit Manifest Parameters"):
         st.json(pkg)
