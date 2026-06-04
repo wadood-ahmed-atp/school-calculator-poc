@@ -54,7 +54,7 @@ def initialize_base_states(force_reset=False):
         "val_state": "Select state",
         "val_zip": "",
         "val_adult": "Yes",
-        "val_gpa": 3.50, # 🔧 CHANGED VALUE PARADIGM: Shifted original index down from 4.00 to 3.50 base default
+        "val_gpa": 3.5, # 🔧 Rounded default float tracker down to single decimal precision parameters
         "val_gpa_unknown": False,
         "val_lic": "None / Other",
         "val_exp": None,
@@ -177,7 +177,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
     local_include_prep = False
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-        st.info("ℹ️ Entrance testing validation controls bypassed for this partner track blueprint.")
+        st.info("ℹ️ Entrance testing validation controls waived for this partner track blueprint.")
         local_include_prep = False
     else:
         st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
@@ -285,11 +285,12 @@ with col_input_flow:
         
         i_gpa_unknown = st.checkbox("I don't know my cumulative GPA", value=st.session_state["val_gpa_unknown"], disabled=is_finalized)
         if i_gpa_unknown:
-            st.session_state["val_gpa"] = 3.50
-            i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=3.50, step=0.01, disabled=True)
+            # 🔑 REMOVED GHOST CHECKS: Force locks evaluation back into perfect 4.0 bounds automatically
+            st.session_state["val_gpa"] = 4.0
+            i_gpa = st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=4.0, step=0.1, format="%.1f", disabled=True)
         else:
-            # 🔑 FIXED PUNCTUATION & BASE VALUES HOOK: Appended a terminal period to text loop parameter prompts
-            i_gpa = st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=st.session_state["val_gpa"], step=0.01, disabled=is_finalized)
+            # 🔑 ROUNDED PRECISION PARSER: Forces input masks down into clean 1-decimal view frameworks
+            i_gpa = st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=float(st.session_state["val_gpa"]), step=0.1, format="%.1f", disabled=is_finalized)
         
         st.divider()
         b_reset_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
@@ -371,7 +372,8 @@ with col_input_flow:
         st.session_state["val_courses"] = st.session_state["temp_courses"]
         
         st.markdown("#### **Promotional Qualifications & Discounts**")
-        w_ref = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True, disabled=is_finalized)
+        # 🔑 WIPE THE AGENT PARSER SLATE: Trimmed down phrasing parameter targets cleanly
+        w_ref = st.radio("Were you referred by a student?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True, disabled=is_finalized)
         w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True, disabled=is_finalized)
         
         st.session_state["val_ref"] = w_ref
@@ -505,7 +507,8 @@ with col_input_flow:
                             st.markdown(f"**Degree Track Program:** `{card['track']}`")
                             st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* **{courses_text_string}**")
                         with s_right_col:
-                            st.metric(label="Est Profit Margin", value=f"${card['profit']:,.2f}")
+                            # 🔑 VARIABLE LABEL ALIGNMENT: Shifted text layout parameter indexes to "Estimated Cost"
+                            st.metric(label="Estimated Cost", value=f"${card['profit']:,.2f}")
                 
                 btn_label = "✓ Active Selection Unlocked" if is_this_card_selected else "Select School & Fulfill Deficiencies"
                 if st.button(btn_label, key=f"btn_card_sel_{card['id']}", use_container_width=True, type="secondary" if is_this_card_selected else "primary", disabled=is_finalized):
@@ -583,7 +586,7 @@ if col_ledger_flow is not None:
             if calc_dep_match > 0:
                 st.markdown(f"🏷️ *Deposit Match Program Incentive:* `-${calc_dep_match:,.2f}`")
             if calc_referral > 0:
-                st.markdown(f"🏷️ *Student/Agent Referral Credit:* `-${calc_referral:,.2f}`")
+                st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,.2f}`")
             if calc_military > 0:
                 st.markdown(f"🏷️ *Active/Veteran Military Waiver:* `-${calc_military:,.2f}`")
             if calc_free_course > 0:
