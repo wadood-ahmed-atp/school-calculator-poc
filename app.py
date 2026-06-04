@@ -122,6 +122,9 @@ course_list = [
 
 current_step = st.session_state["wizard_step"]
 
+# 🔑 READ-ONLY LOOKAHEAD TRIGGER: Evaluates true if candidate layout package has finalized successfully
+is_finalized = st.session_state["confirmed_package"] is not None
+
 # Clean Progress Indicator Bar
 st.markdown(
     f"""
@@ -132,15 +135,13 @@ st.markdown(
         <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
         <span style="color: {'#1E3A8A' if current_step==3 else ('#10B981' if current_step>3 else '#94a3b8')}; font-weight: {'bold' if current_step==3 else 'normal'};">{'✅ ' if current_step>3 else ''}3. Transcripts Review</span> 
         <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
-        <span style="color: {'#1E3A8A' if current_step==4 else '#94a3b8'}; font-weight: {'bold' if current_step==4 else 'normal'};">4. School Matches</span>
+        <span style="color: {'#1E3A8A' if current_step==4 else '#10B981' if is_finalized else '#94a3b8'}; font-weight: {'bold' if current_step==4 else 'normal'};">{'✅ ' if is_finalized else ''}4. School Matches</span>
     </div>
     """, 
     unsafe_allow_html=True
 )
 
-# ==============================================================================
-# 🔧 RE-ENGINEERED DIALOG BOX (REPLACED COMMIT BUTTON WITH AN "OK" SELECTION)
-# ==============================================================================
+# Globally Scoped Dialog Box Modal
 @st.dialog("Verify Entrance Exam Compliance")
 def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list, school_card_ref):
     st.markdown(f"### 📋 Checking Gating for: **{school_name}**")
@@ -153,7 +154,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
     local_include_prep = False
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-        st.info("ℹ️ Entrance testing validation controls waived for this partner track blueprint.")
+        st.info("ℹ️ Entrance testing validation controls bypassed for this partner track blueprint.")
         local_include_prep = False
     else:
         st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
@@ -229,7 +230,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
                         local_include_prep = False
 
     st.markdown("---")
-    # 🔑 REPLACED LOCK IN WITH A SIMPLE OK CONFIRMATION: Saves variables locally and safely transfers execution back to master layout
+    #### Itemized Balance Preview
     if st.button("🟢 OK", key="modal_ok_btn", use_container_width=True):
         st.session_state["modal_include_exam_prep"] = local_include_prep
         st.session_state["modal_score_logged"] = user_score_logged
@@ -254,25 +255,27 @@ with col_input_flow:
         st.markdown("Capture your residency parameters to parse localized regional partner program accessibility options.")
         st.divider()
         
-        i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name")
-        i_state = st.selectbox("Select your residency home state:", options=STATE_OPTIONS, index=STATE_OPTIONS.index(st.session_state["val_state"]))
-        i_zip = st.text_input("What is your zip code?", value=st.session_state["val_zip"], placeholder="e.g. 19013", max_chars=14)
-        i_adult = st.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_adult"]))
+        # 🔑 ALL FIELDS BIND WITH is_finalized CONTROL ARGUMENTS TO FREEZE MODIFICATIONS
+        i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name", disabled=is_finalized)
+        i_state = st.selectbox("Select your residency home state:", options=STATE_OPTIONS, index=STATE_OPTIONS.index(st.session_state["val_state"]), disabled=is_finalized)
+        i_zip = st.text_input("What is your zip code?", value=st.session_state["val_zip"], placeholder="e.g. 19013", max_chars=14, disabled=is_finalized)
+        i_adult = st.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_adult"]), disabled=is_finalized)
         
-        i_gpa_unknown = st.checkbox("I don't know my cumulative GPA", value=st.session_state["val_gpa_unknown"])
+        i_gpa_unknown = st.checkbox("I don't know my cumulative GPA", value=st.session_state["val_gpa_unknown"], disabled=is_finalized)
         if i_gpa_unknown:
             st.session_state["val_gpa"] = 4.00
             i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=4.00, step=0.01, disabled=True)
         else:
-            i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=st.session_state["val_gpa"], step=0.01, disabled=False)
+            i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=st.session_state["val_gpa"], step=0.01, disabled=is_finalized)
         
         st.divider()
         b_reset_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
         with b_reset_col:
-            if st.button("🔄 Reset Data", use_container_width=True, type="secondary", key="step1_reset_btn"):
+            # 🔄 RENAMED TO "Restart Process" — Always remains active as our escape route
+            if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step1_reset_btn"):
                 restart_wizard()
         with b_continue_col:
-            if st.button("Continue ➡️", use_container_width=True, type="primary", key="step1_continue_action"):
+            if st.button("Continue ➡️", use_container_width=True, type="primary", key="step1_continue_action", disabled=is_finalized):
                 if i_state == "Select state":
                     st.warning("⚠️ Please select a valid state territory before moving forward.")
                 elif i_adult == "No":
@@ -295,26 +298,26 @@ with col_input_flow:
         st.markdown("Tell us about your healthcare background parameters to clear licensing experience rows.")
         st.divider()
         
-        i_lic = st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=LICENSE_OPTIONS.index(st.session_state["val_lic"]))
+        i_lic = st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=LICENSE_OPTIONS.index(st.session_state["val_lic"]), disabled=is_finalized)
         i_exp = st.session_state["val_exp"]
         if i_lic == "LPN":
-            i_exp = st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=st.session_state["val_exp"], step=1)
+            i_exp = st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=st.session_state["val_exp"], step=1, disabled=is_finalized)
             
-        i_dismiss = st.selectbox("Do you possess a prior academic nursing program dismissal?", options=DISMISSAL_OPTIONS, index=DISMISSAL_OPTIONS.index(st.session_state["val_dismiss"]))
+        i_dismiss = st.selectbox("Do you possess a prior academic nursing program dismissal?", options=DISMISSAL_OPTIONS, index=DISMISSAL_OPTIONS.index(st.session_state["val_dismiss"]), disabled=is_finalized)
         i_dismiss_mos = st.session_state["val_dismiss_mos"]
         if i_dismiss == "Yes":
-            i_dismiss_mos = st.number_input("Months elapsed since your historical academic dismissal date:", min_value=0, max_value=300, value=st.session_state["val_dismiss_mos"], step=1)
+            i_dismiss_mos = st.number_input("Months elapsed since your historical academic dismissal date:", min_value=0, max_value=300, value=st.session_state["val_dismiss_mos"], step=1, disabled=is_finalized)
             
-        i_travel = st.selectbox("Are you amenable to regional clinical onsite travel loops?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]))
-        i_track = st.selectbox("Which nursing track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]))
+        i_travel = st.selectbox("Are you amenable to regional clinical onsite travel loops?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]), disabled=is_finalized)
+        i_track = st.selectbox("Which nursing track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]), disabled=is_finalized)
         
         st.divider()
         b_reset_col, b_spacer, b_back_col, b_continue_col = st.columns([1.0, 0.5, 1.0, 1.0])
         with b_reset_col:
-            if st.button("🔄 Reset Data", use_container_width=True, type="secondary", key="step2_reset_btn"):
+            if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step2_reset_btn"):
                 restart_wizard()
         with b_back_col:
-            if st.button("⬅️ Back", use_container_width=True, key="step2_back_action"):
+            if st.button("⬅️ Back", use_container_width=True, key="step2_back_action", disabled=is_finalized):
                 st.session_state["val_lic"] = i_lic
                 st.session_state["val_exp"] = i_exp
                 st.session_state["val_dismiss"] = i_dismiss
@@ -324,7 +327,7 @@ with col_input_flow:
                 st.session_state["wizard_step"] = 1
                 st.rerun()
         with b_continue_col:
-            if st.button("Continue ➡️", use_container_width=True, type="primary", key="step2_continue_action"):
+            if st.button("Continue ➡️", use_container_width=True, type="primary", key="step2_continue_action", disabled=is_finalized):
                 st.session_state["val_lic"] = i_lic
                 st.session_state["val_exp"] = i_exp
                 st.session_state["val_dismiss"] = i_dismiss
@@ -346,13 +349,14 @@ with col_input_flow:
             "Check the boxes for courses you still NEED to complete:",
             options=course_list,
             default=st.session_state["val_courses"],
-            key="temp_courses" 
+            key="temp_courses",
+            disabled=is_finalized
         )
         st.session_state["val_courses"] = st.session_state["temp_courses"]
         
         st.markdown("#### **Promotional Qualifications & Discounts**")
-        w_ref = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True)
-        w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True)
+        w_ref = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True, disabled=is_finalized)
+        w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True, disabled=is_finalized)
         
         st.session_state["val_ref"] = w_ref
         st.session_state["val_mil"] = w_mil
@@ -361,14 +365,14 @@ with col_input_flow:
         st.divider()
         b_reset_col, b_spacer, b_back_col, b_continue_col = st.columns([1.0, 0.5, 1.0, 1.0])
         with b_reset_col:
-            if st.button("🔄 Reset Data", use_container_width=True, type="secondary", key="step3_reset_btn"):
+            if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step3_reset_btn"):
                 restart_wizard()
         with b_back_col:
-            if st.button("⬅️ Back", use_container_width=True, key="step3_back_action"):
+            if st.button("⬅️ Back", use_container_width=True, key="step3_back_action", disabled=is_finalized):
                 st.session_state["wizard_step"] = 2
                 st.rerun()
         with b_continue_col:
-            if st.button("Find Matches ➡️", use_container_width=True, type="primary", key="step3_continue_action"):
+            if st.button("Find Matches ➡️", use_container_width=True, type="primary", key="step3_continue_action", disabled=is_finalized):
                 st.session_state["active_school_view"] = None
                 st.session_state["confirmed_package"] = None
                 st.session_state["wizard_step"] = 4
@@ -477,7 +481,7 @@ with col_input_flow:
                     with s_right_col:
                         st.metric(label="Est Profit Margin", value=f"${card['profit']:,.2f}")
                     
-                    if st.button("Select School & Fulfill Deficiencies", key=f"btn_card_sel_{card['idx']}", use_container_width=True, type="primary"):
+                    if st.button("Select School & Fulfill Deficiencies", key=f"btn_card_sel_{card['idx']}", use_container_width=True, type="primary", disabled=is_finalized):
                         render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"], card)
         else:
             st.warning("No partner institutions match your background parameters configuration parameters.")
@@ -485,16 +489,16 @@ with col_input_flow:
         st.divider()
         b_reset_col, b_spacer, b_back_col = st.columns([1.0, 1.5, 1.0])
         with b_reset_col:
-            if st.button("🔄 Reset Data", use_container_width=True, type="secondary", key="step4_reset_btn"):
+            if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step4_reset_btn"):
                 restart_wizard()
         with b_back_col:
-            if st.button("⬅️ Back to Review", use_container_width=True, key="step4_reverse_button_action"):
+            if st.button("⬅️ Back to Review", use_container_width=True, key="step4_reverse_button_action", disabled=is_finalized):
                 st.session_state["val_courses"] = list(st.session_state["val_courses"])
                 st.session_state["wizard_step"] = 3
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# SHOPPING CART LEDGER COMPONENT (WITH DYNAMIC LOCK IN SUBMISSION DECK)
+# SHOPPING CART LEDGER COMPONENT (FULLY DEACTIVATED ON FINAL VALIDATIONS)
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -517,8 +521,8 @@ if col_ledger_flow is not None:
             base_total = base_classes * main_price
             
             st.markdown("#### Adjustments & Grants Parameters")
-            deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0.0, value=st.session_state["val_deposit"], step=50.0, key="ledger_deposit_input_field")
-            grant_input = st.number_input("Institutional Grant Amount ($)", min_value=0.0, value=st.session_state["val_grant"], step=50.0, key="ledger_grant_input_field")
+            deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0.0, value=st.session_state["val_deposit"], step=50.0, key="ledger_deposit_input_field", disabled=is_finalized)
+            grant_input = st.number_input("Institutional Grant Amount ($)", min_value=0.0, value=st.session_state["val_grant"], step=50.0, key="ledger_grant_input_field", disabled=is_finalized)
             
             st.session_state["val_deposit"] = deposit_input
             st.session_state["val_grant"] = grant_input
@@ -527,7 +531,7 @@ if col_ledger_flow is not None:
             q_mil = st.session_state["val_mil"]
             
             if len(needed_courses) >= 3:
-                q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio")
+                q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio", disabled=is_finalized)
                 st.session_state["val_promo"] = q_promo
             else:
                 st.session_state["val_promo"] = "No"
@@ -546,11 +550,8 @@ if col_ledger_flow is not None:
             st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
             
-            # ==============================================================================
-            # 🆕 FINAL SUBMISSION DECK (ANCHORED GRACEFULLY INSIDE MAIN WORKSPACE PAGE LEDGER)
-            # ==============================================================================
             st.divider()
-            if st.button("🔒 Lock in Enrollment Package", key="ledger_final_lock_action_btn", use_container_width=True, type="primary"):
+            if st.button("🔒 Lock in Enrollment Package", key="ledger_final_lock_action_btn", use_container_width=True, type="primary", disabled=is_finalized):
                 st.session_state["confirmed_package"] = {
                     "school_name": school_name,
                     "student_name": st.session_state["val_name"],
@@ -565,7 +566,10 @@ if col_ledger_flow is not None:
                 }
                 st.rerun()
 
-if st.session_state["confirmed_package"]:
+# ==============================================================================
+# 🎈 READ-ONLY SIGNED MANIFEST BLOCK
+# ==============================================================================
+if is_finalized:
     pkg = st.session_state["confirmed_package"]
     st.balloons()
     st.success(f"🎉 **Bridge Plan Successfully Finalized for {pkg['student_name']}!**")
