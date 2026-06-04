@@ -4,7 +4,7 @@ import os
 import re
 
 # ==============================================================================
-# 0. 🖥️ WIDESCREEN CAP BLOCK & TOOLBAR REMOVAL (HEADER SAFE PRESERVATION)
+# 0. 🖥️ WIDESCREEN CAP BLOCK & INFRASTRUCTURE TOOLBAR REMOVAL
 # ==============================================================================
 st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
@@ -120,10 +120,7 @@ course_list = [
 
 current_step = st.session_state["wizard_step"]
 
-# Safe Base-Level App Title Branded Callout
-st.markdown("<h1 style='margin: 0; padding-bottom: 5px;'>🗺️ Bridge Plan Generator</h1>", unsafe_allow_html=True)
-
-# Clean Progress Indicator Bar (Preserves straight horizontal line layouts without background box bleeds)
+# Clean Progress Indicator Bar
 st.markdown(
     f"""
     <div style="font-family: sans-serif; font-size: 15px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 10px;">
@@ -409,7 +406,10 @@ with col_input_flow:
                 st.rerun()
         with b_continue_col:
             if st.button("Find Matches ➡️", use_container_width=True, type="primary", key="step3_continue_action"):
+                # 🧼 CLEAN CACHE GAP ON BACKWARD/FORWARD PROGRESS: 
+                # Wipes temporary match anchors to guarantee lookahead engines don't check a null selection state reference.
                 st.session_state["active_school_view"] = None
+                st.session_state["confirmed_package"] = None
                 st.session_state["wizard_step"] = 4
                 st.rerun()
 
@@ -529,14 +529,15 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# SHOPPING CART LEDGER COMPONENT (SYNCHRONIZED DEEP BIND LOOP)
+# SHOPPING CART LEDGER COMPONENT (DEFENSIVE GUARD MATRIX OPERATIONAL)
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Itemized Invoice Cart")
         
-        if st.session_state["confirmed_package"] is None:
-            st.info("👉 Please click 'Select School' on any partner institution row option on the left to verify compliance data and unlock itemized ledger statements calculations details.")
+        # 🔑 FIXED RE-ENGINEERING CORE GATE: Prevents crash loops if memory objects are non-existent or dropped
+        if st.session_state["active_school_view"] is None or st.session_state["confirmed_package"] is None:
+            st.info("👉 Please select an institutional partner row on the left to confirm your entrance exam status and load your invoice details.")
         else:
             needed_courses = st.session_state["active_school_view"]["accepted_courses"]
             st.success(f"🎯 Target Locked: **{st.session_state['active_school_view']['name']}**")
@@ -579,12 +580,3 @@ if col_ledger_flow is not None:
             st.markdown(f"**Gross Base Tuition Balance:** `${0.00 if is_completely_empty else base_total:,.2f}`")
             st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
-
-if st.session_state["confirmed_package"]:
-    pkg = st.session_state["confirmed_package"]
-    st.balloons()
-    st.success(f"🎉 **Bridge Plan Successfully Finalized for {pkg['student_name']}!**")
-    st.markdown(f"### Selected School Locked: **{pkg['school_name']}**")
-    st.metric("Final Bill Statement Due", f"${pkg['final_total']:,.2f}")
-    with st.expander("📄 View Final Signed Voucher Audit Manifest Parameters"):
-        st.json(pkg)
