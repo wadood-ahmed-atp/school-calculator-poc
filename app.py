@@ -70,7 +70,7 @@ if "wizard_step" not in st.session_state: st.session_state["wizard_step"] = 1
 if "confirmed_package" not in st.session_state: st.session_state["confirmed_package"] = None
 if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
 
-# Persistent Application Memory Vaults
+# Permanent Backstage Memory Vaults (Protected from Garbage Collection)
 if "val_name" not in st.session_state: st.session_state["val_name"] = ""
 if "val_state" not in st.session_state: st.session_state["val_state"] = "Select state"
 if "val_zip" not in st.session_state: st.session_state["val_zip"] = ""
@@ -143,6 +143,20 @@ course_list = [
 ]
 
 current_step = st.session_state["wizard_step"]
+
+# Progress Bar Header Indicator
+step_cols = st.columns(4)
+step_names = ["1. Identity Profile", "2. Baseline Profile", "3. Transcripts Review", "4. School Matches"]
+for i, name in enumerate(step_names):
+    step_num = i + 1
+    with step_cols[i]:
+        if current_step == step_num:
+            st.markdown(f"<div style='text-align: center; border-bottom: 4px solid #1E3A8A; font-weight: bold; color: #1E3A8A; padding-bottom: 5px;'>{name}</div>", unsafe_allow_html=True)
+        elif current_step > step_num:
+            st.markdown(f"<div style='text-align: center; border-bottom: 4px solid #10B981; color: #10B981; padding-bottom: 5px;'>✅ {name}</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div style='text-align: center; border-bottom: 4px solid #e2e8f0; color: #94a3b8; padding-bottom: 5px;'>{name}</div>", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ==============================================================================
 # 4. ADAPTIVE RESPONSIVE LAYOUT ENGINE ROUTER
@@ -243,27 +257,30 @@ with col_input_flow:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT & DISCOUNTS FLOW
+    # STEP 3: TRANSCRIPT & DISCOUNTS FLOW (FIXED CACHE VAULT PROTECTION)
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.markdown("### **Step 3: Transcript Review & Qualifications**")
         st.markdown("Select your prerequisite deficiencies and apply your discount triggers here.")
         st.divider()
         
+        # 🔑 FIXED: Decoupled temporary widget key with an un-wipeable default array anchor
         st.multiselect(
             "Check the boxes for courses you still NEED to complete:",
             options=course_list,
-            key="val_courses" 
+            default=st.session_state["val_courses"],
+            key="temp_courses" 
         )
         
-        st.markdown("<br>#### 🎖️ Promotional Qualifications & Discounts", unsafe_allow_html=True)
+        # Force the temporary changes over to our permanent backstage vault instantly
+        st.session_state["val_courses"] = st.session_state["temp_courses"]
         
-        # 🔒 FIXED PERMANENTLY: Anchored side-by-side cleanly without disappearing mechanics
+        st.markdown("<br>#### 🎖️ Promotional Qualifications & Discounts", unsafe_allow_html=True)
         w_ref = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True)
         w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True)
         w_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True)
         
-        # Immediate state synchronization parameters mapping
+        # Lock strings values back into memory parameters
         st.session_state["val_ref"] = w_ref
         st.session_state["val_mil"] = w_mil
         st.session_state["val_promo"] = w_promo
@@ -378,8 +395,6 @@ with col_input_flow:
             calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= (150 if is_cna == "CNA/CMA" else 300)) else 0.0
             calc_referral = 50.0 if st.session_state["val_ref"] == "Yes" else 0.0
             calc_military = 200.0 if st.session_state["val_mil"] == "Yes" else 0.0
-            
-            # Logic Safeguard Layer: Validate free course constraints during compile loop
             calc_free_course = float(main_price) if (st.session_state["val_promo"] == "Yes" and modal_base_count >= 3) else 0.0
             modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
             
@@ -573,7 +588,6 @@ with col_input_flow:
         with btn_b1:
             st.markdown("<div class='secondary-btn'>", unsafe_allow_html=True)
             if st.button("⬅️ Back to Review", use_container_width=True):
-                st.session_state["val_courses"] = list(st.session_state["val_courses"])
                 st.session_state["wizard_step"] = 3
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
@@ -603,7 +617,6 @@ if current_step >= 3 and col_ledger_flow is not None:
         if len(needed_courses) == 0: base_total = (addons_count * addon_price)
         else: base_total = (base_classes * main_price) + (addons_count * addon_price)
         
-        # 🔑 FIXED: Structured using safe subheader wrappers to completely seal the layout block container
         st.markdown("#### **Adjustments & Grants**")
         deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0.0, value=st.session_state["val_deposit"], step=50.0)
         grant_input = st.number_input("Institutional Grant Amount ($)", min_value=0.0, value=st.session_state["val_grant"], step=50.0)
@@ -611,18 +624,17 @@ if current_step >= 3 and col_ledger_flow is not None:
         st.session_state["val_deposit"] = deposit_input
         st.session_state["val_grant"] = grant_input
 
-        # Pull synchronized qualification states
         q_ref = st.session_state["val_ref"]
         q_mil = st.session_state["val_mil"]
         q_promo = st.session_state["val_promo"]
 
-        # Calculations
+        # Base Matrix Calculation Engine Flow
         dep_min = 150 if license_type == "CNA/CMA" else 300
         calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= dep_min) else 0.0
         calc_referral = 50.0 if q_ref == "Yes" else 0.0
         calc_military = 200.0 if q_mil == "Yes" else 0.0
         
-        # Backend Qualification Check: Verify promo rules before subtracting totals
+        # Safe evaluation validation execution
         calc_free_course = float(main_price) if (q_promo == "Yes" and len(needed_courses) >= 3) else 0.0
         
         credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
@@ -649,7 +661,6 @@ if current_step >= 3 and col_ledger_flow is not None:
         st.markdown(f"**Registration Fee:** `${0.00 if is_completely_empty else reg_fee:,.2f}`")
         st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
         
-        # Display notice layer if promo criteria falls short
         if q_promo == "Yes" and len(needed_courses) < 3:
             st.caption("ℹ️ *Notice: Free course code requires selecting 3 or more courses to apply.*")
             
@@ -663,7 +674,7 @@ with reset_btn_block:
     if st.button("🔄 Restart Process", type="secondary", use_container_width=True):
         restart_wizard()
 
-# Final locked confirmation data blocks
+# Success manifest signed lock summaries
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
     st.balloons()
