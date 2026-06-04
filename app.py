@@ -54,17 +54,17 @@ def initialize_base_states(force_reset=False):
         "val_state": "Select state",
         "val_zip": "",
         "val_adult": "Yes",
-        "val_gpa": 3.5, # 🔧 1-Decimal system synchronization
+        "val_gpa": 3.5, 
         "val_gpa_unknown": False,
         "val_lic": "None / Other",
-        "val_exp": None, # 🔧 Stays strictly an integer placeholder type
+        "val_exp": None, 
         "val_dismiss": "No",
-        "val_dismiss_mos": None, # 🔧 Stays strictly an integer placeholder type
+        "val_dismiss_mos": None, 
         "val_travel": "Yes",
         "val_track": "BSN",
         "val_courses": [],
-        "val_deposit": 0.0,
-        "val_grant": 0.0,
+        "val_deposit": 0, # 🔧 Currency values now initialized as integers
+        "val_grant": 0,   # 🔧 Currency values now initialized as integers
         "val_promo": "No",
         "val_ref": "No",
         "val_mil": "No"
@@ -130,6 +130,9 @@ course_list = [
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
 
+# Dashboard Master Title Header
+st.markdown("## 🗺️ Bridge Plan Generator")
+
 # Compute Step Progress States Natively
 if current_step == 1: s1_col, s1_w = "#1E3A8A", "bold"
 else: s1_col, s1_w = "#10B981", "normal"
@@ -174,7 +177,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
     local_include_prep = False
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-        st.info("ℹ️ Entrance testing validation controls bypassed for this partner track blueprint.")
+        st.info("ℹ️ Entrance testing validation controls waived for this partner track blueprint.")
         local_include_prep = False
     else:
         st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
@@ -249,7 +252,23 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
                         st.success(f"🎉 Exemption waiver layer unlocked from **{waived_course_name}**.")
                         local_include_prep = False
 
-    st.markdown("---")
+        st.markdown("---")
+        #### Itemized Balance Preview
+        # 🔧 FIXED: Wiped out float decimals from the temporary popup metrics
+        m_classes_tier = modal_base_count if modal_base_count > 0 else 1
+        m_price_tier = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
+        final_base_total = int(modal_base_count * m_price_tier)
+        
+        calc_dep_match = min(int(st.session_state["val_deposit"]), 1000) if (st.session_state["val_deposit"] >= 300) else 0
+        calc_referral = 50 if st.session_state["val_ref"] == "Yes" else 0
+        calc_military = 200 if st.session_state["val_mil"] == "Yes" else 0
+        calc_free_course = m_price_tier if (st.session_state["val_promo"] == "Yes" and modal_base_count >= 3) else 0
+        modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + int(st.session_state["val_grant"])
+        modal_final_total = max(0, final_base_total - modal_credits_sum)
+
+        st.metric("Adjusted Base Tuition Cost", f"${final_base_total:,}")
+        st.metric("Final Balance Due", f"${modal_final_total:,}")
+
     if st.button("🟢 OK", key="modal_ok_btn", use_container_width=True):
         st.session_state["modal_include_exam_prep"] = local_include_prep
         st.session_state["modal_score_logged"] = user_score_logged
@@ -258,7 +277,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
         st.session_state["selected_school_id"] = school_unique_id
         st.rerun()
 
-# Layout Splitting Setup
+# Set up form view grids based on step indices
 if current_step == 4:
     col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
 else:
@@ -286,7 +305,6 @@ with col_input_flow:
             st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=4.0, step=0.1, format="%.1f", disabled=True)
             i_gpa = 4.0
         else:
-            # 🔧 1-Decimal system rendering parameters enforced cleanly
             i_gpa = st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=float(st.session_state["val_gpa"]), step=0.1, format="%.1f", disabled=is_finalized)
         
         st.divider()
@@ -319,27 +337,17 @@ with col_input_flow:
         st.divider()
         
         i_lic = st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=LICENSE_OPTIONS.index(st.session_state["val_lic"]), disabled=is_finalized)
-        
-        # 🔧 Strict integer evaluation baseline avoids stray .0 floats inside months counts fields
         i_exp = st.session_state["val_exp"]
-        if i_exp is not None:
-            i_exp = int(i_exp)
-            
         if i_lic == "LPN":
-            # 🔧 Forces step=1 whole configurations cleanly without float allocations
             i_exp = st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=i_exp, step=1, placeholder="0", disabled=is_finalized)
             
         i_dismiss = st.selectbox("Do you possess a prior academic nursing program dismissal?", options=DISMISSAL_OPTIONS, index=DISMISSAL_OPTIONS.index(st.session_state["val_dismiss"]), disabled=is_finalized)
-        
         i_dismiss_mos = st.session_state["val_dismiss_mos"]
-        if i_dismiss_mos is not None:
-            i_dismiss_mos = int(i_dismiss_mos)
-            
         if i_dismiss == "Yes":
-            # 🔧 Forces step=1 whole configurations cleanly without float allocations
             i_dismiss_mos = st.number_input("Months elapsed since your historical academic dismissal date:", min_value=0, max_value=300, value=i_dismiss_mos, step=1, placeholder="0", disabled=is_finalized)
             
-        i_travel = st.selectbox("Are you amenable to regional clinical onsite travel loops?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]), disabled=is_finalized)
+        # 🔑 PHRASING ADJUSTMENT REMAPPED: Replaced core text parameter loops cleanly with short form translations
+        i_travel = st.selectbox("Are you willing to travel regionally for clinical rotations?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]), disabled=is_finalized)
         i_track = st.selectbox("Which nursing track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]), disabled=is_finalized)
         
         st.divider()
@@ -493,7 +501,7 @@ with col_input_flow:
                     "track": school_row["ASN/BSN"],
                     "status": s_status,
                     "accepted_courses": school_accepted_list,
-                    "profit": est_profit
+                    "profit": int(est_profit) # 🔧 CHANGED VALUE MASK: Cost stored as int type fields
                 })
             
             card_rows = sorted(card_rows, key=lambda x: x["profit"], reverse=True)
@@ -514,7 +522,8 @@ with col_input_flow:
                             st.markdown(f"**Degree Track Program:** `{card['track']}`")
                             st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* **{courses_text_string}**")
                         with s_right_col:
-                            st.metric(label="Estimated Cost", value=f"${card['profit']:,.2f}")
+                            # 🔧 REMOVED FLOAT STRING: Formatted using plain integer logic masks fields
+                            st.metric(label="Estimated Cost", value=f"${card['profit']:,}")
                 
                 btn_label = "✓ Active Selection Unlocked" if is_this_card_selected else "Select School & Fulfill Deficiencies"
                 if st.button(btn_label, key=f"btn_card_sel_{card['id']}", use_container_width=True, type="secondary" if is_this_card_selected else "primary", disabled=is_finalized):
@@ -538,7 +547,7 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 sideBAR ITEMIZED INVOICE CART
+# 🛒 sideBAR ITEMIZED INVOICE CART (TOTAL WHOLE INTEGER RE-CONSTRUCTION COMPLETE)
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -558,14 +567,15 @@ if col_ledger_flow is not None:
             
             m_classes_tier = base_classes if base_classes > 0 else 1
             main_price = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
-            base_total = base_classes * main_price
+            base_total = int(base_classes * main_price)
             
             st.markdown("#### Adjustments & Grants Parameters")
-            deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0.0, value=st.session_state["val_deposit"], step=50.0, key="ledger_deposit_input_field", disabled=is_finalized)
-            grant_input = st.number_input("Institutional Grant Amount ($)", min_value=0.0, value=st.session_state["val_grant"], step=50.0, key="ledger_grant_input_field", disabled=is_finalized)
+            # 🔧 STEP DEFINED AT 1 TO BLOCK FLOAT COMMAS: Clears long strings formatting variables decimals limits down to 0
+            deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0, value=int(st.session_state["val_deposit"]), step=50, key="ledger_deposit_input_field", disabled=is_finalized)
+            grant_input = st.number_input("Institutional Grant Amount ($)", min_value=0, value=int(st.session_state["val_grant"]), step=50, key="ledger_grant_input_field", disabled=is_finalized)
             
-            st.session_state["val_deposit"] = deposit_input
-            st.session_state["val_grant"] = grant_input
+            st.session_state["val_deposit"] = int(deposit_input)
+            st.session_state["val_grant"] = int(grant_input)
 
             q_ref = st.session_state["val_ref"]
             q_mil = st.session_state["val_mil"]
@@ -577,42 +587,43 @@ if col_ledger_flow is not None:
                 st.session_state["val_promo"] = "No"
                 q_promo = "No"
 
-            calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= 300) else 0.0
-            calc_referral = 50.0 if q_ref == "Yes" else 0.0
-            calc_military = 200.0 if q_mil == "Yes" else 0.0
-            calc_free_course = float(main_price) if (q_promo == "Yes" and len(needed_courses) >= 3) else 0.0
+            calc_dep_match = min(int(deposit_input), 1000) if (deposit_input >= 300) else 0
+            calc_referral = 50 if q_ref == "Yes" else 0
+            calc_military = 200 if q_mil == "Yes" else 0
+            calc_free_course = int(main_price) if (q_promo == "Yes" and len(needed_courses) >= 3) else 0
             
-            credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
-            final_total = max(0.0, base_total - credits_sum)
+            credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + int(grant_input)
+            final_total = max(0, base_total - credits_sum)
 
             st.divider()
-            st.markdown(f"**Gross Base Tuition Balance:** `${0.00 if is_completely_empty else base_total:,.2f}`")
+            # 🔧 REMOVED FLOATS EVERYWHERE DOWNWARD: Strings process using straight int placeholders format blocks
+            st.markdown(f"**Gross Base Tuition Balance:** `${0 if is_completely_empty else base_total:,}`")
             
             st.markdown("##### 🎖️ Applied Fee Waivers & Adjustments:")
             if calc_dep_match > 0:
-                st.markdown(f"🏷️ *Deposit Match Program Incentive:* `-${calc_dep_match:,.2f}`")
+                st.markdown(f"🏷️ *Deposit Match Program Incentive:* `-${calc_dep_match:,}`")
             if calc_referral > 0:
-                st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,.2f}`")
+                st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,}`")
             if calc_military > 0:
-                st.markdown(f"🏷️ *Active/Veteran Military Waiver:* `-${calc_military:,.2f}`")
+                st.markdown(f"🏷️ *Active/Veteran Military Waiver:* `-${calc_military:,}`")
             if calc_free_course > 0:
-                st.markdown(f"🏷️ *Complimentary Course Promo Code:* `-${calc_free_course:,.2f}`")
+                st.markdown(f"🏷️ *Complimentary Course Promo Code:* `-${calc_free_course:,}`")
             if grant_input > 0:
-                st.markdown(f"🏷️ *Direct Institutional Grant Award:* `-${grant_input:,.2f}`")
+                st.markdown(f"🏷️ *Direct Institutional Grant Award:* `-${grant_input:,}`")
             if credits_sum == 0:
                 st.markdown("🏷️ *No programmatic credits applied to this profile context.*")
                 
-            st.markdown(f"**Total Consolidated Deductions:** `-${credits_sum:,.2f}`")
-            st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
+            st.markdown(f"**Total Consolidated Deductions:** `-${credits_sum:,}`")
+            st.markdown(f"## **Balance Due: ${0 if is_completely_empty else final_total:,}**")
             
             st.divider()
             if st.button("🔒 Lock in Enrollment Package", key="ledger_final_lock_action_btn", use_container_width=True, type="primary", disabled=is_finalized):
                 st.session_state["confirmed_package"] = {
                     "school_name": school_name,
                     "student_name": st.session_state["val_name"],
-                    "base_total": base_total,
-                    "reg_fee": 0.0,
-                    "final_total": final_total,
+                    "base_total": int(base_total),
+                    "reg_fee": 0,
+                    "final_total": int(final_total),
                     "courses_included": needed_courses,
                     "entrance_exam_prep_added": st.session_state["modal_include_exam_prep"],
                     "entrance_exam_score_logged": st.session_state["modal_score_logged"],
@@ -626,6 +637,6 @@ if is_finalized:
     st.balloons()
     st.success(f"🎉 **Bridge Plan Successfully Finalized for {pkg['student_name']}!**")
     st.markdown(f"### Selected School Locked: **{pkg['school_name']}**")
-    st.metric("Final Bill Statement Due", f"${pkg['final_total']:,.2f}")
+    st.metric("Final Bill Statement Due", f"${int(pkg['final_total']):,}")
     with st.expander("📄 View Final Signed Voucher Audit Manifest Parameters"):
         st.json(pkg)
