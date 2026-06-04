@@ -214,7 +214,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
                             exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1)
                             if exam_age > age_limit_years:
                                 st.error(f"🛑 Active testing score profile has expired. Pre-adding verification bundle.")
-                                local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_3")
+                                local_include_prep = False
                             else:
                                 st.success(f"✅ Verified: Compliance testing variables remain valid and verified!")
                                 local_include_prep = False
@@ -244,6 +244,8 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
         calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= 300) else 0.0
         calc_referral = 50.0 if st.session_state["val_ref"] == "Yes" else 0.0
         calc_military = 200.0 if st.session_state["val_mil"] == "Yes" else 0.0
+        
+        # 🔑 LOOKAHEAD CONSTRAINTS: Checks modal deficiency length explicitly to hide promo credits on smaller counts
         calc_free_course = float(m_price_tier) if (st.session_state["val_promo"] == "Yes" and modal_base_count >= 3) else 0.0
         modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
         modal_final_total = max(0.0, final_base_total - modal_credits_sum)
@@ -406,8 +408,7 @@ with col_input_flow:
                 st.rerun()
         with b_continue_col:
             if st.button("Find Matches ➡️", use_container_width=True, type="primary", key="step3_continue_action"):
-                # 🧼 CLEAN CACHE GAP ON BACKWARD/FORWARD PROGRESS: 
-                # Wipes temporary match anchors to guarantee lookahead engines don't check a null selection state reference.
+                # Defensive reset fixes backward context drops entirely
                 st.session_state["active_school_view"] = None
                 st.session_state["confirmed_package"] = None
                 st.session_state["wizard_step"] = 4
@@ -529,16 +530,16 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# SHOPPING CART LEDGER COMPONENT (DEFENSIVE GUARD MATRIX OPERATIONAL)
+# SHOPPING CART LEDGER COMPONENT (LOOKAHEAD BUG RESOLVED)
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Itemized Invoice Cart")
         
-        # 🔑 FIXED RE-ENGINEERING CORE GATE: Prevents crash loops if memory objects are non-existent or dropped
         if st.session_state["active_school_view"] is None or st.session_state["confirmed_package"] is None:
-            st.info("👉 Please select an institutional partner row on the left to confirm your entrance exam status and load your invoice details.")
+            st.info("👉 Please click 'Select School' on any partner institution row option on the left to verify compliance data and unlock itemized ledger statements calculations details.")
         else:
+            # 🔑 READS FILTERED SPECIFIC BUNDLE LENGTH INSTEAD OF PARENT STEP 3 ARRAYS
             needed_courses = st.session_state["active_school_view"]["accepted_courses"]
             st.success(f"🎯 Target Locked: **{st.session_state['active_school_view']['name']}**")
 
@@ -561,6 +562,7 @@ if col_ledger_flow is not None:
             q_ref = st.session_state["val_ref"]
             q_mil = st.session_state["val_mil"]
             
+            # 🔑 ACTIVE FIX: Promo options block lookahead checks filtered campus limits directly!
             if len(needed_courses) >= 3:
                 q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio")
                 st.session_state["val_promo"] = q_promo
@@ -580,3 +582,12 @@ if col_ledger_flow is not None:
             st.markdown(f"**Gross Base Tuition Balance:** `${0.00 if is_completely_empty else base_total:,.2f}`")
             st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
+
+if st.session_state["confirmed_package"]:
+    pkg = st.session_state["confirmed_package"]
+    st.balloons()
+    st.success(f"🎉 **Bridge Plan Successfully Finalized for {pkg['student_name']}!**")
+    st.markdown(f"### Selected School Locked: **{pkg['school_name']}**")
+    st.metric("Final Bill Statement Due", f"${pkg['final_total']:,.2f}")
+    with st.expander("📄 View Final Signed Voucher Audit Manifest Parameters"):
+        st.json(pkg)
