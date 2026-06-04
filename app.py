@@ -4,22 +4,52 @@ import os
 import re
 
 # ==============================================================================
-# 0. WEB PAGE CONFIG & PREMIUM BRANDED CSS INJECTION
+# 0. PAGE CONFIG & STICKY HEADER FIXED CSS OVERRIDES
 # ==============================================================================
 st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
-# Custom premium UI styling overrides
+# Advanced production layout injection block
 st.markdown("""
     <style>
-    /* 🚫 HIDE DEFAULT WHITE TOP BAR & MENU INFRASTRUCTURE */
+    /* 🚫 ELIMINATE STREAMLIT MENU & TOP INFRASTRUCTURE COMPLETELY */
     #MainMenu {visibility: hidden;}
     header {visibility: hidden;}
     footer {visibility: hidden;}
     .stAppDeployButton {display: none;}
     
-    .main {background-color: #f8f9fa; padding-top: 0px !important;}
+    /* 📌 FIXED LAYER: Lock the entire top application header area out of scroll streams */
+    [data-testid="stHeader"] {
+        display: none !important;
+    }
+    
+    /* Force main app structural margins to sit flush with fixed layer ceilings */
+    .block-container {
+        padding-top: 0px !important;
+        margin-top: 0px !important;
+    }
+    
+    .main {background-color: #f8f9fa;}
     h1, h2, h3 {color: #1E3A8A; font-family: 'Inter', sans-serif;}
     
+    /* Sticky Top Container Wrapper Box Structuring */
+    .sticky-header-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background-color: #f8f9fa;
+        z-index: 999;
+        padding: 15px 5rem 10px 5rem;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    
+    /* Adjust body clearance offsets to clear fixed menu elements overhead */
+    .scrollable-body-content {
+        margin-top: 260px !important;
+        padding-bottom: 50px;
+    }
+    
+    /* Elevated responsive content card formatting rules */
     .content-card {
         background-color: #ffffff;
         padding: 30px;
@@ -29,15 +59,36 @@ st.markdown("""
         margin-bottom: 20px;
     }
     
+    /* 🎨 CUSTOM TAB NAVIGATION INTERACTIVE STYLING OVERRIDES */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 15px;
+        border-bottom: none !important; /* 🚫 REMOVES RESIDUAL UNDERLINE WHITE BAR */
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        border-radius: 8px !important;
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0 !important;
+        padding: 0px 24px !important;
+        font-weight: 600 !important;
+        color: #64748b !important;
+        transition: all 0.2s ease-in-out;
+    }
+    /* Active step focus alignment tracking style indicators */
+    .stTabs [aria-selected="true"] {
+        background-color: #1E3A8A !important;
+        color: white !important;
+        border-color: #1E3A8A !important;
+    }
+    
+    /* Premium action button layouts tracking frames */
     .stButton>button {
         border-radius: 8px !important;
         height: 44px !important;
         font-weight: 600 !important;
         font-size: 15px !important;
-        letter-spacing: 0.3px !important;
         transition: all 0.2s ease-in-out !important;
     }
-    
     div.primary-btn>div>button {
         background-color: #1E3A8A !important;
         color: white !important;
@@ -46,9 +97,7 @@ st.markdown("""
     div.primary-btn>div>button:hover {
         background-color: #2563EB !important;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
     }
-    
     div.secondary-btn>div>button {
         background-color: #ffffff !important;
         color: #475569 !important;
@@ -56,16 +105,12 @@ st.markdown("""
     }
     div.secondary-btn>div>button:hover {
         background-color: #f8f9fa !important;
-        border-color: #94a3b8 !important;
-        color: #1e293b !important;
     }
-    
     div.utility-btn>div>button {
         background-color: transparent !important;
         color: #94a3b8 !important;
         border: 1px dashed #cbd5e1 !important;
         height: 34px !important;
-        font-size: 13px !important;
     }
     div.utility-btn>div>button:hover {
         color: #ef4444 !important;
@@ -74,29 +119,22 @@ st.markdown("""
     }
 
     @media (max-width: 992px) {
-        div[data-testid="stHorizontalBlock"] {
-            flex-direction: column !important;
-        }
-        div[data-testid="stColumn"] {
-            width: 100% !important;
-            margin-left: 0px !important;
-            margin-right: 0px !important;
-            margin-bottom: 20px !important;
-        }
+        .sticky-header-container { padding: 15px 1rem 10px 1rem; }
+        .scrollable-body-content { margin-top: 320px !important; }
+        div[data-testid="stHorizontalBlock"] { flex-direction: column !important; }
+        div[data-testid="stColumn"] { width: 100% !important; margin: 0px 0px 20px 0px !important; }
     }
     </style>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 1. PERSISTENT WIZARD VALUE INITIALIZATION ENGINE
+# 1. PERSISTENT BACKSTAGE SESSION STATE VAULT HOOKS
 # ==============================================================================
-if "wizard_step" not in st.session_state: st.session_state["wizard_step"] = 1
 if "confirmed_package" not in st.session_state: st.session_state["confirmed_package"] = None
-if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
 if "active_school_view" not in st.session_state: st.session_state["active_school_view"] = None
 if "modal_include_exam_prep" not in st.session_state: st.session_state["modal_include_exam_prep"] = False
 
-# Persistent Memory Stores
+# Memory storage slots for continuous value tracking retention
 if "val_name" not in st.session_state: st.session_state["val_name"] = ""
 if "val_state" not in st.session_state: st.session_state["val_state"] = "Select state"
 if "val_zip" not in st.session_state: st.session_state["val_zip"] = ""
@@ -123,7 +161,7 @@ def restart_wizard():
     st.rerun()
 
 # ==============================================================================
-# 2. DATA LOADER
+# 2. DATA IMPORT ENGINE LOADER
 # ==============================================================================
 SCHOOLS_CSV = "schools.csv"
 TRANSCRIPT_CSV = "transcript_rules.csv"
@@ -134,7 +172,7 @@ if os.path.exists(SCHOOLS_CSV):
     for col in master_schools_df.select_dtypes(include=['object']).columns:
         master_schools_df[col] = master_schools_df[col].astype(str).str.strip()
 else:
-    st.error("⚠️ Master database file schools.csv not found.")
+    st.error("⚠️ Master database schools.csv input missing.")
     st.stop()
 
 if os.path.exists(TRANSCRIPT_CSV):
@@ -144,11 +182,11 @@ if os.path.exists(TRANSCRIPT_CSV):
         transcript_rules_df[col] = transcript_rules_df[col].astype(str).str.strip()
     transcript_rules_df.columns = transcript_rules_df.columns.str.strip()
 else:
-    st.error("⚠️ Transcript validation file transcript_rules.csv not found.")
+    st.error("⚠️ Validation rules transcript_rules.csv input missing.")
     st.stop()
 
 # ==============================================================================
-# 3. GLOBAL CONFIG MATRICES
+# 3. OPTIONS METRIC OPTION ARRAYS
 # ==============================================================================
 STATE_OPTIONS = [
     "Select state", "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -168,167 +206,109 @@ course_list = [
     "Macro/Micro Economics", "Elective 1", "Elective 2"
 ]
 
-current_step = st.session_state["wizard_step"]
-
-# Consolidated Title & Clean Top-Right Utility Row Layout
+# ==============================================================================
+# 4. FIXED LOCK LAYER DESIGN ENGINE (PINNED STICKY HEADERS MATRIX)
+# ==============================================================================
+st.markdown("<div class='sticky-header-container'>", unsafe_allow_html=True)
 header_title_col, header_utility_col = st.columns([3.0, 1.0])
 with header_title_col:
-    st.title("🗺️ Bridge Plan Generator")
-    st.markdown("### **Self-Serve Enrollment Matrix**")
+    st.markdown("<h1 style='margin:0;'>🗺️ Bridge Plan Generator</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='margin:0; font-weight:400; color:#475569;'>Self-Serve Enrollment Matrix</h3>", unsafe_allow_html=True)
 with header_utility_col:
-    st.markdown("<div class='utility-btn' style='padding-top: 25px;'>", unsafe_allow_html=True)
+    st.markdown("<div class='utility-btn' style='padding-top: 10px;'>", unsafe_allow_html=True)
     if st.button("🔄 Reset Form Data", use_container_width=True):
         restart_wizard()
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Progress indicator timeline wizard headings
-step_cols = st.columns(4)
-step_names = ["1. Identity Profile", "2. Baseline Profile", "3. Transcripts Review", "4. School Matches"]
-for i, name in enumerate(step_names):
-    step_num = i + 1
-    with step_cols[i]:
-        if current_step == step_num:
-            st.markdown(f"<div style='text-align: center; border-bottom: 4px solid #1E3A8A; font-weight: bold; color: #1E3A8A; padding-bottom: 5px;'>{name}</div>", unsafe_allow_html=True)
-        elif current_step > step_num:
-            st.markdown(f"<div style='text-align: center; border-bottom: 4px solid #10B981; color: #10B981; padding-bottom: 5px;'>✅ {name}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div style='text-align: center; border-bottom: 4px solid #e2e8f0; color: #94a3b8; padding-bottom: 5px;'>{name}</div>", unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
-# ==============================================================================
-# 4. ADAPTIVE RESPONSIVE LAYOUT ENGINE ROUTER
-# ==============================================================================
-if current_step >= 3:
-    col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
-else:
-    col_input_flow = st.container()
-    col_ledger_flow = None
+# Determine the status symbols for steps
+step1_lbl = "✅ 1. Identity Profile" if st.session_state["val_state"] != "Select state" else "1. Identity Profile"
+step2_lbl = "✅ 2. Baseline Profile" if st.session_state["val_lic"] != "None" or st.session_state["val_exp"] > 0 else "2. Baseline Profile"
+step3_lbl = "✅ 3. Transcripts Review" if len(st.session_state["val_courses"]) > 0 else "3. Transcripts Review"
+step4_lbl = "✅ 4. School Matches" if st.session_state["confirmed_package"] is not None else "4. School Matches"
 
-with col_input_flow:
+# 🔑 RE-ENGINEERING CORE TRIGGER: Interactive, clickable native container tab frames
+tab_id, tab_base, tab_transcript, tab_matches = st.tabs([step1_lbl, step2_lbl, step3_lbl, step4_lbl])
+st.markdown("</div>", unsafe_allow_html=True)
+
+# Open scrollable area container row block
+st.markdown("<div class='scrollable-body-content'>", unsafe_allow_html=True)
+
+# --------------------------------------------------------------------------
+# TAB 1: IDENTITY PROFILE AREA
+# --------------------------------------------------------------------------
+with tab_id:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+    st.markdown("### **Step 1: Welcome & Identity Profile**")
+    st.markdown("Let's capture your baseline territory parameters to filter institutional regional availability.")
+    st.divider()
+    
+    st.session_state["val_name"] = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name")
+    st.session_state["val_state"] = st.selectbox("Select your residency home state:", options=STATE_OPTIONS, index=STATE_OPTIONS.index(st.session_state["val_state"]))
+    st.session_state["val_zip"] = st.text_input("What is your zip code?", value=st.session_state["val_zip"], placeholder="e.g. 19013", max_chars=14)
+    st.session_state["val_adult"] = st.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_adult"]))
+    st.session_state["val_gpa"] = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=st.session_state["val_gpa"], step=0.01)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    if current_step == 1:
-        st.markdown("### **Step 1: Welcome & Identity Profile**")
-        st.markdown("Let's capture your residency parameters to parse institutional regional availability.")
-        st.divider()
+# --------------------------------------------------------------------------
+# TAB 2: PROFESSIONAL BASELINE AREA
+# --------------------------------------------------------------------------
+with tab_base:
+    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+    st.markdown("### **Step 2: Professional Licensing & History**")
+    st.markdown("Tell us about your background to clear nursing experience validation layers.")
+    st.divider()
+    
+    st.session_state["val_lic"] = st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=LICENSE_OPTIONS.index(st.session_state["val_lic"]))
+    if st.session_state["val_lic"] == "LPN":
+        st.session_state["val_exp"] = st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=st.session_state["val_exp"], step=1)
         
-        i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name")
-        i_state = st.selectbox("Select your residency home state:", options=STATE_OPTIONS, index=STATE_OPTIONS.index(st.session_state["val_state"]))
-        i_zip = st.text_input("What is your zip code?", value=st.session_state["val_zip"], placeholder="e.g. 19013", max_chars=14)
-        i_adult = st.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_adult"]))
-        i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=st.session_state["val_gpa"], step=0.01)
+    st.session_state["val_dismiss"] = st.selectbox("Do you possess a prior academic nursing program dismissal?", options=DISMISSAL_OPTIONS, index=DISMISSAL_OPTIONS.index(st.session_state["val_dismiss"]))
+    if st.session_state["val_dismiss"] == "Yes":
+        st.session_state["val_dismiss_mos"] = st.number_input("Months elapsed since your historical dismissal date:", min_value=0, max_value=300, value=st.session_state["val_dismiss_mos"], step=1)
         
-        st.divider()
-        btn_spacer, btn_container = st.columns([2.3, 1.2])
-        with btn_container:
-            st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
-            if st.button("Continue to Profile ➡️", use_container_width=True):
-                if i_state == "Select state":
-                    st.warning("⚠️ Please select a valid state territory before moving forward.")
-                elif i_adult == "No":
-                    st.error("🛑 Registration Blocked: Applicants under 18 require agent validation.")
-                else:
-                    st.session_state["val_name"] = i_name
-                    st.session_state["val_state"] = i_state
-                    st.session_state["val_zip"] = i_zip
-                    st.session_state["val_adult"] = i_adult
-                    st.session_state["val_gpa"] = i_gpa
-                    st.session_state["wizard_step"] = 2
-                    st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+    st.session_state["val_travel"] = st.selectbox("Are you amenable to regional clinical onsite travel loops?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]))
+    st.session_state["val_track"] = st.selectbox("Which nursing track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]))
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    elif current_step == 2:
-        st.markdown("### **Step 2: Professional Licensing & History**")
-        st.markdown("Tell us about your background to clear nursing experience validation layers.")
-        st.divider()
+# --------------------------------------------------------------------------
+# TAB 3: TRANSCRIPT REVIEW AREA (CLEAN BROAD SINGLE COLUMN LAYOUT)
+# --------------------------------------------------------------------------
+with tab_transcript:
+    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+    st.markdown("### **Step 3: Transcript Review & Qualifications**")
+    st.markdown("Select your prerequisite deficiencies and apply your discount triggers here.")
+    st.divider()
+    
+    st.multiselect(
+        "Check the boxes for courses you still NEED to complete:",
+        options=course_list,
+        default=st.session_state["val_courses"],
+        key="temp_courses" 
+    )
+    st.session_state["val_courses"] = st.session_state["temp_courses"]
+    
+    st.markdown("#### 🎖️ Promotional Qualifications & Discounts")
+    st.session_state["val_ref"] = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True)
+    st.session_state["val_mil"] = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True)
+    
+    # 🔎 DYNAMIC STEP LOOKAHEAD GUARD: Only unlocks if global count is 3 or greater
+    if len(st.session_state["val_courses"]) >= 3:
+        st.session_state["val_promo"] = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True)
+    else:
+        st.session_state["val_promo"] = "No"
         
-        i_lic = st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=LICENSE_OPTIONS.index(st.session_state["val_lic"]))
-        i_exp = st.session_state["val_exp"]
-        if i_lic == "LPN":
-            i_exp = st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=st.session_state["val_exp"], step=1)
-            
-        i_dismiss = st.selectbox("Do you possess a prior academic nursing program dismissal?", options=DISMISSAL_OPTIONS, index=DISMISSAL_OPTIONS.index(st.session_state["val_dismiss"]))
-        i_dismiss_mos = st.session_state["val_dismiss_mos"]
-        if i_dismiss == "Yes":
-            i_dismiss_mos = st.number_input("Months elapsed since your historical dismissal date:", min_value=0, max_value=300, value=st.session_state["val_dismiss_mos"], step=1)
-            
-        i_travel = st.selectbox("Are you amenable to regional clinical onsite travel loops?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]))
-        i_track = st.selectbox("Which nursing track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]))
-        
-        st.divider()
-        btn_spacer, btn_b1, btn_b2 = st.columns([1.5, 1.0, 1.0])
-        with btn_b1:
-            st.markdown("<div class='secondary-btn'>", unsafe_allow_html=True)
-            if st.button("⬅️ Back", use_container_width=True):
-                st.session_state["val_lic"] = i_lic
-                st.session_state["val_exp"] = i_exp
-                st.session_state["val_dismiss"] = i_dismiss
-                st.session_state["val_dismiss_mos"] = i_dismiss_mos
-                st.session_state["val_travel"] = i_travel
-                st.session_state["val_track"] = i_track
-                st.session_state["wizard_step"] = 1
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-        with btn_b2:
-            st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
-            if st.button("Continue ➡️", use_container_width=True):
-                st.session_state["val_lic"] = i_lic
-                st.session_state["val_exp"] = i_exp
-                st.session_state["val_dismiss"] = i_dismiss
-                st.session_state["val_dismiss_mos"] = i_dismiss_mos
-                st.session_state["val_travel"] = i_travel
-                st.session_state["val_track"] = i_track
-                st.session_state["wizard_step"] = 3
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    elif current_step == 3:
-        st.markdown("### **Step 3: Transcript Review & Qualifications**")
-        st.markdown("Select your prerequisite deficiencies and apply your discount triggers here.")
-        st.divider()
-        
-        st.multiselect(
-            "Check the boxes for courses you still NEED to complete:",
-            options=course_list,
-            default=st.session_state["val_courses"],
-            key="temp_courses" 
-        )
-        st.session_state["val_courses"] = st.session_state["temp_courses"]
-        
-        st.markdown("#### 🎖️ Promotional Qualifications & Discounts")
-        w_ref = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True)
-        w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True)
-        
-        if len(st.session_state["val_courses"]) >= 3:
-            w_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True)
-            st.session_state["val_promo"] = w_promo
-        else:
-            st.session_state["val_promo"] = "No"
-        
-        st.session_state["val_ref"] = w_ref
-        st.session_state["val_mil"] = w_mil
-        st.session_state["addon_state"] = False
-
-        st.divider()
-        btn_spacer, btn_b1, btn_b2 = st.columns([1.5, 1.0, 1.0])
-        with btn_b1:
-            st.markdown("<div class='secondary-btn'>", unsafe_allow_html=True)
-            if st.button("⬅️ Back", use_container_width=True):
-                st.session_state["wizard_step"] = 2
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-        with btn_b2:
-            st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
-            if st.button("Find Matches ➡️", use_container_width=True):
-                st.session_state["active_school_view"] = None
-                st.session_state["wizard_step"] = 4
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL MATCHES & MODAL COMPLIANCE GATING
-    # --------------------------------------------------------------------------
-    elif current_step == 4:
+# --------------------------------------------------------------------------
+# TAB 4: INSTITUTIONAL MATCH RESPONSIVE SPLIT WORKSPACE
+# --------------------------------------------------------------------------
+with tab_matches:
+    col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
+    
+    with col_input_flow:
+        st.markdown("<div class='content-card'>", unsafe_allow_html=True)
         st.markdown("### **Step 4: Secure Institutional Match Alignment**")
         st.markdown("Review the eligible educational institutions calculated from your intake profile parameters:")
         st.divider()
@@ -343,7 +323,6 @@ with col_input_flow:
         dismissal_y = True if st.session_state["val_dismiss"] == "Yes" else False
         dismissal_months = st.session_state["val_dismiss_mos"]
         needed_courses = st.session_state["val_courses"]
-        has_addons = st.session_state["addon_state"]
 
         working_schools_df = master_schools_df.copy()
         if "ASN/BSN" in working_schools_df.columns:
@@ -368,7 +347,7 @@ with col_input_flow:
         filtered_df = working_schools_df.copy()
 
         # ==============================================================================
-        # MODAL EXAM INTERPRETER DIALOG BOX
+        # MODAL COMPLIANCE DIALOG ENGINE
         # ==============================================================================
         @st.dialog("Confirm & Lock Enrollment Package")
         def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list, school_card_ref):
@@ -392,7 +371,7 @@ with col_input_flow:
                 user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], horizontal=True, key="modal_has_passed_radio")
                 
                 if user_has_passed == "No":
-                    st.warning(f"⚠️ **Notice:** A passing score is required. We have pre-added the **{school_exam_type} Prep Course** package to your shopping bundle cart.")
+                    st.warning(f"⚠️ **Notice:** We have pre-added the **{school_exam_type} Prep Course** package to your shopping bundle cart.")
                     local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_1")
                 else:
                     raw_input_score = st.text_input("Enter your official exam score or percentage number:", placeholder="e.g., 75 or 740")
@@ -477,9 +456,10 @@ with col_input_flow:
             calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= 300) else 0.0
             calc_referral = 50.0 if st.session_state["val_ref"] == "Yes" else 0.0
             calc_military = 200.0 if st.session_state["val_mil"] == "Yes" else 0.0
-            calc_free_course = float(m_price_tier) if (st.session_state["val_promo"] == "Yes" and len(needed_courses) >= 3) else 0.0
+            
+            # 🔑 REAL-TIME LOCAL CONTEXT EVALUATION ENGINE HOOK
+            calc_free_course = float(m_price_tier) if (st.session_state["val_promo"] == "Yes" and modal_base_count >= 3) else 0.0
             modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
-
             modal_final_total = max(0.0, final_base_total - modal_credits_sum)
 
             st.metric("Adjusted Base Tuition", f"${final_base_total:,.2f}")
@@ -502,7 +482,7 @@ with col_input_flow:
                 }
                 st.rerun()
 
-        # Render rows engine
+        # Render list of dynamic matching rows
         if not filtered_df.empty:
             card_rows = []
             for idx, school_row in filtered_df.iterrows():
@@ -569,30 +549,16 @@ with col_input_flow:
                         st.metric("Est Profit Margin", f"${card['profit']:,.2f}")
         else:
             st.warning("No partner institutions match your core background or geofencing matrix filters.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        st.divider()
-        btn_spacer, btn_b1 = st.columns([1.5, 1.0])
-        with btn_b1:
-            st.markdown("<div class='secondary-btn'>", unsafe_allow_html=True)
-            if st.button("⬅️ Back to Review", use_container_width=True):
-                st.session_state["val_courses"] = list(st.session_state["val_courses"])
-                st.session_state["wizard_step"] = 3
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ==============================================================================
-# 5. SHOPPING CART LEDGER COMPONENT (WIRED WITH LOCK-SYNC LAYERS)
-# ==============================================================================
-if col_ledger_flow is not None:
+    # --------------------------------------------------------------------------
+    # SHOPPING CART LEDGER COMPONENT (WIRED WITH CONTEXT FILTER SAFEGUARDS)
+    # --------------------------------------------------------------------------
     with col_ledger_flow:
         st.markdown("<div style='background-color: #ffffff; padding: 25px; border-radius: 12px; border: 2px solid #1E3A8A; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>", unsafe_allow_html=True)
         st.subheader("🛒 Itemized Invoice Cart")
         
-        license_type = st.session_state["val_lic"]
-        
-        # 🔑 Cart stays locked down placeholder style until the user hits final lock package submittal buttons
+        # 🔑 Core Gate Checklist Switch: Keeps screen blank until formal button lock trigger submittal records register
         if st.session_state["confirmed_package"] is None:
             st.info("👉 Please select an institutional partner row on the left and finalize your entrance exam compliance settings to generate your custom itemized checkout ledger statement.")
         else:
@@ -617,11 +583,20 @@ if col_ledger_flow is not None:
 
             q_ref = st.session_state["val_ref"]
             q_mil = st.session_state["val_mil"]
-            q_promo = st.session_state["val_promo"]
+            
+            # 🔑 CONTEXT SAFEGUARD LAYER: Evaluate promo code visibility directly against school-accepted list length
+            if len(needed_courses) >= 3:
+                q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio")
+                st.session_state["val_promo"] = q_promo
+            else:
+                st.session_state["val_promo"] = "No"
+                q_promo = "No"
 
             calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= 300) else 0.0
             calc_referral = 50.0 if q_ref == "Yes" else 0.0
             calc_military = 200.0 if q_mil == "Yes" else 0.0
+            
+            # Use school base count instead of global array count to prevent over-credit anomalies
             calc_free_course = float(main_price) if (q_promo == "Yes" and len(needed_courses) >= 3) else 0.0
             
             credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
@@ -633,8 +608,9 @@ if col_ledger_flow is not None:
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
         st.markdown("</div>", unsafe_allow_html=True)
 
-# 🚫 REMOVED: Redundant "Restart Process" button from the bottom block is entirely gone!
+st.markdown("</div>", unsafe_allow_html=True)
 
+# Post-Process final vouchers layout generation
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
     st.balloons()
