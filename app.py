@@ -245,7 +245,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
         calc_referral = 50.0 if st.session_state["val_ref"] == "Yes" else 0.0
         calc_military = 200.0 if st.session_state["val_mil"] == "Yes" else 0.0
         
-        # 🔑 LOOKAHEAD CONSTRAINTS: Checks modal deficiency length explicitly to hide promo credits on smaller counts
+        # Lookahead valuation gate
         calc_free_course = float(m_price_tier) if (st.session_state["val_promo"] == "Yes" and modal_base_count >= 3) else 0.0
         modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
         modal_final_total = max(0.0, final_base_total - modal_credits_sum)
@@ -368,7 +368,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT review CHECKLIST PANEL view
+    # STEP 3: TRANSCRIPT REVIEW (PROMO-CODE QUESTION DELETED FROM HERE)
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Transcript Review")
@@ -387,12 +387,6 @@ with col_input_flow:
         w_ref = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True)
         w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True)
         
-        if len(st.session_state["val_courses"]) >= 3:
-            w_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True)
-            st.session_state["val_promo"] = w_promo
-        else:
-            st.session_state["val_promo"] = "No"
-        
         st.session_state["val_ref"] = w_ref
         st.session_state["val_mil"] = w_mil
         st.session_state["addon_state"] = False
@@ -408,7 +402,6 @@ with col_input_flow:
                 st.rerun()
         with b_continue_col:
             if st.button("Find Matches ➡️", use_container_width=True, type="primary", key="step3_continue_action"):
-                # Defensive reset fixes backward context drops entirely
                 st.session_state["active_school_view"] = None
                 st.session_state["confirmed_package"] = None
                 st.session_state["wizard_step"] = 4
@@ -530,7 +523,7 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# SHOPPING CART LEDGER COMPONENT (LOOKAHEAD BUG RESOLVED)
+# SHOPPING CART LEDGER COMPONENT (PROMO CODE LOGIC ANCHORED HERE EXCLUSIVELY)
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -539,7 +532,6 @@ if col_ledger_flow is not None:
         if st.session_state["active_school_view"] is None or st.session_state["confirmed_package"] is None:
             st.info("👉 Please click 'Select School' on any partner institution row option on the left to verify compliance data and unlock itemized ledger statements calculations details.")
         else:
-            # 🔑 READS FILTERED SPECIFIC BUNDLE LENGTH INSTEAD OF PARENT STEP 3 ARRAYS
             needed_courses = st.session_state["active_school_view"]["accepted_courses"]
             st.success(f"🎯 Target Locked: **{st.session_state['active_school_view']['name']}**")
 
@@ -562,7 +554,7 @@ if col_ledger_flow is not None:
             q_ref = st.session_state["val_ref"]
             q_mil = st.session_state["val_mil"]
             
-            # 🔑 ACTIVE FIX: Promo options block lookahead checks filtered campus limits directly!
+            # 🔑 CRITICAL RELOCATION VALUE: Promo codes are managed exclusively on Step 4 checkout based on selection array count filters
             if len(needed_courses) >= 3:
                 q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio")
                 st.session_state["val_promo"] = q_promo
