@@ -91,7 +91,7 @@ current_step = st.session_state["wizard_step"]
 st.title("🗺️ Bridge Plan Generator")
 
 # ==============================================================================
-# 🆕 NATIVE STABLE PROGRESS TRACKER INDICATOR (UN-CROPABLE BAR VIEW)
+# STABLE PROGRESS TRACKER INDICATOR
 # ==============================================================================
 p_cols = st.columns(4)
 step_names = ["1. Identity Profile", "2. Baseline Profile", "3. Transcripts Review", "4. School Matches"]
@@ -100,21 +100,18 @@ for idx, name in enumerate(step_names):
     step_num = idx + 1
     with p_cols[idx]:
         if current_step == step_num:
-            # Highlight current step with primary blue emphasis border
             st.markdown(f"<div style='text-align: center; border-bottom: 4px solid #1E3A8A; font-weight: bold; color: #1E3A8A; padding-bottom: 4px;'>{name}</div>", unsafe_allow_html=True)
         elif current_step > step_num:
-            # Highlight historically completed step modules with green completion flags
             st.markdown(f"<div style='text-align: center; border-bottom: 4px solid #10B981; color: #10B981; padding-bottom: 4px;'>✅ {name}</div>", unsafe_allow_html=True)
         else:
-            # Dim unreached tasks safely
             st.markdown(f"<div style='text-align: center; border-bottom: 4px solid #e2e8f0; color: #94a3b8; padding-bottom: 4px;'>{name}</div>", unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # Set dynamic responsive column scaling parameter maps
 if current_step == 4:
-    # 🔑 FIXED SCALE TIER: Increased input layout workspace weight to 1.8 to guarantee clean un-cropped spacing margins live
-    col_input_flow, col_ledger_flow = st.columns([1.8, 1.0], gap="large")
+    # 🔑 FIXED RE-ENGINEERING: Boosted left side spacing parameter matrix to [2.5, 1.0] to provide maximum room for layout cards
+    col_input_flow, col_ledger_flow = st.columns([2.5, 1.0], gap="large")
 else:
     col_input_flow = st.container()
     col_ledger_flow = None
@@ -197,7 +194,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT review CHECKLIST INPUT SHEET
+    # STEP 3: TRANSCRIPT REVIEW FORM FLOW
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Transcript Review")
@@ -466,19 +463,19 @@ with col_input_flow:
 
             for card in card_rows:
                 with st.container(border=True):
-                    # 🔑 UN-CROPPABLE CONTAINER COLUMN WEIGHT ADJUSTMENT LOOP: Allocation map scales dynamically
-                    sc1, sc2, sc3 = st.columns([1.1, 2.5, 1.2])
+                    # 🔑 UN-CROPPABLE LAYOUT RESOLVED: Boosted middle layout space clearance to 3.5 to give names full width parameters
+                    sc1, sc2, sc3 = st.columns([1.0, 3.5, 1.2])
                     with sc1:
                         if st.button("Select School", key=f"btn_card_sel_{card['idx']}", use_container_width=True, type="primary"):
                             render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"], card)
                     with sc2:
                         st.markdown(f"🏫 **{card['name']}** ({card['track']} Track)")
                         courses_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
-                        st.markdown(f"🧬 *Deficiencies Met ({len(card['accepted_courses'])}):* `{courses_string}`")
+                        st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* `{courses_string}`")
                     with sc3:
                         st.metric("Est Profit Margin", f"${card['profit']:,.2f}")
         else:
-            st.warning("No partner institutions match your geofencing parameters configuration templates.")
+            st.warning("No partner institutions match your background parameters configuration metrics.")
         
         st.divider()
         b_spacer, b_back = st.columns([3.0, 1.0])
@@ -497,9 +494,8 @@ if col_ledger_flow is not None:
         
         license_type = st.session_state["val_lic"]
         
-        # Keep ledger hidden placeholder style until a formal configuration selection executes
         if st.session_state["confirmed_package"] is None:
-            st.info("👉 Please click 'Select School' on any partner institution row option on the left to verify admission gating parameters and unlock itemized price metrics.")
+            st.info("👉 Please click 'Select School' on any partner institution option on the left to verify admission gating parameters and unlock itemized price metrics.")
         else:
             needed_courses = st.session_state["active_school_view"]["accepted_courses"]
             st.success(f"🎯 Target Locked: **{st.session_state['active_school_view']['name']}**")
@@ -513,7 +509,7 @@ if col_ledger_flow is not None:
             main_price = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
             base_total = base_classes * main_price
             
-            st.markdown("#### Adjustments & Grants Filters")
+            st.markdown("#### Adjustments & Grants Parameters")
             deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0.0, value=st.session_state["val_deposit"], step=50.0, key="ledger_deposit_input_field")
             grant_input = st.number_input("Institutional Grant Amount ($)", min_value=0.0, value=st.session_state["val_grant"], step=50.0, key="ledger_grant_input_field")
             
@@ -523,7 +519,6 @@ if col_ledger_flow is not None:
             q_ref = st.session_state["val_ref"]
             q_mil = st.session_state["val_mil"]
             
-            # Context loop calculation lookahead block
             if len(needed_courses) >= 3:
                 q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio")
                 st.session_state["val_promo"] = q_promo
@@ -548,10 +543,9 @@ if col_ledger_flow is not None:
 st.markdown("<br><br>", unsafe_allow_html=True)
 f_col1, f_col2 = st.columns([3.0, 1.0])
 with f_col2:
-    if st.button("🔄 Reset Global Variables", use_container_width=True, type="secondary", key="footer_reset_data_action"):
+    if st.button("🔄 Restart Process Flow", use_container_width=True, type="secondary", key="global_footer_restart_btn"):
         restart_wizard()
 
-# final manifestations signed summary vouchers outputs blocks
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
     st.balloons()
