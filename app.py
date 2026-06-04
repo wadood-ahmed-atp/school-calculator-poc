@@ -194,20 +194,24 @@ for i, name in enumerate(step_names):
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==============================================================================
-# 4. ADAPTIVE RESPONSIVE LAYOUT ENGINE ROUTER
+# 4. 🔀 UPDATED ARCHITECTURE LAYOUT ROUTER (LEDGER UNLOCKS ONLY ON STEP 4)
 # ==============================================================================
-if current_step >= 3:
+if current_step == 4:
     col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
 else:
+    # Steps 1, 2, and 3 now enjoy full screen conversational container allocation space
     col_input_flow = st.container()
     col_ledger_flow = None
 
 with col_input_flow:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
 
+    # --------------------------------------------------------------------------
+    # STEP 1: IDENTITY PROFILE
+    # --------------------------------------------------------------------------
     if current_step == 1:
         st.markdown("### **Step 1: Welcome & Identity Profile**")
-        st.markdown("Let's capture your residency parameters to parse institutional regional availability.")
+        st.markdown("Let's capture your baseline territory parameters to filter institutional regional availability.")
         st.divider()
         
         i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name")
@@ -235,6 +239,9 @@ with col_input_flow:
                     st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
+    # --------------------------------------------------------------------------
+    # STEP 2: PROFESSIONAL BASELINE
+    # --------------------------------------------------------------------------
     elif current_step == 2:
         st.markdown("### **Step 2: Professional Licensing & History**")
         st.markdown("Tell us about your background to clear nursing experience validation layers.")
@@ -281,7 +288,7 @@ with col_input_flow:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT & SMART DISCOUNTS ENFORCEMENT
+    # STEP 3: TRANSCRIPT & DISCOUNTS FLOW (FULL WIDE VIEW, NO LEDGER CART CRIMP)
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.markdown("### **Step 3: Transcript Review & Qualifications**")
@@ -300,14 +307,11 @@ with col_input_flow:
         w_ref = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True)
         w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True)
         
-        # 🔑 FIXED: Conditional Visibility & Guard Loop Engine
         if len(st.session_state["val_courses"]) >= 3:
             w_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True)
             st.session_state["val_promo"] = w_promo
         else:
-            # Defensive Cache Reset: If they deselect courses below 3, force code back to "No"
             st.session_state["val_promo"] = "No"
-            st.caption("ℹ️ *Notice: Promotional code qualification requires selecting 3 or more prerequisite courses.*")
         
         st.session_state["val_ref"] = w_ref
         st.session_state["val_mil"] = w_mil
@@ -330,7 +334,7 @@ with col_input_flow:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL MATCHES
+    # STEP 4: INSTITUTIONAL MATCHES & COMPLIANCE MODAL
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.markdown("### **Step 4: Secure Institutional Match Alignment**")
@@ -585,24 +589,24 @@ with col_input_flow:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. SHOPPING CART LEDGER COMPONENT
+# 5. SHOPPING CART LEDGER COMPONENT (LOCKED ENTIRELY TO STEP 4 FOR AIRTIGHT ACCURACY)
 # ==============================================================================
-if current_step >= 3 and col_ledger_flow is not None:
+if col_ledger_flow is not None:
     with col_ledger_flow:
         st.markdown("<div style='background-color: #ffffff; padding: 25px; border-radius: 12px; border: 2px solid #1E3A8A; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>", unsafe_allow_html=True)
         st.subheader("🛒 Itemized Invoice Cart")
         
-        if current_step == 4 and st.session_state["active_school_view"] is None:
-            st.info("👉 Please select an institutional partner row on the left to unlock your customized invoice checkout matrix.")
+        license_type = st.session_state["val_lic"]
+        
+        # 🔑 CLEAN PLACEHOLDER LAYER: Prevents "Cart Whiplash" before selecting a specific row
+        if st.session_state["active_school_view"] is None:
+            st.info("👉 Please click 'Select School' on any partner row to unlock your itemized tuition ledger checkout manifest.")
         else:
-            if current_step == 4 and st.session_state["active_school_view"] is not None:
-                needed_courses = st.session_state["active_school_view"]["accepted_courses"]
-                st.markdown(f"🎯 *Active Ledger Context:* **{st.session_state['active_school_view']['name']}**")
-            else:
-                needed_courses = st.session_state["val_courses"]
+            # Anchor calculations explicitly to what the selected school offers
+            needed_courses = st.session_state["active_school_view"]["accepted_courses"]
+            st.markdown(f"🎯 *Active Ledger Context:* **{st.session_state['active_school_view']['name']}**")
 
-            extra_exam_count = 1 if (current_step == 4 and st.session_state.get("modal_include_exam_prep", False)) else 0
-            
+            extra_exam_count = 1 if st.session_state.get("modal_include_exam_prep", False) else 0
             base_classes = len(needed_courses) + extra_exam_count
             total_classes = base_classes
             is_completely_empty = (total_classes == 0)
@@ -625,8 +629,6 @@ if current_step >= 3 and col_ledger_flow is not None:
             calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= 300) else 0.0
             calc_referral = 50.0 if q_ref == "Yes" else 0.0
             calc_military = 200.0 if q_mil == "Yes" else 0.0
-            
-            # Safe back-end checkout valuation safeguard calculation
             calc_free_course = float(main_price) if (q_promo == "Yes" and len(needed_courses) >= 3) else 0.0
             
             credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
@@ -635,14 +637,10 @@ if current_step >= 3 and col_ledger_flow is not None:
             st.divider()
             st.markdown(f"**Gross Base Tuition:** `${0.00 if is_completely_empty else base_total:,.2f}`")
             st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
-            
-            if q_promo == "Yes" and len(needed_courses) < 3:
-                st.caption("ℹ️ *Notice: Free course code requires selecting 3 or more courses to apply.*")
-                
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
         st.markdown("</div>", unsafe_allow_html=True)
 
-# Global Clear Utility Row
+# Global Clear Footer Reset Button
 st.markdown("<br>", unsafe_allow_html=True)
 reset_spacer, reset_btn_block = st.columns([3.0, 1.0])
 with reset_btn_block:
