@@ -54,12 +54,12 @@ def initialize_base_states(force_reset=False):
         "val_state": "Select state",
         "val_zip": "",
         "val_adult": "Yes",
-        "val_gpa": 3.5, # 🔧 Rounded default float tracker down to single decimal precision parameters
+        "val_gpa": 3.5, # 🔧 1-Decimal system synchronization
         "val_gpa_unknown": False,
         "val_lic": "None / Other",
-        "val_exp": None,
+        "val_exp": None, # 🔧 Stays strictly an integer placeholder type
         "val_dismiss": "No",
-        "val_dismiss_mos": None,
+        "val_dismiss_mos": None, # 🔧 Stays strictly an integer placeholder type
         "val_travel": "Yes",
         "val_track": "BSN",
         "val_courses": [],
@@ -130,9 +130,6 @@ course_list = [
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
 
-# Dashboard Master Title Header
-st.markdown("## 🗺️ Bridge Plan Generator")
-
 # Compute Step Progress States Natively
 if current_step == 1: s1_col, s1_w = "#1E3A8A", "bold"
 else: s1_col, s1_w = "#10B981", "normal"
@@ -177,7 +174,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
     local_include_prep = False
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-        st.info("ℹ️ Entrance testing validation controls waived for this partner track blueprint.")
+        st.info("ℹ️ Entrance testing validation controls bypassed for this partner track blueprint.")
         local_include_prep = False
     else:
         st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
@@ -285,11 +282,11 @@ with col_input_flow:
         
         i_gpa_unknown = st.checkbox("I don't know my cumulative GPA", value=st.session_state["val_gpa_unknown"], disabled=is_finalized)
         if i_gpa_unknown:
-            # 🔑 REMOVED GHOST CHECKS: Force locks evaluation back into perfect 4.0 bounds automatically
             st.session_state["val_gpa"] = 4.0
-            i_gpa = st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=4.0, step=0.1, format="%.1f", disabled=True)
+            st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=4.0, step=0.1, format="%.1f", disabled=True)
+            i_gpa = 4.0
         else:
-            # 🔑 ROUNDED PRECISION PARSER: Forces input masks down into clean 1-decimal view frameworks
+            # 🔧 1-Decimal system rendering parameters enforced cleanly
             i_gpa = st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=float(st.session_state["val_gpa"]), step=0.1, format="%.1f", disabled=is_finalized)
         
         st.divider()
@@ -308,7 +305,7 @@ with col_input_flow:
                     st.session_state["val_state"] = i_state
                     st.session_state["val_zip"] = i_zip
                     st.session_state["val_adult"] = i_adult
-                    st.session_state["val_gpa"] = i_gpa
+                    st.session_state["val_gpa"] = round(float(i_gpa), 1)
                     st.session_state["val_gpa_unknown"] = i_gpa_unknown
                     st.session_state["wizard_step"] = 2
                     st.rerun()
@@ -322,14 +319,25 @@ with col_input_flow:
         st.divider()
         
         i_lic = st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=LICENSE_OPTIONS.index(st.session_state["val_lic"]), disabled=is_finalized)
+        
+        # 🔧 Strict integer evaluation baseline avoids stray .0 floats inside months counts fields
         i_exp = st.session_state["val_exp"]
+        if i_exp is not None:
+            i_exp = int(i_exp)
+            
         if i_lic == "LPN":
-            i_exp = st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=st.session_state["val_exp"], step=1, placeholder="0", disabled=is_finalized)
+            # 🔧 Forces step=1 whole configurations cleanly without float allocations
+            i_exp = st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=i_exp, step=1, placeholder="0", disabled=is_finalized)
             
         i_dismiss = st.selectbox("Do you possess a prior academic nursing program dismissal?", options=DISMISSAL_OPTIONS, index=DISMISSAL_OPTIONS.index(st.session_state["val_dismiss"]), disabled=is_finalized)
+        
         i_dismiss_mos = st.session_state["val_dismiss_mos"]
+        if i_dismiss_mos is not None:
+            i_dismiss_mos = int(i_dismiss_mos)
+            
         if i_dismiss == "Yes":
-            i_dismiss_mos = st.number_input("Months elapsed since your historical academic dismissal date:", min_value=0, max_value=300, value=st.session_state["val_dismiss_mos"], step=1, placeholder="0", disabled=is_finalized)
+            # 🔧 Forces step=1 whole configurations cleanly without float allocations
+            i_dismiss_mos = st.number_input("Months elapsed since your historical academic dismissal date:", min_value=0, max_value=300, value=i_dismiss_mos, step=1, placeholder="0", disabled=is_finalized)
             
         i_travel = st.selectbox("Are you amenable to regional clinical onsite travel loops?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]), disabled=is_finalized)
         i_track = st.selectbox("Which nursing track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]), disabled=is_finalized)
@@ -346,9 +354,9 @@ with col_input_flow:
         with b_continue_col:
             if st.button("Continue ➡️", use_container_width=True, type="primary", key="step2_continue_action", disabled=is_finalized):
                 st.session_state["val_lic"] = i_lic
-                st.session_state["val_exp"] = i_exp if i_exp is not None else 0
+                st.session_state["val_exp"] = int(i_exp) if i_exp is not None else 0
                 st.session_state["val_dismiss"] = i_dismiss
-                st.session_state["val_dismiss_mos"] = i_dismiss_mos if i_dismiss_mos is not None else 0
+                st.session_state["val_dismiss_mos"] = int(i_dismiss_mos) if i_dismiss_mos is not None else 0
                 st.session_state["val_travel"] = i_travel
                 st.session_state["val_track"] = i_track
                 st.session_state["wizard_step"] = 3
@@ -372,7 +380,6 @@ with col_input_flow:
         st.session_state["val_courses"] = st.session_state["temp_courses"]
         
         st.markdown("#### **Promotional Qualifications & Discounts**")
-        # 🔑 WIPE THE AGENT PARSER SLATE: Trimmed down phrasing parameter targets cleanly
         w_ref = st.radio("Were you referred by a student?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True, disabled=is_finalized)
         w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True, disabled=is_finalized)
         
@@ -406,11 +413,11 @@ with col_input_flow:
         selected_state = str(student_state).strip().upper()
         selected_track = str(st.session_state["val_track"]).strip().upper()
         license_type = st.session_state["val_lic"]
-        lpn_exp = st.session_state["val_exp"] if st.session_state["val_exp"] is not None else 0
-        gpa_val = st.session_state["val_gpa"]
+        lpn_exp = int(st.session_state["val_exp"]) if st.session_state["val_exp"] is not None else 0
+        gpa_val = round(float(st.session_state["val_gpa"]), 1)
         travel_ok = st.session_state["val_travel"]
         dismissal_y = True if st.session_state["val_dismiss"] == "Yes" else False
-        dismissal_months = st.session_state["val_dismiss_mos"] if st.session_state["val_dismiss_mos"] is not None else 0
+        dismissal_months = int(st.session_state["val_dismiss_mos"]) if st.session_state["val_dismiss_mos"] is not None else 0
         needed_courses = st.session_state["val_courses"]
 
         working_schools_df = master_schools_df.copy()
@@ -507,7 +514,6 @@ with col_input_flow:
                             st.markdown(f"**Degree Track Program:** `{card['track']}`")
                             st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* **{courses_text_string}**")
                         with s_right_col:
-                            # 🔑 VARIABLE LABEL ALIGNMENT: Shifted text layout parameter indexes to "Estimated Cost"
                             st.metric(label="Estimated Cost", value=f"${card['profit']:,.2f}")
                 
                 btn_label = "✓ Active Selection Unlocked" if is_this_card_selected else "Select School & Fulfill Deficiencies"
