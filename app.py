@@ -4,7 +4,7 @@ import os
 import re
 
 # ==============================================================================
-# 0. WIDESCREEN REAL ESTATE CAP & INFRASTRUCTURE TOOLBAR REMOVAL
+# 0. DESKTOP WORKSPACE VIEW RESIZINGS & INFRASTRUCTURE TOOLBAR BLOCKS
 # ==============================================================================
 st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
@@ -34,7 +34,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-    /* 🎨 HIGH-IMPACT SELECTION WORKSPACE FRAMES */
+    /* 🎨 HIGH-IMPACT SELECTION WORKSPACE SYSTEM */
     .premium-selected-card {
         background-color: #f0f4f8 !important;
         border: 3px solid #1E3A8A !important;
@@ -46,42 +46,48 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 1. PERSISTENT SYSTEM STATE STORAGE PIPELINE
+# 1. FAULTLESS STATE INITIALIZATION STORAGE VAULT
 # ==============================================================================
-if "wizard_step" not in st.session_state: st.session_state["wizard_step"] = 1
-if "confirmed_package" not in st.session_state: st.session_state["confirmed_package"] = None
-if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
-if "active_school_view" not in st.session_state: st.session_state["active_school_view"] = None
-if "selected_school_id" not in st.session_state: st.session_state["selected_school_id"] = None # 🔑 CACHE ANCHOR FOR FIRM PERSISTENCE
-if "modal_include_exam_prep" not in st.session_state: st.session_state["modal_include_exam_prep"] = False
-if "modal_score_logged" not in st.session_state: st.session_state["modal_score_logged"] = ""
-if "modal_classes_waived" not in st.session_state: st.session_state["modal_classes_waived"] = 0
+def initialize_base_states(force_reset=False):
+    """Safely handles pristine initialization of memory vaults without race conditions"""
+    defaults = {
+        "wizard_step": 1,
+        "confirmed_package": None,
+        "addon_state": False,
+        "active_school_view": None,
+        "selected_school_id": None,
+        "modal_include_exam_prep": False,
+        "modal_score_logged": "",
+        "modal_classes_waived": 0,
+        "val_name": "",
+        "val_state": "Select state",
+        "val_zip": "",
+        "val_adult": "Yes",
+        "val_gpa": 4.00,
+        "val_gpa_unknown": False,
+        "val_lic": "None / Other",
+        "val_exp": None,
+        "val_dismiss": "No",
+        "val_dismiss_mos": None,
+        "val_travel": "Yes",
+        "val_track": "BSN",
+        "val_courses": [],
+        "val_deposit": 0.0,
+        "val_grant": 0.0,
+        "val_promo": "No",
+        "val_ref": "No",
+        "val_mil": "No"
+    }
+    for key, value in defaults.items():
+        if force_reset or key not in st.session_state:
+            st.session_state[key] = value
 
-# Persistent Memory Stores
-if "val_name" not in st.session_state: st.session_state["val_name"] = ""
-if "val_state" not in st.session_state: st.session_state["val_state"] = "Select state"
-if "val_zip" not in st.session_state: st.session_state["val_zip"] = ""
-if "val_adult" not in st.session_state: st.session_state["val_adult"] = "Yes"
-if "val_gpa" not in st.session_state: st.session_state["val_gpa"] = 4.00
-if "val_gpa_unknown" not in st.session_state: st.session_state["val_gpa_unknown"] = False
+# Run baseline memory hydration safely
+initialize_base_states()
 
-if "val_lic" not in st.session_state: st.session_state["val_lic"] = "None / Other"
-if "val_exp" not in st.session_state: st.session_state["val_exp"] = None 
-if "val_dismiss" not in st.session_state: st.session_state["val_dismiss"] = "No"
-if "val_dismiss_mos" not in st.session_state: st.session_state["val_dismiss_mos"] = None 
-if "val_travel" not in st.session_state: st.session_state["val_travel"] = "Yes"
-if "val_track" not in st.session_state: st.session_state["val_track"] = "BSN"
-
-if "val_courses" not in st.session_state: st.session_state["val_courses"] = []
-if "val_deposit" not in st.session_state: st.session_state["val_deposit"] = 0.0
-if "val_grant" not in st.session_state: st.session_state["val_grant"] = 0.0
-if "val_ref" not in st.session_state: st.session_state["val_ref"] = "No"
-if "val_mil" not in st.session_state: st.session_state["val_mil"] = "No"
-
-def restart_wizard():
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.session_state["wizard_step"] = 1
+def execute_safe_restart():
+    """Wipes session memory clean and instantly hits the breaker switch to prevent execution bleed crashes"""
+    initialize_base_states(force_reset=True)
     st.rerun()
 
 # ==============================================================================
@@ -110,7 +116,7 @@ else:
     st.stop()
 
 # ==============================================================================
-# 3. GLOBAL LOOKUP PARAMETERS
+# 3. OPTIONS LOOKUP DICTIONARY CONFIGS
 # ==============================================================================
 STATE_OPTIONS = [
     "Select state", "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -133,10 +139,10 @@ course_list = [
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
 
-# Branded Dashboard Title
+# Dashboard Master Title Header
 st.markdown("## 🗺️ Bridge Plan Generator")
 
-# Clean Progress Indicator Bar
+# Clean, Native Text Timelines Status Progress Tracker Bar
 st.markdown(
     f"""
     <div style="font-family: sans-serif; font-size: 15px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 5px;">
@@ -152,7 +158,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Globally Scoped Dialog Box Modal
+# ==============================================================================
+# 4. GLOBALLY SCOPED ADMISSIONS GATING DIALOG WINDOW MODULE
+# ==============================================================================
 @st.dialog("Verify Entrance Exam Compliance")
 def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list, school_card_ref, school_unique_id):
     st.markdown(f"### 📋 Checking Gating for: **{school_name}**")
@@ -165,7 +173,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
     local_include_prep = False
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-        st.info("ℹ️ Entrance testing validation controls bypassed for this partner track blueprint.")
+        st.info("ℹ️ Entrance testing validation controls waived for this partner track blueprint.")
         local_include_prep = False
     else:
         st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
@@ -246,11 +254,10 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
         st.session_state["modal_score_logged"] = user_score_logged
         st.session_state["modal_classes_waived"] = classes_waived
         st.session_state["active_school_view"] = school_card_ref
-        st.session_state["selected_school_id"] = school_unique_id # 🔑 BIND TO PERSISTENCE KEY FOR NAVIGATION LOOPS SECURITY
-        st.container()
+        st.session_state["selected_school_id"] = school_unique_id
         st.rerun()
 
-# Set up form view grids based on step indices
+# Layout Splitting Setup
 if current_step == 4:
     col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
 else:
@@ -260,7 +267,7 @@ else:
 with col_input_flow:
 
     # --------------------------------------------------------------------------
-    # STEP 1: IDENTITY PROFILE AREA
+    # STEP 1: IDENTITY PROFILE WORKSPACE
     # --------------------------------------------------------------------------
     if current_step == 1:
         st.subheader("Step 1: Identity Profile Parameters")
@@ -283,7 +290,7 @@ with col_input_flow:
         b_reset_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
         with b_reset_col:
             if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step1_reset_btn"):
-                restart_wizard()
+                execute_safe_restart()
         with b_continue_col:
             if st.button("Continue ➡️", use_container_width=True, type="primary", key="step1_continue_action", disabled=is_finalized):
                 if i_state == "Select state":
@@ -301,7 +308,7 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 2: PROFESSIONAL BACKGROUND History
+    # STEP 2: PROFESSIONAL HEALTHCARE BASELINE BACKGROUND
     # --------------------------------------------------------------------------
     elif current_step == 2:
         st.subheader("Step 2: Professional Licensing & History")
@@ -325,7 +332,7 @@ with col_input_flow:
         b_reset_col, b_spacer, b_back_col, b_continue_col = st.columns([1.0, 0.5, 1.0, 1.0])
         with b_reset_col:
             if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step2_reset_btn"):
-                restart_wizard()
+                execute_safe_restart()
         with b_back_col:
             if st.button("⬅️ Back", use_container_width=True, key="step2_back_action", disabled=is_finalized):
                 st.session_state["wizard_step"] = 1
@@ -342,7 +349,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT review CHECKLIST PANEL view
+    # STEP 3: CREDIT TRANSCRIPT REVIEW CHECKLIST PANELS
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Transcript Review")
@@ -370,7 +377,7 @@ with col_input_flow:
         b_reset_col, b_spacer, b_back_col, b_continue_col = st.columns([1.0, 0.5, 1.0, 1.0])
         with b_reset_col:
             if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step3_reset_btn"):
-                restart_wizard()
+                execute_safe_restart()
         with b_back_col:
             if st.button("⬅️ Back", use_container_width=True, key="step3_back_action", disabled=is_finalized):
                 st.session_state["wizard_step"] = 2
@@ -381,7 +388,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: SCHOOL RESULTS
+    # STEP 4: SECURE PARTNER BLUEPRINT INSTITUTION MATCHES
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Secure Institutional Match Alignment")
@@ -424,7 +431,11 @@ with col_input_flow:
         if not filtered_df.empty:
             card_rows = []
             for idx, school_row in filtered_df.iterrows():
+                # 🔑 PARSE EXPLICIT CHARACTER GUARD: Prevents stripping errors from rendering blank string containers
                 raw_name = str(school_row["School Name"]).strip()
+                if raw_name in ["", "nan"] or pd.isna(school_row["School Name"]):
+                    raw_name = f"Partner Institution Platform Ref #{idx}"
+                    
                 s_exam = str(school_row.get("Entrance Exam", "--")).strip()
                 s_notes = str(school_row.get("Entrance Exam Notes", "")).strip()
                 
@@ -458,8 +469,7 @@ with col_input_flow:
                 tuition_cost = pd.to_numeric(tuition_cost_raw, errors='coerce') if pd.isna(pd.to_numeric(tuition_cost_raw, errors='coerce')) == False else 0.0
                 est_profit = max(0.0, school_revenue_potential - float(tuition_cost))
                 
-                # 🔑 Create a reliable unique string hash ID for state mapping checks
-                unique_hash_id = f"sch_{idx}_{raw_name.replace(' ', '_')}"
+                unique_hash_id = f"sch_{idx}_{re.sub(r'[^a-zA-Z0-9]', '_', raw_name)}"
                 
                 card_rows.append({
                     "id": unique_hash_id,
@@ -476,10 +486,8 @@ with col_input_flow:
             card_rows = sorted(card_rows, key=lambda x: x["profit"], reverse=True)
 
             for card in card_rows:
-                # 🔑 EVALUATE CACHED STATE MATRIX: Keeps highlighted card locked across step switching loops!
                 is_this_card_selected = (st.session_state["selected_school_id"] == card["id"])
                 
-                # Dynamic CSS injector block wrapper switches structural frames for maximum visual obviousness
                 card_style_div = "<div class='premium-selected-card'>" if is_this_card_selected else "<div style='border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; margin-bottom: 15px; background-color: #ffffff;'>"
                 st.markdown(card_style_div, unsafe_allow_html=True)
                 
@@ -498,9 +506,7 @@ with col_input_flow:
                 
                 btn_label = "✓ Active Selection Unlocked" if is_this_card_selected else "Select School & Fulfill Deficiencies"
                 
-                # 🔑 STATE LOGIC DEEP HOOK BIND: Clicking triggers lookahead mapping parameters automatically inside memory slots
                 if st.button(btn_label, key=f"btn_card_sel_{card['id']}", use_container_width=True, type="secondary" if is_this_card_selected else "primary", disabled=is_finalized):
-                    # Cache active variables inside step memories BEFORE spawning popups to protect pipeline states
                     st.session_state["active_school_view"] = card
                     st.session_state["selected_school_id"] = card["id"]
                     render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"], card, card["id"])
@@ -513,7 +519,7 @@ with col_input_flow:
         b_reset_col, b_spacer, b_back_col = st.columns([1.0, 1.5, 1.0])
         with b_reset_col:
             if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step4_reset_btn"):
-                restart_wizard()
+                execute_safe_restart()
         with b_back_col:
             if st.button("⬅️ Back to Review", use_container_width=True, key="step4_reverse_button_action", disabled=is_finalized):
                 st.session_state["val_courses"] = list(st.session_state["val_courses"])
@@ -521,13 +527,12 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# SHOPPING CART LEDGER COMPONENT (FULLY STABILIZED WITH CROSS-PAGE MEMORY)
+# SHOPPING CART ITEMIZATION LEDGER MANIFEST 
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Itemized Invoice Cart")
         
-        # 🔑 SECURED BACKSTAGE HYDRATION LOOKAHEAD: Fallback logic safely reads cached selection indexes loops!
         if st.session_state["selected_school_id"] is None or st.session_state["active_school_view"] is None:
             st.info("👉 Please click 'Select School' on any partner institution row option on the left to verify compliance data and unlock itemized ledger statements calculations details.")
         else:
@@ -590,9 +595,7 @@ if col_ledger_flow is not None:
                 }
                 st.rerun()
 
-# ==============================================================================
-# 🎈 READ-ONLY SIGNED MANIFEST BLOCK
-# ==============================================================================
+# Final voucher manifest summary generator block
 if is_finalized:
     pkg = st.session_state["confirmed_package"]
     st.balloons()
