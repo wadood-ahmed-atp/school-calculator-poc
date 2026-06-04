@@ -69,8 +69,9 @@ st.markdown("""
 if "wizard_step" not in st.session_state: st.session_state["wizard_step"] = 1
 if "confirmed_package" not in st.session_state: st.session_state["confirmed_package"] = None
 if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
+if "active_school_view" not in st.session_state: st.session_state["active_school_view"] = None
 
-# Session State Backstage Caching Repositories
+# Backstage Global Repositories
 if "val_name" not in st.session_state: st.session_state["val_name"] = ""
 if "val_state" not in st.session_state: st.session_state["val_state"] = "Select state"
 if "val_zip" not in st.session_state: st.session_state["val_zip"] = ""
@@ -122,7 +123,7 @@ else:
     st.stop()
 
 # ==============================================================================
-# 3. GLOBAL ARRAYS
+# 3. GLOBAL CONFIG MATRICES
 # ==============================================================================
 STATE_OPTIONS = [
     "Select state", "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -144,7 +145,7 @@ course_list = [
 
 current_step = st.session_state["wizard_step"]
 
-# Progress Step Indicators Block Layout
+# Progress Indicators Header Bars
 step_cols = st.columns(4)
 step_names = ["1. Identity Profile", "2. Baseline Profile", "3. Transcripts Review", "4. School Matches"]
 for i, name in enumerate(step_names):
@@ -257,7 +258,7 @@ with col_input_flow:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT & DISCOUNTS FLOW 
+    # STEP 3: TRANSCRIPT & DISCOUNTS FLOW
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.markdown("### **Step 3: Transcript Review & Qualifications**")
@@ -317,12 +318,14 @@ with col_input_flow:
         with btn_b2:
             st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
             if st.button("Find Matches ➡️", use_container_width=True):
+                # Wipe any residual active school state cache when moving to matches
+                st.session_state["active_school_view"] = None
                 st.session_state["wizard_step"] = 4
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL MATCHES (FIXED VISUAL ALIGNMENT ENGINE)
+    # STEP 4: INSTITUTIONAL MATCHES
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.markdown("### **Step 4: Secure Institutional Match Alignment**")
@@ -364,7 +367,7 @@ with col_input_flow:
         filtered_df = working_schools_df.copy()
 
         # ==============================================================================
-        # MODAL EXAM INTERPRETER DIALOG BOX
+        # CONFIRMATION MODAL INTERPRETER LAYOUT BLOCK
         # ==============================================================================
         @st.dialog("Confirm & Lock Enrollment Package")
         def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list):
@@ -388,7 +391,6 @@ with col_input_flow:
             calc_referral = 50.0 if st.session_state["val_ref"] == "Yes" else 0.0
             calc_military = 200.0 if st.session_state["val_mil"] == "Yes" else 0.0
             
-            # Use local main price tier based strictly on accepted classes length
             m_classes_tier = modal_base_count if modal_base_count > 0 else 1
             m_price_tier = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
             
@@ -512,7 +514,7 @@ with col_input_flow:
                     "base_total": final_base_total,
                     "reg_fee": m_reg,
                     "final_total": modal_final_total,
-                    "courses_included": valid_courses_list, # Logs only the accepted courses list
+                    "courses_included": valid_courses_list,
                     "entrance_exam_prep_added": include_exam_prep,
                     "entrance_exam_score_logged": user_score_logged,
                     "classes_waived_count": classes_waived,
@@ -520,7 +522,7 @@ with col_input_flow:
                 }
                 st.rerun()
 
-        # Compile and filter cards execution lists
+        # Compile matching layout rows
         if not filtered_df.empty:
             card_rows = []
             for idx, school_row in filtered_df.iterrows():
@@ -549,8 +551,6 @@ with col_input_flow:
                     s_status = "Perfect Match"
                     school_accepted_list = list(needed_courses)
                 
-                # 🔑 THE CRITICAL ALIGNMENT RE-ENGINEERING
-                # Calculate main price factor based ONLY on valid school accepted courses length
                 c_count = len(school_accepted_list)
                 c_base_classes = c_count if c_count > 0 else 1
                 c_main_price = 1179 if c_base_classes >= 10 else (1229 if c_base_classes >= 4 else 1289)
@@ -571,22 +571,20 @@ with col_input_flow:
                     "profit": est_profit
                 })
             
-            # Sort array by calculated profit metrics
             card_rows = sorted(card_rows, key=lambda x: x["profit"], reverse=True)
 
-            # Render matching cards loops
             for card in card_rows:
                 with st.container(border=True):
                     sc1, sc2, sc3 = st.columns([1.5, 3.0, 1.5])
                     with sc1:
                         st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
                         if st.button("Select School", key=f"btn_card_sel_{card['idx']}", use_container_width=True):
+                            # 🔑 SYNC HOOK: Inform the floating ledger which university is actively highlighted
+                            st.session_state["active_school_view"] = card
                             render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"])
                         st.markdown("</div>", unsafe_allow_html=True)
                     with sc2:
                         st.markdown(f"🏫 **{card['name']}** ({card['track']} Track)")
-                        
-                        # 🔑 FIXED RE-ENGINEERING LABEL: Prints ONLY the explicit accepted courses list
                         courses_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
                         st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* `{courses_string}`")
                     with sc3:
@@ -607,74 +605,90 @@ with col_input_flow:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. RE-ENGINEERED INVOICE SHOPPING CART LEDGER CONTAINER
+# 5. FIXED SMART SHOPPING CART LEDGER ENGINE 
 # ==============================================================================
 if current_step >= 3 and col_ledger_flow is not None:
     with col_ledger_flow:
         st.markdown("<div style='background-color: #ffffff; padding: 25px; border-radius: 12px; border: 2px solid #1E3A8A; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>", unsafe_allow_html=True)
         st.subheader("🛒 Itemized Invoice Cart")
         
-        needed_courses = st.session_state["val_courses"]
         has_addons = st.session_state["addon_state"]
         license_type = st.session_state["val_lic"]
         
-        is_completely_empty = (len(needed_courses) == 0 and not has_addons)
-        base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
-        addons_count = 2 if has_addons else 0
-        total_classes = (len(needed_courses) if len(needed_courses) > 0 else 0) + addons_count
-        
-        main_price = 1179 if base_classes >= 10 else (1229 if base_classes >= 4 else 1289)
-        addon_price = 749 if total_classes >= 10 else (799 if total_classes >= 4 else 859)
-        
-        if len(needed_courses) == 0: base_total = (addons_count * addon_price)
-        else: base_total = (base_classes * main_price) + (addons_count * addon_price)
-        
-        st.markdown("#### **Adjustments & Grants**")
-        deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0.0, value=st.session_state["val_deposit"], step=50.0)
-        grant_input = st.number_input("Institutional Grant Amount ($)", min_value=0.0, value=st.session_state["val_grant"], step=50.0)
-        
-        st.session_state["val_deposit"] = deposit_input
-        st.session_state["val_grant"] = grant_input
-
-        q_ref = st.session_state["val_ref"]
-        q_mil = st.session_state["val_mil"]
-        q_promo = st.session_state["val_promo"]
-
-        # Base Matrix Calculation Engine Flow
-        dep_min = 150 if license_type == "CNA/CMA" else 300
-        calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= dep_min) else 0.0
-        calc_referral = 50.0 if q_ref == "Yes" else 0.0
-        calc_military = 200.0 if q_mil == "Yes" else 0.0
-        calc_free_course = float(main_price) if (q_promo == "Yes" and len(needed_courses) >= 3) else 0.0
-        
-        credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
-        final_total = max(0.0, base_total - credits_sum)
-        
-        is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
-        if is_cna == "CNA/CMA":
-            if total_classes == 0: reg_fee = 0
-            elif total_classes <= 2: reg_fee = 150
-            elif total_classes <= 7: reg_fee = 175
-            elif total_classes <= 10: reg_fee = 200
-            elif total_classes <= 15: reg_fee = 250
-            else: reg_fee = 300
+        # 🔑 FIXED RE-ENGINEERING CHECK: If on step 4, look for active selection parameter mapping
+        if current_step == 4 and st.session_state["active_school_view"] is None:
+            # Placeholder State: Prevent math mismatches until selection occurs
+            st.info("👉 Please select an institutional partner row on the left to unlock your customized invoice checkout matrix.")
+            base_total = 0.0
+            reg_fee = 0.0
+            credits_sum = 0.0
+            final_total = 0.0
+            is_completely_empty = True
         else:
-            if total_classes == 0: reg_fee = 0
-            elif total_classes <= 2: reg_fee = 300
-            elif total_classes <= 7: reg_fee = 325
-            elif total_classes <= 10: reg_fee = 375
-            elif total_classes <= 15: reg_fee = 475
-            else: reg_fee = 600
+            # Resolve dynamic courses mapping pool based on state positioning
+            if current_step == 4 and st.session_state["active_school_view"] is not None:
+                # Sync ledger directly to school accepted list length!
+                needed_courses = st.session_state["active_school_view"]["accepted_courses"]
+                st.markdown(f"🎯 *Active Ledger Context:* **{st.session_state['active_school_view']['name']}**")
+            else:
+                needed_courses = st.session_state["val_courses"]
 
-        st.divider()
-        st.markdown(f"**Gross Base Tuition:** `${0.00 if is_completely_empty else base_total:,.2f}`")
-        st.markdown(f"**Registration Fee:** `${0.00 if is_completely_empty else reg_fee:,.2f}`")
-        st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
-        
-        if q_promo == "Yes" and len(needed_courses) < 3:
-            st.caption("ℹ️ *Notice: Free course code requires selecting 3 or more courses to apply.*")
+            is_completely_empty = (len(needed_courses) == 0 and not has_addons)
+            base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
+            addons_count = 2 if has_addons else 0
+            total_classes = (len(needed_courses) if len(needed_courses) > 0 else 0) + addons_count
             
-        st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
+            main_price = 1179 if base_classes >= 10 else (1229 if base_classes >= 4 else 1289)
+            addon_price = 749 if total_classes >= 10 else (799 if total_classes >= 4 else 859)
+            
+            if len(needed_courses) == 0: base_total = (addons_count * addon_price)
+            else: base_total = (base_classes * main_price) + (addons_count * addon_price)
+            
+            st.markdown("#### **Adjustments & Grants**")
+            deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0.0, value=st.session_state["val_deposit"], step=50.0)
+            grant_input = st.number_input("Institutional Grant Amount ($)", min_value=0.0, value=st.session_state["val_grant"], step=50.0)
+            
+            st.session_state["val_deposit"] = deposit_input
+            st.session_state["val_grant"] = grant_input
+
+            q_ref = st.session_state["val_ref"]
+            q_mil = st.session_state["val_mil"]
+            q_promo = st.session_state["val_promo"]
+
+            dep_min = 150 if license_type == "CNA/CMA" else 300
+            calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= dep_min) else 0.0
+            calc_referral = 50.0 if q_ref == "Yes" else 0.0
+            calc_military = 200.0 if q_mil == "Yes" else 0.0
+            calc_free_course = float(main_price) if (q_promo == "Yes" and len(needed_courses) >= 3) else 0.0
+            
+            credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
+            final_total = max(0.0, base_total - credits_sum)
+            
+            is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
+            if is_cna == "CNA/CMA":
+                if total_classes == 0: reg_fee = 0
+                elif total_classes <= 2: reg_fee = 150
+                elif total_classes <= 7: reg_fee = 175
+                elif total_classes <= 10: reg_fee = 200
+                elif total_classes <= 15: reg_fee = 250
+                else: reg_fee = 300
+            else:
+                if total_classes == 0: reg_fee = 0
+                elif total_classes <= 2: reg_fee = 300
+                elif total_classes <= 7: reg_fee = 325
+                elif total_classes <= 10: reg_fee = 375
+                elif total_classes <= 15: reg_fee = 475
+                else: reg_fee = 600
+
+            st.divider()
+            st.markdown(f"**Gross Base Tuition:** `${0.00 if is_completely_empty else base_total:,.2f}`")
+            st.markdown(f"**Registration Fee:** `${0.00 if is_completely_empty else reg_fee:,.2f}`")
+            st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
+            
+            if q_promo == "Yes" and len(needed_courses) < 3:
+                st.caption("ℹ️ *Notice: Free course code requires selecting 3 or more courses to apply.*")
+                
+            st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # Global Clear / Reset Footer Button
@@ -684,7 +698,7 @@ with reset_btn_block:
     if st.button("🔄 Restart Process", type="secondary", use_container_width=True):
         restart_wizard()
 
-# Success manifest signed confirmation blocks
+# Success state print container
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
     st.balloons()
