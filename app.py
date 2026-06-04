@@ -4,7 +4,7 @@ import os
 import re
 
 # ==============================================================================
-# 0. DESKTOP GRID & FIXED ENTERPRISE TOOLBAR REMOVALS
+# 0. DESKTOP GRID & ENTERPRISE INFRASTRUCTURE TOOLBAR REMOVALS
 # ==============================================================================
 st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
@@ -133,7 +133,7 @@ is_finalized = st.session_state["confirmed_package"] is not None
 # Dashboard Master Title Header
 st.markdown("## 🗺️ Bridge Plan Generator")
 
-# Clean, Native Text Timelines Status Progress Tracker Bar
+# 🔧 FIXED INTERPOLATION PARSER: Shifter toggles 4. School Matches to Green instantly when finalized is locked!
 st.markdown(
     f"""
     <div style="font-family: sans-serif; font-size: 15px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 5px;">
@@ -143,7 +143,7 @@ st.markdown(
         <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
         <span style="color: {'#1E3A8A' if current_step==3 else ('#10B981' if current_step>3 else '#94a3b8')}; font-weight: {'bold' if current_step==3 else 'normal'};">{'✅ ' if current_step>3 else ''}3. Transcripts Review</span> 
         <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
-        <span style="color: {'#1E3A8A' if current_step==4 else '#10B981' if is_finalized else '#94a3b8'}; font-weight: {'bold' if current_step==4 else 'normal'};">{'✅ ' if is_finalized else ''}4. School Matches</span>
+        <span style="color: {'#10B981' if is_finalized else '#1E3A8A'}; font-weight: {'bold' if current_step==4 else 'normal'};">{'✅ ' if is_finalized else ''}4. School Matches</span>
     </div>
     """, 
     unsafe_allow_html=True
@@ -162,7 +162,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
     local_include_prep = False
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-        st.info("ℹ️ Entrance testing validation controls bypassed for this partner track blueprint.")
+        st.info("ℹ️ Entrance testing validation controls waived for this partner track blueprint.")
         local_include_prep = False
     else:
         st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
@@ -297,7 +297,7 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 2: PROFESSIONAL HEALTHCARE BACKGROUND
+    # STEP 2: PROFESSIONAL HEALTHCARE BASELINE BACKGROUND
     # --------------------------------------------------------------------------
     elif current_step == 2:
         st.subheader("Step 2: Professional Licensing & History")
@@ -477,18 +477,14 @@ with col_input_flow:
                 is_this_card_selected = (st.session_state["selected_school_id"] == card["id"])
                 courses_text_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
                 
-                # 🔑 PINPOINT HTML BLOCK REWRITE: Replaces st.container loops with clean markup inside a unified structural scope
+                # 🔑 THE STUBBORN WHITE BOX FIXED PERMANENTLY:
+                # We replace conflicting custom css wrappers entirely. The active chosen card now morphs gracefully 
+                # into an un-boxed native text block using a theme-compliant green alert component banner.
                 if is_this_card_selected:
-                    # Pure HTML paint override guarantees no white parent container boxes bleed in overhead
-                    st.markdown(f"""
-                        <div style='background-color:#f0f4f8; padding:20px; border-radius:12px; border:3px solid #1E3A8A; margin-bottom:15px;'>
-                            <h3 style='margin:0; padding:0; color:#1E3A8A;'>🏫 {card['name']} <span style='background-color:#1E3A8A; color:white; font-size:11px; padding:3px 10px; border-radius:10px; margin-left:12px; font-weight:600; vertical-align:middle; display:inline-block;'>🎯 SELECTED</span></h3>
-                            <p style='margin:8px 0 4px 0; font-size:14px; color:#334155;'><b>Degree Track Program:</b> <code>{card['track']}</code></p>
-                            <p style='margin:4px 0 0 0; font-size:14px; color:#334155;'>🧬 <i>Deficiencies Fulfilled ({len(card['accepted_courses'])}):</i> <b>{courses_text_string}</b></p>
-                        </div>
-                    """, unsafe_allow_html=True)
+                    st.success(f"🎯 **{card['name']} (SELECTED)**")
+                    st.markdown(f"**Degree Track Program:** `{card['track']}`")
+                    st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* **{courses_text_string}**")
                 else:
-                    # Native look for unselected program rows sits cleanly down the canvas
                     with st.container(border=True):
                         st.markdown(f"### 🏫 {card['name']}")
                         s_left_col, s_right_col = st.columns([2.8, 1.2])
@@ -498,13 +494,13 @@ with col_input_flow:
                         with s_right_col:
                             st.metric(label="Est Profit Margin", value=f"${card['profit']:,.2f}")
                 
-                # Render active step primary routing buttons directly beneath full horizontal layers cleanly
                 btn_label = "✓ Active Selection Unlocked" if is_this_card_selected else "Select School & Fulfill Deficiencies"
                 if st.button(btn_label, key=f"btn_card_sel_{card['id']}", use_container_width=True, type="secondary" if is_this_card_selected else "primary", disabled=is_finalized):
                     st.session_state["active_school_view"] = card
                     st.session_state["selected_school_id"] = card["id"]
                     render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"], card, card["id"])
                     
+                st.markdown("<br>", unsafe_allow_html=True)
         else:
             st.warning("No partner institutions match your background parameters configuration parameters.")
         
@@ -520,7 +516,7 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 ITEMIZED SIDEBAR INVOICE CART
+# 🛒 sideBAR ITEMIZED INVOICE CART
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -570,7 +566,7 @@ if col_ledger_flow is not None:
             st.divider()
             st.markdown(f"**Gross Base Tuition Balance:** `${0.00 if is_completely_empty else base_total:,.2f}`")
             
-            # 🏷️ Bullet-free emoji breakdown lists metrics fields
+            # 🔑 THE BULLET FIX: All dot tags are completely gone. Swapped out for stylized price tokens.
             st.markdown("##### 🎖️ Applied Fee Waivers & Adjustments:")
             if calc_dep_match > 0:
                 st.markdown(f"🏷️ *Deposit Match Program Incentive:* `-${calc_dep_match:,.2f}`")
