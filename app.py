@@ -54,7 +54,7 @@ def initialize_base_states(force_reset=False):
         "val_state": "Select state",
         "val_zip": "",
         "val_adult": "Yes",
-        "val_gpa": 4.00,
+        "val_gpa": 3.50, # 🔧 CHANGED VALUE PARADIGM: Shifted original index down from 4.00 to 3.50 base default
         "val_gpa_unknown": False,
         "val_lic": "None / Other",
         "val_exp": None,
@@ -133,24 +133,18 @@ is_finalized = st.session_state["confirmed_package"] is not None
 # Dashboard Master Title Header
 st.markdown("## 🗺️ Bridge Plan Generator")
 
-# ==============================================================================
-# 🔧 RE-ENGINEERED STEP PROGRESS TRACKER (FIXED TIMELINE FONT STATE COLORS)
-# ==============================================================================
-# Compute Step 1 Color Metrics
+# Compute Step Progress States Natively
 if current_step == 1: s1_col, s1_w = "#1E3A8A", "bold"
 else: s1_col, s1_w = "#10B981", "normal"
 
-# Compute Step 2 Color Metrics
 if current_step == 2: s2_col, s2_w = "#1E3A8A", "bold"
 elif current_step > 2: s2_col, s2_w = "#10B981", "normal"
 else: s2_col, s2_w = "#2563EB", "normal"
 
-# Compute Step 3 Color Metrics
 if current_step == 3: s3_col, s3_w = "#1E3A8A", "bold"
 elif current_step > 3: s3_col, s3_w = "#10B981", "normal"
 else: s3_col, s3_w = "#2563EB", "normal"
 
-# Compute Step 4 Color Metrics
 if is_finalized: s4_col, s4_w = "#10B981", "normal"
 elif current_step == 4: s4_col, s4_w = "#1E3A8A", "bold"
 else: s4_col, s4_w = "#2563EB", "normal"
@@ -183,7 +177,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
     local_include_prep = False
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-        st.info("ℹ️ Entrance testing validation controls waived for this partner track blueprint.")
+        st.info("ℹ️ Entrance testing validation controls bypassed for this partner track blueprint.")
         local_include_prep = False
     else:
         st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
@@ -291,10 +285,11 @@ with col_input_flow:
         
         i_gpa_unknown = st.checkbox("I don't know my cumulative GPA", value=st.session_state["val_gpa_unknown"], disabled=is_finalized)
         if i_gpa_unknown:
-            st.session_state["val_gpa"] = 4.00
-            i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=4.00, step=0.01, disabled=True)
+            st.session_state["val_gpa"] = 3.50
+            i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=3.50, step=0.01, disabled=True)
         else:
-            i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=st.session_state["val_gpa"], step=0.01, disabled=is_finalized)
+            # 🔑 FIXED PUNCTUATION & BASE VALUES HOOK: Appended a terminal period to text loop parameter prompts
+            i_gpa = st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=st.session_state["val_gpa"], step=0.01, disabled=is_finalized)
         
         st.divider()
         b_reset_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
