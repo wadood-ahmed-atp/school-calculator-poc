@@ -70,7 +70,7 @@ if "wizard_step" not in st.session_state: st.session_state["wizard_step"] = 1
 if "confirmed_package" not in st.session_state: st.session_state["confirmed_package"] = None
 if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
 
-# Permanent Backstage Memory Vaults (Protected from Garbage Collection)
+# Session State Backstage Caching Repositories
 if "val_name" not in st.session_state: st.session_state["val_name"] = ""
 if "val_state" not in st.session_state: st.session_state["val_state"] = "Select state"
 if "val_zip" not in st.session_state: st.session_state["val_zip"] = ""
@@ -144,7 +144,7 @@ course_list = [
 
 current_step = st.session_state["wizard_step"]
 
-# Progress Bar Header Indicator
+# Progress Step Indicators Block Layout
 step_cols = st.columns(4)
 step_names = ["1. Identity Profile", "2. Baseline Profile", "3. Transcripts Review", "4. School Matches"]
 for i, name in enumerate(step_names):
@@ -257,22 +257,19 @@ with col_input_flow:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT & DISCOUNTS FLOW (FIXED CACHE VAULT PROTECTION)
+    # STEP 3: TRANSCRIPT & DISCOUNTS FLOW 
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.markdown("### **Step 3: Transcript Review & Qualifications**")
         st.markdown("Select your prerequisite deficiencies and apply your discount triggers here.")
         st.divider()
         
-        # 🔑 FIXED: Decoupled temporary widget key with an un-wipeable default array anchor
         st.multiselect(
             "Check the boxes for courses you still NEED to complete:",
             options=course_list,
             default=st.session_state["val_courses"],
             key="temp_courses" 
         )
-        
-        # Force the temporary changes over to our permanent backstage vault instantly
         st.session_state["val_courses"] = st.session_state["temp_courses"]
         
         st.markdown("<br>#### 🎖️ Promotional Qualifications & Discounts", unsafe_allow_html=True)
@@ -280,7 +277,6 @@ with col_input_flow:
         w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True)
         w_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True)
         
-        # Lock strings values back into memory parameters
         st.session_state["val_ref"] = w_ref
         st.session_state["val_mil"] = w_mil
         st.session_state["val_promo"] = w_promo
@@ -326,7 +322,7 @@ with col_input_flow:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL MATCHES
+    # STEP 4: INSTITUTIONAL MATCHES (FIXED VISUAL ALIGNMENT ENGINE)
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.markdown("### **Step 4: Secure Institutional Match Alignment**")
@@ -344,10 +340,6 @@ with col_input_flow:
         dismissal_months = st.session_state["val_dismiss_mos"]
         needed_courses = st.session_state["val_courses"]
         has_addons = st.session_state["addon_state"]
-        
-        base_count = len(needed_courses)
-        base_classes = base_count if base_count > 0 else 1
-        main_price = 1179 if base_classes >= 10 else (1229 if base_classes >= 4 else 1289)
 
         working_schools_df = master_schools_df.copy()
         if "ASN/BSN" in working_schools_df.columns:
@@ -375,11 +367,11 @@ with col_input_flow:
         # MODAL EXAM INTERPRETER DIALOG BOX
         # ==============================================================================
         @st.dialog("Confirm & Lock Enrollment Package")
-        def render_institutional_modal(school_name, school_exam_type, school_exam_notes):
+        def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list):
             st.markdown(f"### 📋 Reviewing: **{school_name}**")
             st.markdown("---")
             
-            modal_base_count = len(needed_courses)
+            modal_base_count = len(valid_courses_list)
             modal_addons = 2 if has_addons else 0
             
             include_exam_prep = False
@@ -395,7 +387,12 @@ with col_input_flow:
             calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= (150 if is_cna == "CNA/CMA" else 300)) else 0.0
             calc_referral = 50.0 if st.session_state["val_ref"] == "Yes" else 0.0
             calc_military = 200.0 if st.session_state["val_mil"] == "Yes" else 0.0
-            calc_free_course = float(main_price) if (st.session_state["val_promo"] == "Yes" and modal_base_count >= 3) else 0.0
+            
+            # Use local main price tier based strictly on accepted classes length
+            m_classes_tier = modal_base_count if modal_base_count > 0 else 1
+            m_price_tier = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
+            
+            calc_free_course = float(m_price_tier) if (st.session_state["val_promo"] == "Yes" and len(needed_courses) >= 3) else 0.0
             modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
             
             if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
@@ -515,7 +512,7 @@ with col_input_flow:
                     "base_total": final_base_total,
                     "reg_fee": m_reg,
                     "final_total": modal_final_total,
-                    "courses_included": needed_courses,
+                    "courses_included": valid_courses_list, # Logs only the accepted courses list
                     "entrance_exam_prep_added": include_exam_prep,
                     "entrance_exam_score_logged": user_score_logged,
                     "classes_waived_count": classes_waived,
@@ -523,12 +520,13 @@ with col_input_flow:
                 }
                 st.rerun()
 
+        # Compile and filter cards execution lists
         if not filtered_df.empty:
-            status_log, cash_yield_margins, deficiencies_resolved_log, exam_requirements_list, exam_notes_list = [], [], [], [], []
-            for _, school_row in filtered_df.iterrows():
+            card_rows = []
+            for idx, school_row in filtered_df.iterrows():
                 raw_name = str(school_row["School Name"]).strip()
-                exam_requirements_list.append(str(school_row.get("Entrance Exam", "--")).strip())
-                exam_notes_list.append(str(school_row.get("Entrance Exam Notes", "")).strip())
+                s_exam = str(school_row.get("Entrance Exam", "--")).strip()
+                s_notes = str(school_row.get("Entrance Exam Notes", "")).strip()
                 
                 if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
                     rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains("HERZ|HERI", na=False)]
@@ -536,50 +534,63 @@ with col_input_flow:
                     rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains("EXCEL", na=False)]
                 else: rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
                 
-                offered_courses_count = 0
-                has_all_courses = True
                 school_accepted_list = []
+                has_all_courses = True
                 
                 if not rule_row.empty:
                     for required_course in needed_courses:
                         if required_course in rule_row.columns:
                             if str(rule_row[required_course].values[0]).strip().upper() == "Y":
-                                offered_courses_count += 1
                                 school_accepted_list.append(required_course)
                             else: has_all_courses = False
                         else: has_all_courses = False
-                    status_log.append("Perfect Match" if (len(needed_courses) == 0 or has_all_courses) else "Missing Needed CBE Courses")
-                else: status_log.append("Perfect Match")
-                    
-                deficiencies_resolved_log.append(", ".join(school_accepted_list) if school_accepted_list else "None")
-                school_revenue_potential = offered_courses_count * float(main_price)
+                    s_status = "Perfect Match" if (len(needed_courses) == 0 or has_all_courses) else "Missing Needed CBE Courses"
+                else:
+                    s_status = "Perfect Match"
+                    school_accepted_list = list(needed_courses)
+                
+                # 🔑 THE CRITICAL ALIGNMENT RE-ENGINEERING
+                # Calculate main price factor based ONLY on valid school accepted courses length
+                c_count = len(school_accepted_list)
+                c_base_classes = c_count if c_count > 0 else 1
+                c_main_price = 1179 if c_base_classes >= 10 else (1229 if c_base_classes >= 4 else 1289)
+                
+                school_revenue_potential = c_count * float(c_main_price)
                 tuition_cost_raw = str(school_row.get("Tuition", "0")).replace("$", "").replace(",", "").strip()
                 tuition_cost = pd.to_numeric(tuition_cost_raw, errors='coerce') if pd.isna(pd.to_numeric(tuition_cost_raw, errors='coerce')) == False else 0.0
-                cash_yield_margins.append(max(0.0, school_revenue_potential - float(tuition_cost)))
-                    
-            filtered_df["Match Status"] = status_log
-            filtered_df["Estimated Revenue Profit"] = cash_yield_margins
-            filtered_df["Deficiencies Met"] = deficiencies_resolved_log
-            filtered_df["Entrance Exam Requirement"] = exam_requirements_list
-            filtered_df["Entrance Exam Notes Column"] = exam_notes_list
+                est_profit = max(0.0, school_revenue_potential - float(tuition_cost))
+                
+                card_rows.append({
+                    "idx": idx,
+                    "name": raw_name,
+                    "exam": s_exam,
+                    "notes": s_notes,
+                    "track": school_row["ASN/BSN"],
+                    "status": s_status,
+                    "accepted_courses": school_accepted_list,
+                    "profit": est_profit
+                })
+            
+            # Sort array by calculated profit metrics
+            card_rows = sorted(card_rows, key=lambda x: x["profit"], reverse=True)
 
-            final_display_df = filtered_df[["School Name", "Estimated Revenue Profit", "ASN/BSN", "Match Status", "Entrance Exam Requirement", "Entrance Exam Notes Column", "Deficiencies Met"]].copy()
-            final_display_df["_sort_profit"] = pd.to_numeric(final_display_df["Estimated Revenue Profit"], errors="coerce").fillna(0.0)
-            final_display_df = final_display_df.sort_values(by="_sort_profit", ascending=False)
-
-            for idx, row in final_display_df.iterrows():
+            # Render matching cards loops
+            for card in card_rows:
                 with st.container(border=True):
                     sc1, sc2, sc3 = st.columns([1.5, 3.0, 1.5])
                     with sc1:
                         st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
-                        if st.button("Select School", key=f"btn_wiz_sel_{idx}", use_container_width=True):
-                            render_institutional_modal(row["School Name"], row["Entrance Exam Requirement"], row["Entrance Exam Notes Column"])
+                        if st.button("Select School", key=f"btn_card_sel_{card['idx']}", use_container_width=True):
+                            render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"])
                         st.markdown("</div>", unsafe_allow_html=True)
                     with sc2:
-                        st.markdown(f"🏫 **{row['School Name']}** ({row['ASN/BSN']} Track)")
-                        st.markdown(f"🧬 *Deficiencies Fulfilled:* `{row['Deficiencies Met']}`")
+                        st.markdown(f"🏫 **{card['name']}** ({card['track']} Track)")
+                        
+                        # 🔑 FIXED RE-ENGINEERING LABEL: Prints ONLY the explicit accepted courses list
+                        courses_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
+                        st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* `{courses_string}`")
                     with sc3:
-                        st.metric("Est Profit Margin", f"${row['_sort_profit']:,.2f}")
+                        st.metric("Est Profit Margin", f"${card['profit']:,.2f}")
         else:
             st.warning("No partner institutions match your core background or geofencing matrix filters.")
 
@@ -588,6 +599,7 @@ with col_input_flow:
         with btn_b1:
             st.markdown("<div class='secondary-btn'>", unsafe_allow_html=True)
             if st.button("⬅️ Back to Review", use_container_width=True):
+                st.session_state["val_courses"] = list(st.session_state["val_courses"])
                 st.session_state["wizard_step"] = 3
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
@@ -595,7 +607,7 @@ with col_input_flow:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. RE-ENGINEERED INVOICE SHOPPING CART LEDGER CONTAINER (FORMATTING FIXED)
+# 5. RE-ENGINEERED INVOICE SHOPPING CART LEDGER CONTAINER
 # ==============================================================================
 if current_step >= 3 and col_ledger_flow is not None:
     with col_ledger_flow:
@@ -633,8 +645,6 @@ if current_step >= 3 and col_ledger_flow is not None:
         calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= dep_min) else 0.0
         calc_referral = 50.0 if q_ref == "Yes" else 0.0
         calc_military = 200.0 if q_mil == "Yes" else 0.0
-        
-        # Safe evaluation validation execution
         calc_free_course = float(main_price) if (q_promo == "Yes" and len(needed_courses) >= 3) else 0.0
         
         credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
@@ -674,7 +684,7 @@ with reset_btn_block:
     if st.button("🔄 Restart Process", type="secondary", use_container_width=True):
         restart_wizard()
 
-# Success manifest signed lock summaries
+# Success manifest signed confirmation blocks
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
     st.balloons()
