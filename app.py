@@ -17,11 +17,9 @@ st.markdown("""
     footer {visibility: hidden;}
     .stAppDeployButton {display: none;}
     
-    /* Global Layout Adjustments */
     .main {background-color: #f8f9fa; padding-top: 0px !important;}
     h1, h2, h3 {color: #1E3A8A; font-family: 'Inter', sans-serif;}
     
-    /* Elevated content card style */
     .content-card {
         background-color: #ffffff;
         padding: 30px;
@@ -31,7 +29,6 @@ st.markdown("""
         margin-bottom: 20px;
     }
     
-    /* 🎨 PREMIUM INTERACTIVE BUTTON STYLING OVERRIDES */
     .stButton>button {
         border-radius: 8px !important;
         height: 44px !important;
@@ -41,7 +38,6 @@ st.markdown("""
         transition: all 0.2s ease-in-out !important;
     }
     
-    /* Primary dynamic action button layout (Dark Blue) */
     div.primary-btn>div>button {
         background-color: #1E3A8A !important;
         color: white !important;
@@ -53,7 +49,6 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
     }
     
-    /* Secondary step back button layout (Clean Slate Style) */
     div.secondary-btn>div>button {
         background-color: #ffffff !important;
         color: #475569 !important;
@@ -65,7 +60,6 @@ st.markdown("""
         color: #1e293b !important;
     }
     
-    /* Minimalist Top Utility Restart Button Style */
     div.utility-btn>div>button {
         background-color: transparent !important;
         color: #94a3b8 !important;
@@ -79,7 +73,6 @@ st.markdown("""
         background-color: #fef2f2 !important;
     }
 
-    /* Responsive Mobile/Tablet Breakpoint Configuration */
     @media (max-width: 992px) {
         div[data-testid="stHorizontalBlock"] {
             flex-direction: column !important;
@@ -101,8 +94,9 @@ if "wizard_step" not in st.session_state: st.session_state["wizard_step"] = 1
 if "confirmed_package" not in st.session_state: st.session_state["confirmed_package"] = None
 if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
 if "active_school_view" not in st.session_state: st.session_state["active_school_view"] = None
+if "modal_include_exam_prep" not in st.session_state: st.session_state["modal_include_exam_prep"] = False
 
-# Backstage Caching Memory Repositories
+# Persistent Memory Stores
 if "val_name" not in st.session_state: st.session_state["val_name"] = ""
 if "val_state" not in st.session_state: st.session_state["val_state"] = "Select state"
 if "val_zip" not in st.session_state: st.session_state["val_zip"] = ""
@@ -154,7 +148,7 @@ else:
     st.stop()
 
 # ==============================================================================
-# 3. GLOBAL MATRIX OPTIONS CONFIG
+# 3. GLOBAL CONFIG MATRICES
 # ==============================================================================
 STATE_OPTIONS = [
     "Select state", "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -176,7 +170,6 @@ course_list = [
 
 current_step = st.session_state["wizard_step"]
 
-# Top Layer Dashboard Title Header
 header_title_col, header_utility_col = st.columns([3.0, 1.0])
 with header_title_col:
     st.title("🗺️ Bridge Plan Generator")
@@ -187,7 +180,6 @@ with header_utility_col:
         restart_wizard()
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Progress indicator wizard timeline step boxes
 step_cols = st.columns(4)
 step_names = ["1. Identity Profile", "2. Baseline Profile", "3. Transcripts Review", "4. School Matches"]
 for i, name in enumerate(step_names):
@@ -213,12 +205,9 @@ else:
 with col_input_flow:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
 
-    # --------------------------------------------------------------------------
-    # STEP 1: IDENTITY PROFILE
-    # --------------------------------------------------------------------------
     if current_step == 1:
         st.markdown("### **Step 1: Welcome & Identity Profile**")
-        st.markdown("Let's capture your baseline territory parameters to filter institutional regional availability.")
+        st.markdown("Let's capture your residency parameters to parse institutional regional availability.")
         st.divider()
         
         i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name")
@@ -242,33 +231,27 @@ with col_input_flow:
                     st.session_state["val_zip"] = i_zip
                     st.session_state["val_adult"] = i_adult
                     st.session_state["val_gpa"] = i_gpa
-                    
                     st.session_state["wizard_step"] = 2
                     st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # --------------------------------------------------------------------------
-    # STEP 2: PROFESSIONAL BASELINE
-    # --------------------------------------------------------------------------
     elif current_step == 2:
         st.markdown("### **Step 2: Professional Licensing & History**")
-        st.markdown("Tell us about your healthcare background parameters to clear nursing experience validation layers.")
+        st.markdown("Tell us about your background to clear nursing experience validation layers.")
         st.divider()
         
         i_lic = st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=LICENSE_OPTIONS.index(st.session_state["val_lic"]))
-        
         i_exp = st.session_state["val_exp"]
         if i_lic == "LPN":
             i_exp = st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=st.session_state["val_exp"], step=1)
             
         i_dismiss = st.selectbox("Do you possess a prior academic nursing program dismissal?", options=DISMISSAL_OPTIONS, index=DISMISSAL_OPTIONS.index(st.session_state["val_dismiss"]))
-        
         i_dismiss_mos = st.session_state["val_dismiss_mos"]
         if i_dismiss == "Yes":
-            i_dismiss_mos = st.number_input("Months elapsed since your historical academic dismissal date:", min_value=0, max_value=300, value=st.session_state["val_dismiss_mos"], step=1)
+            i_dismiss_mos = st.number_input("Months elapsed since your historical dismissal date:", min_value=0, max_value=300, value=st.session_state["val_dismiss_mos"], step=1)
             
         i_travel = st.selectbox("Are you amenable to regional clinical onsite travel loops?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]))
-        i_track = st.selectbox("Which nursing program graduation credential tier are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]))
+        i_track = st.selectbox("Which nursing track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]))
         
         st.divider()
         btn_spacer, btn_b1, btn_b2 = st.columns([1.5, 1.0, 1.0])
@@ -281,7 +264,6 @@ with col_input_flow:
                 st.session_state["val_dismiss_mos"] = i_dismiss_mos
                 st.session_state["val_travel"] = i_travel
                 st.session_state["val_track"] = i_track
-                
                 st.session_state["wizard_step"] = 1
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
@@ -294,14 +276,10 @@ with col_input_flow:
                 st.session_state["val_dismiss_mos"] = i_dismiss_mos
                 st.session_state["val_travel"] = i_travel
                 st.session_state["val_track"] = i_track
-                
                 st.session_state["wizard_step"] = 3
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT & DISCOUNTS FLOW
-    # --------------------------------------------------------------------------
     elif current_step == 3:
         st.markdown("### **Step 3: Transcript Review & Qualifications**")
         st.markdown("Select your prerequisite deficiencies and apply your discount triggers here.")
@@ -323,8 +301,6 @@ with col_input_flow:
         st.session_state["val_ref"] = w_ref
         st.session_state["val_mil"] = w_mil
         st.session_state["val_promo"] = w_promo
-        
-        # Add-on configuration switch forced off for now
         st.session_state["addon_state"] = False
 
         st.divider()
@@ -344,7 +320,7 @@ with col_input_flow:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL MATCHES
+    # STEP 4: INSTITUTIONAL MATCHES & MODAL COMPLIANCE GATING
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.markdown("### **Step 4: Secure Institutional Match Alignment**")
@@ -386,7 +362,7 @@ with col_input_flow:
         filtered_df = working_schools_df.copy()
 
         # ==============================================================================
-        # MODAL EXAM INTERPRETER DIALOG BOX (WITH CORRECTED CLOSING MATH)
+        # 🧠 ADVANCED COMPLIANCE DIALOG MODAL (FEE-FREE SPECIFICATION)
         # ==============================================================================
         @st.dialog("Confirm & Lock Enrollment Package")
         def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list):
@@ -394,37 +370,23 @@ with col_input_flow:
             st.markdown("---")
             
             modal_base_count = len(valid_courses_list)
-            modal_addons = 2 if has_addons else 0
-            
-            include_exam_prep = False
             classes_waived = 0
             waived_course_name = ""
             user_score_logged = ""
             
             deposit_input = st.session_state["val_deposit"]
             grant_input = st.session_state["val_grant"]
-            discount_match = True
-            is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
-            
-            calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= (150 if is_cna == "CNA/CMA" else 300)) else 0.0
-            calc_referral = 50.0 if st.session_state["val_ref"] == "Yes" else 0.0
-            calc_military = 200.0 if st.session_state["val_mil"] == "Yes" else 0.0
-            
-            m_classes_tier = modal_base_count if modal_base_count > 0 else 1
-            m_price_tier = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
-            
-            calc_free_course = float(m_price_tier) if (st.session_state["val_promo"] == "Yes" and len(needed_courses) >= 3) else 0.0
-            modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
             
             if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
                 st.info("ℹ️ **No Entrance Exam Required:** This institution does not mandate an entrance examination baseline parameter.")
+                st.session_state["modal_include_exam_prep"] = False
             else:
                 st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
-                user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], horizontal=True)
+                user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], horizontal=True, key="modal_has_passed_radio")
                 
                 if user_has_passed == "No":
-                    st.warning(f"⚠️ **Notice:** A passing {school_exam_type} score is required for enrollment. We have added the **{school_exam_type} Prep Course** to your bundle automatically.")
-                    include_exam_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in cart?", value=True)
+                    st.warning(f"⚠️ **Notice:** A passing score is required. We have pre-added the **{school_exam_type} Prep Course** package to your shopping bundle cart.")
+                    st.session_state["modal_include_exam_prep"] = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_1")
                 else:
                     raw_input_score = st.text_input("Enter your official exam score or percentage number:", placeholder="e.g., 75 or 740")
                     user_score_logged = raw_input_score
@@ -470,79 +432,69 @@ with col_input_flow:
 
                         if score_num > 0:
                             if matched_rule_type == "fail":
-                                st.error(f"🛑 **Score Below Target:** Adding **{school_exam_type} Prep Course** to cart on an automated opt-out basis.")
-                                include_exam_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in cart?", value=True)
+                                st.error(f"🛑 **Score Below Target:** Pre-adding the **{school_exam_type} Prep Course** bundle to bridge the proficiency gap.")
+                                st.session_state["modal_include_exam_prep"] = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_2")
                             elif matched_rule_type == "pass":
                                 if age_limit_years:
                                     st.markdown("##### ⏳ Verification Check Required:")
-                                    exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=0)
+                                    exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1)
                                     if exam_age > age_limit_years:
-                                        st.error(f"🛑 **Score Expired:** Older than {age_limit_years} years. Adding Prep Course package.")
-                                        include_exam_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in cart?", value=True)
-                                    else: st.success(f"✅ Verified: Score is active and compliant for enrollment!")
-                                else: st.success(f"✅ Verified: Applicant is compliant for the {school_exam_type} track.")
+                                        st.error(f"🛑 **Score Expired:** Outdated timeline parameters. Pre-adding the prep bundle.")
+                                        st.session_state["modal_include_exam_prep"] = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_3")
+                                    else:
+                                        st.success(f"✅ Verified: Score parameter is active and compliant for enrollment!")
+                                        st.session_state["modal_include_exam_prep"] = False
+                                else:
+                                    st.success(f"✅ Verified: Applicant is compliant for the track.")
+                                    st.session_state["modal_include_exam_prep"] = False
                             elif matched_rule_type == "retest":
                                 st.warning(f"⚠️ **Admission Approved!** {custom_message}")
-                                include_exam_prep = st.checkbox(f"Add **{school_exam_type} Advanced Retest Prep** to maximize credit exemptions?", value=True)
+                                st.session_state["modal_include_exam_prep"] = st.checkbox(f"Add **{school_exam_type} Advanced Retest Prep** to maximize exemptions?", value=True, key="opt_out_chk_4")
                             elif matched_rule_type == "exempt":
-                                st.success(f"🎉 **Elite Score Unlocked!** Automatic exemption granted from **{waived_course_name}** (Saves {classes_waived * 3} credits).")
+                                st.success(f"🎉 **Elite Score Unlocked!** Automatic exemption granted from **{waived_course_name}**.")
+                                st.session_state["modal_include_exam_prep"] = False
 
             st.markdown("---")
             st.markdown("#### Itemized Balance Preview")
             
-            final_base_classes = modal_base_count if modal_base_count > 0 else 1
-            if include_exam_prep: final_base_classes = (modal_base_count + 1) if modal_base_count > 0 else 1
-            elif classes_waived > 0: final_base_classes = max(0, modal_base_count - classes_waived)
+            final_base_classes = modal_base_count
+            if st.session_state["modal_include_exam_prep"]:
+                final_base_classes = modal_base_count + 1
+            elif classes_waived > 0:
+                final_base_classes = max(0, modal_base_count - classes_waived)
                 
-            final_total_classes = (modal_base_count if modal_base_count > 0 else 0) + (1 if include_exam_prep else 0) + modal_addons - classes_waived
-            final_total_classes = max(0, final_total_classes)
+            m_classes_tier = final_base_classes if final_base_classes > 0 else 1
+            m_price_tier = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
+            final_base_total = final_base_classes * m_price_tier
             
-            m_main_p = 1179 if final_base_classes >= 10 else (1229 if final_base_classes >= 4 else 1289)
-            m_addon_p = 749 if final_total_classes >= 10 else (799 if final_total_classes >= 4 else 859)
-            
-            if modal_base_count == 0 and include_exam_prep: final_base_total = (1 * m_main_p) + (modal_addons * m_addon_p)
-            elif modal_base_count == 0 and not include_exam_prep: final_base_total = (modal_addons * m_addon_p)
-            else: final_base_total = (final_base_classes * m_main_p) + (modal_addons * m_addon_p)
-                
-            if is_cna == "CNA/CMA":
-                if final_total_classes == 0: m_reg = 0
-                elif final_total_classes <= 2: m_reg = 150
-                elif final_total_classes <= 7: m_reg = 175
-                elif final_total_classes <= 10: m_reg = 200
-                elif final_total_classes <= 15: m_reg = 250
-                else: m_reg = 300
-            else:
-                if final_total_classes == 0: m_reg = 0
-                elif final_total_classes <= 2: m_reg = 300
-                elif final_total_classes <= 7: m_reg = 325
-                elif final_total_classes <= 10: m_reg = 375
-                elif final_total_classes <= 15: m_reg = 475
-                else: m_reg = 600
+            calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= 300) else 0.0
+            calc_referral = 50.0 if st.session_state["val_ref"] == "Yes" else 0.0
+            calc_military = 200.0 if st.session_state["val_mil"] == "Yes" else 0.0
+            calc_free_course = float(m_price_tier) if (st.session_state["val_promo"] == "Yes" and len(needed_courses) >= 3) else 0.0
+            modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
 
-            # 🔑 FIXED MODAL Equation: Adds Tuition + Registration Fee, then applies credits
-            modal_final_total = max(0.0, (final_base_total + m_reg) - modal_credits_sum)
+            # 🛠️ FEE-FREE MASTER FORMULA: Base Tuition Cost - Applied Credits
+            modal_final_total = max(0.0, final_base_total - modal_credits_sum)
 
-            c1, c2 = st.columns(2)
-            c1.metric("Adjusted Base Total", f"${final_base_total:,.2f}")
-            c2.metric("Registration Fee", f"${m_reg:,.2f}")
-            st.metric("Final Balance Due (With Fees)", f"${modal_final_total:,.2f}")
+            st.metric("Adjusted Base Tuition", f"${final_base_total:,.2f}")
+            st.metric("Final Balance Due", f"${modal_final_total:,.2f}")
             
             if st.button("🔒 Lock in Enrollment Package", key="modal_lock_btn"):
                 st.session_state["confirmed_package"] = {
                     "school_name": school_name,
                     "student_name": st.session_state["val_name"],
                     "base_total": final_base_total,
-                    "reg_fee": m_reg,
+                    "reg_fee": 0.0,
                     "final_total": modal_final_total,
                     "courses_included": valid_courses_list,
-                    "entrance_exam_prep_added": include_exam_prep,
+                    "entrance_exam_prep_added": st.session_state["modal_include_exam_prep"],
                     "entrance_exam_score_logged": user_score_logged,
                     "classes_waived_count": classes_waived,
-                    "addons_active": has_addons
+                    "addons_active": False
                 }
                 st.rerun()
 
-        # Render institutional lists rows
+        # Render rows engine
         if not filtered_df.empty:
             card_rows = []
             for idx, school_row in filtered_df.iterrows():
@@ -624,15 +576,12 @@ with col_input_flow:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. SMART INVOICE CAR LEDGER LAYER (CORRECTED BALANCE MATHEMATICS)
+# 5. SHOPPING CART LEDGER COMPONENT (FEE-FREE REDESIGN)
 # ==============================================================================
 if current_step >= 3 and col_ledger_flow is not None:
     with col_ledger_flow:
         st.markdown("<div style='background-color: #ffffff; padding: 25px; border-radius: 12px; border: 2px solid #1E3A8A; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>", unsafe_allow_html=True)
         st.subheader("🛒 Itemized Invoice Cart")
-        
-        has_addons = st.session_state["addon_state"]
-        license_type = st.session_state["val_lic"]
         
         if current_step == 4 and st.session_state["active_school_view"] is None:
             st.info("👉 Please select an institutional partner row on the left to unlock your customized invoice checkout matrix.")
@@ -643,16 +592,15 @@ if current_step >= 3 and col_ledger_flow is not None:
             else:
                 needed_courses = st.session_state["val_courses"]
 
-            is_completely_empty = (len(needed_courses) == 0 and not has_addons)
-            base_classes = len(needed_courses) if len(needed_courses) > 0 else 1
-            addons_count = 2 if has_addons else 0
-            total_classes = (len(needed_courses) if len(needed_courses) > 0 else 0) + addons_count
+            extra_exam_count = 1 if (current_step == 4 and st.session_state.get("modal_include_exam_prep", False)) else 0
             
-            main_price = 1179 if base_classes >= 10 else (1229 if base_classes >= 4 else 1289)
-            addon_price = 749 if total_classes >= 10 else (799 if total_classes >= 4 else 859)
+            base_classes = len(needed_courses) + extra_exam_count
+            total_classes = base_classes
+            is_completely_empty = (total_classes == 0)
             
-            if len(needed_courses) == 0: base_total = (addons_count * addon_price)
-            else: base_total = (base_classes * main_price) + (addons_count * addon_price)
+            m_classes_tier = base_classes if base_classes > 0 else 1
+            main_price = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
+            base_total = base_classes * main_price
             
             st.markdown("#### Adjustments & Grants")
             deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0.0, value=st.session_state["val_deposit"], step=50.0)
@@ -665,36 +613,18 @@ if current_step >= 3 and col_ledger_flow is not None:
             q_mil = st.session_state["val_mil"]
             q_promo = st.session_state["val_promo"]
 
-            dep_min = 150 if license_type == "CNA/CMA" else 300
-            calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= dep_min) else 0.0
+            calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= 300) else 0.0
             calc_referral = 50.0 if q_ref == "Yes" else 0.0
             calc_military = 200.0 if q_mil == "Yes" else 0.0
             calc_free_course = float(main_price) if (q_promo == "Yes" and len(needed_courses) >= 3) else 0.0
             
             credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
             
-            is_cna = "CNA/CMA" if license_type == "CNA/CMA" else "No"
-            if is_cna == "CNA/CMA":
-                if total_classes == 0: reg_fee = 0
-                elif total_classes <= 2: reg_fee = 150
-                elif total_classes <= 7: reg_fee = 175
-                elif total_classes <= 10: reg_fee = 200
-                elif total_classes <= 15: reg_fee = 250
-                else: reg_fee = 300
-            else:
-                if total_classes == 0: reg_fee = 0
-                elif total_classes <= 2: reg_fee = 300
-                elif total_classes <= 7: reg_fee = 325
-                elif total_classes <= 10: reg_fee = 375
-                elif total_classes <= 15: reg_fee = 475
-                else: reg_fee = 600
-
-            # 🔑 FIXED CORE LEDGER MATH: Gross Base + Registration Fee - Applied Waivers
-            final_total = max(0.0, (base_total + reg_fee) - credits_sum)
+            # 🛠️ CLEANED MATHEMATICAL LEDGER FORMULA: Pure Tuition - Applied Credits
+            final_total = max(0.0, base_total - credits_sum)
 
             st.divider()
             st.markdown(f"**Gross Base Tuition:** `${0.00 if is_completely_empty else base_total:,.2f}`")
-            st.markdown(f"**Registration Fee:** `${0.00 if is_completely_empty else reg_fee:,.2f}`")
             st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
             
             if q_promo == "Yes" and len(needed_courses) < 3:
@@ -703,14 +633,13 @@ if current_step >= 3 and col_ledger_flow is not None:
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
         st.markdown("</div>", unsafe_allow_html=True)
 
-# Global Back-alley clear button
+# Global Clear Utility Row
 st.markdown("<br>", unsafe_allow_html=True)
 reset_spacer, reset_btn_block = st.columns([3.0, 1.0])
 with reset_btn_block:
     if st.button("🔄 Restart Process", type="secondary", use_container_width=True):
         restart_wizard()
 
-# Success state blocking contain scripts
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
     st.balloons()
