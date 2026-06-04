@@ -4,11 +4,10 @@ import os
 import re
 
 # ==============================================================================
-# 0. 🖥️ PROFESSIONAL 1200PX MAXIMUM WORKSPACE GRID INJECTION
+# 0. DESKTOP GRID & SELECTION CHIP CSS INJECTION
 # ==============================================================================
 st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
-# Restricts maximum data width to standard desktop viewport paradigms to stop flat stretching
 st.markdown("""
     <style>
     /* Centers and caps the main form body layout so fields don't stretch infinitely */
@@ -36,7 +35,7 @@ if "addon_state" not in st.session_state: st.session_state["addon_state"] = Fals
 if "active_school_view" not in st.session_state: st.session_state["active_school_view"] = None
 if "modal_include_exam_prep" not in st.session_state: st.session_state["modal_include_exam_prep"] = False
 
-# Persistent Memory Stores (Protected from Garbage Collection)
+# Persistent Memory Stores
 if "val_name" not in st.session_state: st.session_state["val_name"] = ""
 if "val_state" not in st.session_state: st.session_state["val_state"] = "Select state"
 if "val_zip" not in st.session_state: st.session_state["val_zip"] = ""
@@ -44,7 +43,6 @@ if "val_adult" not in st.session_state: st.session_state["val_adult"] = "Yes"
 if "val_gpa" not in st.session_state: st.session_state["val_gpa"] = 4.00
 if "val_gpa_unknown" not in st.session_state: st.session_state["val_gpa_unknown"] = False
 
-# 🔧 UPDATED LICENSE DEFAULT POINTER
 if "val_lic" not in st.session_state: st.session_state["val_lic"] = "None / Other"
 if "val_exp" not in st.session_state: st.session_state["val_exp"] = 0
 if "val_dismiss" not in st.session_state: st.session_state["val_dismiss"] = "No"
@@ -66,7 +64,7 @@ def restart_wizard():
     st.rerun()
 
 # ==============================================================================
-# 2. DATA SOURCE IMPORT PIPELINE LOADER
+# 2. DATA SOURCE IMPORTERS (STABLE LOADER PIPELINE)
 # ==============================================================================
 SCHOOLS_CSV = "schools.csv"
 TRANSCRIPT_CSV = "transcript_rules.csv"
@@ -77,7 +75,7 @@ if os.path.exists(SCHOOLS_CSV):
     for col in master_schools_df.select_dtypes(include=['object']).columns:
         master_schools_df[col] = master_schools_df[col].astype(str).str.strip()
 else:
-    st.error("⚠️ Master database file schools.csv input missing.")
+    st.error("⚠️ Master database file schools.csv not found.")
     st.stop()
 
 if os.path.exists(TRANSCRIPT_CSV):
@@ -87,11 +85,11 @@ if os.path.exists(TRANSCRIPT_CSV):
         transcript_rules_df[col] = transcript_rules_df[col].astype(str).str.strip()
     transcript_rules_df.columns = transcript_rules_df.columns.str.strip()
 else:
-    st.error("⚠️ Validation sheet transcript_rules.csv input missing.")
+    st.error("⚠️ Transcript validation file transcript_rules.csv not found.")
     st.stop()
 
 # ==============================================================================
-# 3. OPTIONS LOOKUP ARRAYS
+# 3. GLOBAL ROUTING OPTIONS MATRIX
 # ==============================================================================
 STATE_OPTIONS = [
     "Select state", "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -101,8 +99,6 @@ STATE_OPTIONS = [
 ]
 BINARY_OPTIONS = ["Yes", "No"]
 DISMISSAL_OPTIONS = ["No", "Yes"]
-
-# 🔑 FIXED TIER LICENSE SELECTION ARRAY
 LICENSE_OPTIONS = ["None / Other", "LPN", "CNA/CMA"]
 TRACK_OPTIONS = ["BSN", "ASN"]
 
@@ -115,23 +111,164 @@ course_list = [
 
 current_step = st.session_state["wizard_step"]
 
-# Timeline Tracker Header (Preserves strict horizontal text spacing alignments)
+# Main Interface App Header
+st.title("🗺️ Bridge Plan Generator")
+
+# ==============================================================================
+# 🔧 GLOBALLY SCOPED INTERPRETER DIALOG BOX (CRASH IMMUNE)
+# ==============================================================================
+@st.dialog("Confirm & Lock Enrollment Package")
+def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list, school_card_ref):
+    st.markdown(f"### 📋 Reviewing: **{school_name}**")
+    st.markdown("---")
+    
+    modal_base_count = len(valid_courses_list)
+    classes_waived = 0
+    waived_course_name = ""
+    user_score_logged = ""
+    
+    deposit_input = st.session_state["val_deposit"]
+    grant_input = st.session_state["val_grant"]
+    local_include_prep = False
+    
+    if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
+        st.info("ℹ️ Entrance testing validation controls bypassed for this partner track blueprint.")
+        local_include_prep = False
+    else:
+        st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
+        user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], horizontal=True, key="modal_has_passed_radio")
+        
+        if user_has_passed == "No":
+            st.warning(f"⚠️ Notice: We have added the required **{school_exam_type} Prep Course** to your configuration bundle layout.")
+            local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_1")
+        else:
+            raw_input_score = st.text_input("Enter your official testing score number:", placeholder="e.g., 75 or 740")
+            user_score_logged = raw_input_score
+            
+            if raw_input_score:
+                clean_score_str = re.sub(r'[^\d.]', '', raw_input_score)
+                score_num = float(clean_score_str) if clean_score_str else 0.0
+                
+                notes_str = str(school_exam_notes).strip()
+                rules = notes_str.split('|')
+                
+                matched_rule_type = "fail" 
+                custom_message = ""
+                age_limit_years = None
+                age_question_text = ""
+                
+                for rule in rules:
+                    parts = rule.split(':')
+                    if not parts or parts[0] == "": continue
+                    condition = parts[0].strip()
+                    
+                    if '-' in condition:
+                        try:
+                            low, high = map(float, condition.split('-'))
+                            if low <= score_num <= high:
+                                    matched_rule_type = parts[1].strip()
+                                    custom_message = parts[2].strip() if len(parts) > 2 else ""
+                        except ValueError: pass
+                    elif '+' in condition:
+                        try:
+                            floor_val = float(condition.replace('+', ''))
+                            if score_num >= floor_val:
+                                matched_rule_type = parts[1].strip()
+                                if matched_rule_type == "exempt":
+                                    classes_waived = int(parts[2].strip())
+                                    waived_course_name = parts[3].strip()
+                                elif matched_rule_type == "pass" and len(parts) > 2:
+                                    custom_message = parts[2].strip()
+                        except ValueError: pass
+                    elif condition == "age":
+                        age_limit_years = int(parts[1].strip())
+                        age_question_text = parts[2].strip()
+
+                if score_num > 0:
+                    if matched_rule_type == "fail":
+                        st.error(f"🛑 Testing standard parameters report sub-admissions averages. Injecting **{school_exam_type} Prep Course** layout options.")
+                        local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_2")
+                    elif matched_rule_type == "pass":
+                        if age_limit_years:
+                            st.markdown("##### ⏳ Verification Check Required:")
+                            exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1)
+                            if exam_age > age_limit_years:
+                                st.error(f"🛑 Active testing score profile has expired. Pre-adding verification bundle.")
+                                local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_3")
+                            else:
+                                st.success(f"✅ Verified: Compliance testing variables remain valid and verified!")
+                                local_include_prep = False
+                        else:
+                            st.success(f"✅ Verified: Gating layer parameters cleared safely.")
+                            local_include_prep = False
+                    elif matched_rule_type == "retest":
+                        st.warning(f"⚠️ Registration parameters update checked. {custom_message}")
+                        local_include_prep = st.checkbox(f"Add **{school_exam_type} Advanced Retest Prep** variables?", value=True, key="opt_out_chk_4")
+                    elif matched_rule_type == "exempt":
+                        st.success(f"🎉 Exemption waiver layer unlocked from **{waived_course_name}**.")
+                        local_include_prep = False
+
+        st.markdown("---")
+        st.markdown("#### Itemized Balance Preview")
+        
+        final_base_classes = modal_base_count
+        if local_include_prep:
+            final_base_classes = modal_base_count + 1
+        elif classes_waived > 0:
+            final_base_classes = max(0, modal_base_count - classes_waived)
+            
+        m_classes_tier = final_base_classes if final_base_classes > 0 else 1
+        m_price_tier = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
+        final_base_total = final_base_classes * m_price_tier
+        
+        calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= 300) else 0.0
+        calc_referral = 50.0 if st.session_state["val_ref"] == "Yes" else 0.0
+        calc_military = 200.0 if st.session_state["val_mil"] == "Yes" else 0.0
+        
+        # Lookahead verification hook
+        calc_free_course = float(m_price_tier) if (st.session_state["val_promo"] == "Yes" and modal_base_count >= 3) else 0.0
+        modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
+        modal_final_total = max(0.0, final_base_total - modal_credits_sum)
+
+        st.metric("Adjusted Base Tuition Cost", f"${final_base_total:,.2f}")
+        st.metric("Final Balance Due", f"${modal_final_total:,.2f}")
+        
+        if st.button("🔒 Lock in Enrollment Package", key="modal_lock_btn", use_container_width=True):
+            st.session_state["modal_include_exam_prep"] = local_include_prep
+            st.session_state["active_school_view"] = school_card_ref
+            st.session_state["confirmed_package"] = {
+                "school_name": school_name,
+                "student_name": st.session_state["val_name"],
+                "base_total": final_base_total,
+                "reg_fee": 0.0,
+                "final_total": modal_final_total,
+                "courses_included": valid_courses_list,
+                "entrance_exam_prep_added": local_include_prep,
+                "entrance_exam_score_logged": user_score_logged,
+                "classes_waived_count": classes_waived,
+                "addons_active": False
+            }
+            st.rerun()
+
+# ==============================================================================
+# 🔧 NATIVE TEXT PROGRESS BAR (NO WHITE BACKGROUND BOXES)
+# ==============================================================================
 st.markdown(
     f"""
-    <div style="display: flex; justify-content: space-between; align-items: center; background-color: #ffffff; padding: 15px 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 25px; width: 100%;">
-        <span style="font-weight: {'bold' if current_step==1 else 'normal'}; color: {'#1E3A8A' if current_step==1 else ('#10B981' if current_step>1 else '#94a3b8')};">{'✅ ' if current_step>1 else ''}1. Identity Profile</span>
-        <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
-        <span style="font-weight: {'bold' if current_step==2 else 'normal'}; color: {'#1E3A8A' if current_step==2 else ('#10B981' if current_step>2 else '#94a3b8')};">{'✅ ' if current_step>2 else ''}2. Baseline Profile</span>
-        <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
-        <span style="font-weight: {'bold' if current_step==3 else 'normal'}; color: {'#1E3A8A' if current_step==3 else ('#10B981' if current_step>3 else '#94a3b8')};">{'✅ ' if current_step>3 else ''}3. Transcripts Review</span>
-        <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
-        <span style="font-weight: {'bold' if current_step==4 else 'normal'}; color: {'#1E3A8A' if current_step==4 else '#94a3b8'};">4. School Matches</span>
+    <div style="font-family: sans-serif; font-size: 15px; font-weight: 500; color: #475569; padding-bottom: 20px;">
+        <span style="color: {'#1E3A8A' if current_step==1 else '#10B981'}; font-weight: {'bold' if current_step==1 else 'normal'};">{'✅ ' if current_step>1 else ''}1. Identity</span> 
+        <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
+        <span style="color: {'#1E3A8A' if current_step==2 else ('#10B981' if current_step>2 else '#94a3b8')}; font-weight: {'bold' if current_step==2 else 'normal'};">{'✅ ' if current_step>2 else ''}2. Baseline</span> 
+        <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
+        <span style="color: {'#1E3A8A' if current_step==3 else ('#10B981' if current_step>3 else '#94a3b8')}; font-weight: {'bold' if current_step==3 else 'normal'};">{'✅ ' if current_step>3 else ''}3. Transcripts Review</span> 
+        <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
+        <span style="color: {'#1E3A8A' if current_step==4 else '#94a3b8'}; font-weight: {'bold' if current_step==4 else 'normal'};">4. School Matches</span>
     </div>
     """, 
     unsafe_allow_html=True
 )
 
-# Establish standard layout splits parameters maps
+# Set grid containers
 if current_step == 4:
     col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
 else:
@@ -144,7 +281,7 @@ with col_input_flow:
     # STEP 1: IDENTITY PROFILE AREA
     # --------------------------------------------------------------------------
     if current_step == 1:
-        st.subheader("Step 1: Identity & Territory Parameters")
+        st.subheader("Step 1: Identity Profile Parameters")
         st.markdown("Capture your residency territory parameters to verify regional institutional compliance channels.")
         st.divider()
         
@@ -153,11 +290,10 @@ with col_input_flow:
         i_zip = st.text_input("What is your zip code?", value=st.session_state["val_zip"], placeholder="e.g. 19013", max_chars=14)
         i_adult = st.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_adult"]))
         
-        # 🔑 FIXED GPA CONDITIONAL OVERRIDE ENGAGEMENT
+        # 🔑 GPA UNKNOWN SAFEGUARD OVERRIDE FIELD
         i_gpa_unknown = st.checkbox("I don't know my cumulative GPA", value=st.session_state["val_gpa_unknown"])
         
         if i_gpa_unknown:
-            # Force standard 4.0 fallback parameter limits if check fires true
             st.session_state["val_gpa"] = 4.00
             i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=4.00, step=0.01, disabled=True)
         else:
@@ -182,7 +318,7 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 2: PROFESSIONAL BACKGROUND History
+    # STEP 2: PROFESSIONAL HISTORY LAYERS
     # --------------------------------------------------------------------------
     elif current_step == 2:
         st.subheader("Step 2: Professional Licensing & History")
@@ -226,11 +362,11 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT review CHECKLIST PANEL view
+    # STEP 3: TRANSCRIPT DEFICIENCIES SUBMITTAL CHECKLIST
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Transcript Review")
-        st.markdown("Check off any credit course deficiencies you still need to fulfill through a partner track program.")
+        st.markdown("Select your required prerequisite deficiencies and apply discount criteria parameters.")
         st.divider()
         
         st.multiselect(
@@ -241,7 +377,7 @@ with col_input_flow:
         )
         st.session_state["val_courses"] = st.session_state["temp_courses"]
         
-        st.markdown("#### **Promotional Qualifications & Discounts**")
+        st.markdown("#### Promotional Qualifications & Discounts")
         w_ref = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True)
         w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True)
         
@@ -268,144 +404,9 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL COHORT MATCH ENGINE RESULTS
+    # STEP 4: SCHOOL RESULTS
     # --------------------------------------------------------------------------
     elif current_step == 4:
-        @st.dialog("Confirm & Lock Enrollment Package")
-        def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list, school_card_ref):
-            st.markdown(f"### 📋 Reviewing: **{school_name}**")
-            st.markdown("---")
-            
-            modal_base_count = len(valid_courses_list)
-            classes_waived = 0
-            waived_course_name = ""
-            user_score_logged = ""
-            
-            deposit_input = st.session_state["val_deposit"]
-            grant_input = st.session_state["val_grant"]
-            local_include_prep = False
-            
-            if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-                st.info("ℹ️ Entrance testing controls waived for this campus partner blueprint.")
-                local_include_prep = False
-            else:
-                st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
-                user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], horizontal=True, key="modal_has_passed_radio")
-                
-                if user_has_passed == "No":
-                    st.warning(f"⚠️ Notice: We have added the required **{school_exam_type} Prep Course** to your bundle list.")
-                    local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_1")
-                else:
-                    raw_input_score = st.text_input("Enter your official testing score number:", placeholder="e.g., 75 or 740")
-                    user_score_logged = raw_input_score
-                    
-                    if raw_input_score:
-                        clean_score_str = re.sub(r'[^\d.]', '', raw_input_score)
-                        score_num = float(clean_score_str) if clean_score_str else 0.0
-                        
-                        notes_str = str(school_exam_notes).strip()
-                        rules = notes_str.split('|')
-                        
-                        matched_rule_type = "fail" 
-                        custom_message = ""
-                        age_limit_years = None
-                        age_question_text = ""
-                        
-                        for rule in rules:
-                            parts = rule.split(':')
-                            if not parts or parts[0] == "": continue
-                            condition = parts[0].strip()
-                            
-                            if '-' in condition:
-                                try:
-                                    low, high = map(float, condition.split('-'))
-                                    if low <= score_num <= high:
-                                        matched_rule_type = parts[1].strip()
-                                        custom_message = parts[2].strip() if len(parts) > 2 else ""
-                                except ValueError: pass
-                            elif '+' in condition:
-                                try:
-                                    floor_val = float(condition.replace('+', ''))
-                                    if score_num >= floor_val:
-                                        matched_rule_type = parts[1].strip()
-                                        if matched_rule_type == "exempt":
-                                            classes_waived = int(parts[2].strip())
-                                            waived_course_name = parts[3].strip()
-                                        elif matched_rule_type == "pass" and len(parts) > 2:
-                                            custom_message = parts[2].strip()
-                                except ValueError: pass
-                            elif condition == "age":
-                                age_limit_years = int(parts[1].strip())
-                                age_question_text = parts[2].strip()
-
-                        if score_num > 0:
-                            if matched_rule_type == "fail":
-                                st.error(f"🛑 Testing metrics fall below target. Injecting **{school_exam_type} Prep Course** bundle options.")
-                                local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_2")
-                            elif matched_rule_type == "pass":
-                                if age_limit_years:
-                                    st.markdown("##### ⏳ Verification Check Required:")
-                                    exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1)
-                                    if exam_age > age_limit_years:
-                                        st.error(f"🛑 Active testing context has expired. Pre-adding verification bundle parameter controls.")
-                                        local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_3")
-                                    else:
-                                        st.success(f"✅ Verified: Compliance testing variables remain valid and verified!")
-                                        local_include_prep = False
-                                else:
-                                    st.success(f"✅ Verified: Gating layer parameters cleared safely.")
-                                    local_include_prep = False
-                            elif matched_rule_type == "retest":
-                                st.warning(f"⚠️ Registration parameters update checked. {custom_message}")
-                                local_include_prep = st.checkbox(f"Add **{school_exam_type} Advanced Retest Prep** variables?", value=True, key="opt_out_chk_4")
-                            elif matched_rule_type == "exempt":
-                                st.success(f"🎉 Exemption waiver layer unlocked from **{waived_course_name}**.")
-                                local_include_prep = False
-
-        st.markdown("---")
-        st.markdown("#### Itemized Balance Preview")
-        
-        final_base_classes = modal_base_count
-        if local_include_prep:
-            final_base_classes = modal_base_count + 1
-        elif classes_waived > 0:
-            final_base_classes = max(0, modal_base_count - classes_waived)
-            
-        m_classes_tier = final_base_classes if final_base_classes > 0 else 1
-        m_price_tier = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
-        final_base_total = final_base_classes * m_price_tier
-        
-        calc_dep_match = min(deposit_input, 1000.0) if (deposit_input >= 300) else 0.0
-        calc_referral = 50.0 if st.session_state["val_ref"] == "Yes" else 0.0
-        calc_military = 200.0 if st.session_state["val_mil"] == "Yes" else 0.0
-        calc_free_course = float(m_price_tier) if (st.session_state["val_promo"] == "Yes" and modal_base_count >= 3) else 0.0
-        modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
-        modal_final_total = max(0.0, final_base_total - modal_credits_sum)
-
-        st.metric("Adjusted Base Tuition Cost", f"${final_base_total:,.2f}")
-        st.metric("Final Balance Due", f"${modal_final_total:,.2f}")
-        
-        if st.button("🔒 Lock in Enrollment Package", key="modal_lock_btn", use_container_width=True):
-            st.session_state["modal_include_exam_prep"] = local_include_prep
-            st.session_state["active_school_view"] = school_card_ref
-            st.session_state["confirmed_package"] = {
-                "school_name": school_name,
-                "student_name": st.session_state["val_name"],
-                "base_total": final_base_total,
-                "reg_fee": 0.0,
-                "final_total": modal_final_total,
-                "courses_included": valid_courses_list,
-                "entrance_exam_prep_added": local_include_prep,
-                "entrance_exam_score_logged": user_score_logged,
-                "classes_waived_count": classes_waived,
-                "addons_active": False
-            }
-            st.rerun()
-
-        st.subheader("Secure Institutional Match Alignment")
-        st.markdown("Review eligible program choices generated by your background profiles filter arrays:")
-        st.divider()
-        
         student_state = st.session_state["val_state"]
         selected_state = str(student_state).strip().upper()
         selected_track = str(st.session_state["val_track"]).strip().upper()
@@ -439,6 +440,7 @@ with col_input_flow:
 
         filtered_df = working_schools_df.copy()
 
+        # 🔑 SECURE METRICS BLOCK RENDERING (WIDESCREEN ADJUSTED CODES)
         if not filtered_df.empty:
             card_rows = []
             for idx, school_row in filtered_df.iterrows():
@@ -493,19 +495,18 @@ with col_input_flow:
                 with st.container(border=True):
                     courses_text_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
                     
-                    # 🛠️ HORIZONTAL clearance RATIO ADJUSTED TO PREVENT HORIZONTAL CUTOFFS
-                    s_left_col, s_right_col = st.columns([2.8, 1.2])
+                    s_left_col, s_right_col = st.columns([3.0, 1.0])
                     with s_left_col:
                         st.markdown(f"### 🏫 **{card['name']}**")
-                        st.markdown(f"**Degree Track Program:** `{card['track']}`")
-                        st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* **{courses_text_string}**")
+                        st.markdown(f"**Graduation Degree Track:** `{card['track']} Tier`")
+                        st.markdown(f"🧬 *Deficiencies Met ({len(card['accepted_courses'])}):* **{courses_text_string}**")
                     with s_right_col:
                         st.metric(label="Est Profit Margin", value=f"${card['profit']:,.2f}")
                     
                     if st.button("Select School & Fulfill Deficiencies", key=f"btn_card_sel_{card['idx']}", use_container_width=True, type="primary"):
                         render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"], card)
         else:
-            st.warning("No partner institutions match your background parameters metrics layers configuration parameters.")
+            st.warning("No partner institutions match your background parameters filter arrays.")
         
         st.divider()
         b_spacer, b_back = st.columns([3.0, 1.0])
@@ -516,14 +517,14 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# SHOPPING CART LEDGER ENGINE COMPONENT BLOCK
+# SHOPPING CART LEDGER COMPONENT (SYNCHRONIZED DEEP BIND LOOP)
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Itemized Invoice Cart")
         
         if st.session_state["confirmed_package"] is None:
-            st.info("👉 Please click 'Select School' on any partner institution row option on the left to verify compliance data and unlock itemized ledger statements calculations details.")
+            st.info("👉 Please click 'Select School' on any partner institution row option on the left to verify compliance parameters and display invoice data calculations.")
         else:
             needed_courses = st.session_state["active_school_view"]["accepted_courses"]
             st.success(f"🎯 Target Locked: **{st.session_state['active_school_view']['name']}**")
@@ -547,7 +548,6 @@ if col_ledger_flow is not None:
             q_ref = st.session_state["val_ref"]
             q_mil = st.session_state["val_mil"]
             
-            # Lookahead check directly targets school deficiency lists boundaries
             if len(needed_courses) >= 3:
                 q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio")
                 st.session_state["val_promo"] = q_promo
@@ -568,7 +568,7 @@ if col_ledger_flow is not None:
             st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
 
-# Global baseline cache wipe footer tool
+# Restart Process layout
 st.markdown("<br><br>", unsafe_allow_html=True)
 f_col1, f_col2 = st.columns([3.0, 1.0])
 with f_col2:
