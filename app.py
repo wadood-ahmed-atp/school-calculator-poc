@@ -4,7 +4,7 @@ import os
 import re
 
 # ==============================================================================
-# 1. INITIALIZE PERSISTENT APP MEMORY VAULTS
+# 1. PERSISTENT WIZARD VALUE INITIALIZATION ENGINE
 # ==============================================================================
 if "wizard_step" not in st.session_state: st.session_state["wizard_step"] = 1
 if "confirmed_package" not in st.session_state: st.session_state["confirmed_package"] = None
@@ -12,7 +12,7 @@ if "addon_state" not in st.session_state: st.session_state["addon_state"] = Fals
 if "active_school_view" not in st.session_state: st.session_state["active_school_view"] = None
 if "modal_include_exam_prep" not in st.session_state: st.session_state["modal_include_exam_prep"] = False
 
-# Form Memory Values
+# Persistent Memory Stores (Protected from Garbage Collection)
 if "val_name" not in st.session_state: st.session_state["val_name"] = ""
 if "val_state" not in st.session_state: st.session_state["val_state"] = "Select state"
 if "val_zip" not in st.session_state: st.session_state["val_zip"] = ""
@@ -36,10 +36,11 @@ if "val_promo" not in st.session_state: st.session_state["val_promo"] = "No"
 def restart_wizard():
     for key in list(st.session_state.keys()):
         del st.session_state[key]
+    st.session_state["wizard_step"] = 1
     st.rerun()
 
 # ==============================================================================
-# 2. DATA SOURCE ROUTING LOADER
+# 2. DATA IMPORT PIPELINE LOADER
 # ==============================================================================
 SCHOOLS_CSV = "schools.csv"
 TRANSCRIPT_CSV = "transcript_rules.csv"
@@ -50,7 +51,7 @@ if os.path.exists(SCHOOLS_CSV):
     for col in master_schools_df.select_dtypes(include=['object']).columns:
         master_schools_df[col] = master_schools_df[col].astype(str).str.strip()
 else:
-    st.error("⚠️ Database missing: schools.csv not found.")
+    st.error("⚠️ Master database file schools.csv not found.")
     st.stop()
 
 if os.path.exists(TRANSCRIPT_CSV):
@@ -60,11 +61,11 @@ if os.path.exists(TRANSCRIPT_CSV):
         transcript_rules_df[col] = transcript_rules_df[col].astype(str).str.strip()
     transcript_rules_df.columns = transcript_rules_df.columns.str.strip()
 else:
-    st.error("⚠️ Validation rules missing: transcript_rules.csv not found.")
+    st.error("⚠️ Transcript validation file transcript_rules.csv not found.")
     st.stop()
 
 # ==============================================================================
-# 3. GLOBAL CONFIG MATRICES
+# 3. GLOBAL LOOKUP PARAMETERS
 # ==============================================================================
 STATE_OPTIONS = [
     "Select state", "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -84,45 +85,14 @@ course_list = [
     "Macro/Micro Economics", "Elective 1", "Elective 2"
 ]
 
-# ==============================================================================
-# 4. SIDEBAR NAVIGATION DECK LAYER
-# ==============================================================================
-with st.sidebar:
-    st.title("🧭 Navigation Deck")
-    
-    step_labels = [
-        "1. Identity Profile",
-        "2. Baseline Profile",
-        "3. Transcripts Review",
-        "4. School Matches"
-    ]
-    
-    # Track the active navigation option using an index state pointer mapping
-    selected_nav_label = st.radio(
-        "Jump directly to any process step:",
-        options=step_labels,
-        index=st.session_state["wizard_step"] - 1,
-        key="sidebar_nav_radio"
-    )
-    
-    # Sync radio click actions back to core state machine cleanly
-    nav_index = step_labels.index(selected_nav_label) + 1
-    if nav_index != st.session_state["wizard_step"]:
-        st.session_state["wizard_step"] = nav_index
-        st.rerun()
-        
-    st.divider()
-    if st.button("🔄 Reset Form Data", use_container_width=True, type="secondary"):
-        restart_wizard()
-
 current_step = st.session_state["wizard_step"]
 
-# Main Layout Heading
+# Main Layout Frame Header
 st.title("🗺️ Bridge Plan Generator")
-st.markdown(f"#### **Step {current_step} of 4: {step_labels[current_step-1][3:]}**")
+st.markdown(f"#### **Self-Serve Enrollment Flow — Step {current_step} of 4**")
 st.divider()
 
-# Set standard responsive split parameters across layouts
+# Establish standard responsive side layout split contexts
 if current_step == 4:
     col_input_flow, col_ledger_flow = st.columns([1.4, 1.0], gap="medium")
 else:
@@ -132,11 +102,11 @@ else:
 with col_input_flow:
 
     # --------------------------------------------------------------------------
-    # STEP 1: IDENTITY PROFILE AREA
+    # STEP 1: IDENTITY PROFILE
     # --------------------------------------------------------------------------
     if current_step == 1:
-        st.markdown("### Welcome & Identity Profile")
-        st.markdown("Let's capture your baseline state parameters to parse regional institutional compliance loops.")
+        st.markdown("### Step 1: Identity & Territory Parameters")
+        st.markdown("Capture your residency territory values to check localized partner matching options.")
         
         i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name")
         i_state = st.selectbox("Select your residency home state:", options=STATE_OPTIONS, index=STATE_OPTIONS.index(st.session_state["val_state"]))
@@ -145,9 +115,9 @@ with col_input_flow:
         i_gpa = st.number_input("What is your current cumulative GPA Score?", min_value=0.0, max_value=4.0, value=st.session_state["val_gpa"], step=0.01)
         
         st.divider()
-        b_col1, b_col2 = st.columns([3.0, 1.0])
-        with b_col2:
-            if st.button("Continue ➡️", use_container_width=True, type="primary"):
+        b_spacer, b_continue = st.columns([3.0, 1.0])
+        with b_continue:
+            if st.button("Continue ➡️", use_container_width=True, type="primary", key="step1_continue_btn"):
                 if i_state == "Select state":
                     st.warning("⚠️ Please select a valid state territory before moving forward.")
                 elif i_adult == "No":
@@ -162,11 +132,11 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 2: HEALTHCARE PROFILE LAYERS
+    # STEP 2: PROFESSIONAL BACKGROUND HISTORY
     # --------------------------------------------------------------------------
     elif current_step == 2:
-        st.markdown("### Professional Licensing & History")
-        st.markdown("Tell us about your background to clear experience validation matrices.")
+        st.markdown("### Step 2: Professional Licensing & History")
+        st.markdown("Tell us about your background parameter scores to clear regulatory checking checks.")
         
         i_lic = st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=LICENSE_OPTIONS.index(st.session_state["val_lic"]))
         i_exp = st.session_state["val_exp"]
@@ -176,15 +146,15 @@ with col_input_flow:
         i_dismiss = st.selectbox("Do you possess a prior academic nursing program dismissal?", options=DISMISSAL_OPTIONS, index=DISMISSAL_OPTIONS.index(st.session_state["val_dismiss"]))
         i_dismiss_mos = st.session_state["val_dismiss_mos"]
         if i_dismiss == "Yes":
-            i_dismiss_mos = st.number_input("Months elapsed since your historical dismissal date:", min_value=0, max_value=300, value=st.session_state["val_dismiss_mos"], step=1)
+            i_dismiss_mos = st.number_input("Months elapsed since your historical academic dismissal date:", min_value=0, max_value=300, value=st.session_state["val_dismiss_mos"], step=1)
             
         i_travel = st.selectbox("Are you amenable to regional clinical onsite travel loops?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]))
-        i_track = st.selectbox("Which nursing track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]))
+        i_track = st.selectbox("Which nursing program track tier are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]))
         
         st.divider()
-        b_col1, b_col2, b_col3 = st.columns([2.0, 1.0, 1.0])
-        with b_col2:
-            if st.button("⬅️ Back", use_container_width=True):
+        b_spacer, b_back, b_continue = st.columns([2.0, 1.0, 1.0])
+        with b_back:
+            if st.button("⬅️ Back", use_container_width=True, key="step2_back_btn"):
                 st.session_state["val_lic"] = i_lic
                 st.session_state["val_exp"] = i_exp
                 st.session_state["val_dismiss"] = i_dismiss
@@ -193,8 +163,8 @@ with col_input_flow:
                 st.session_state["val_track"] = i_track
                 st.session_state["wizard_step"] = 1
                 st.rerun()
-        with b_col3:
-            if st.button("Continue ➡️", use_container_width=True, type="primary"):
+        with b_continue:
+            if st.button("Continue ➡️", use_container_width=True, type="primary", key="step2_continue_btn"):
                 st.session_state["val_lic"] = i_lic
                 st.session_state["val_exp"] = i_exp
                 st.session_state["val_dismiss"] = i_dismiss
@@ -205,11 +175,11 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT review FORM
+    # STEP 3: TRANSCRIPT DEFICIENCIES SUBMITTAL CHECKLIST
     # --------------------------------------------------------------------------
     elif current_step == 3:
-        st.markdown("### Foundational Transcript Review")
-        st.markdown("Select your required prerequisite deficiencies and apply discount criteria parameters.")
+        st.markdown("### Step 3: Foundational Transcript Review")
+        st.markdown("Check off any credit deficiencies you still need to complete through a partner.")
         
         st.multiselect(
             "Check the boxes for courses you still NEED to complete:",
@@ -223,6 +193,7 @@ with col_input_flow:
         w_ref = st.radio("Were you referred by a student or agent?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True)
         w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True)
         
+        # Keep lookahead tracking synchronized for wide single page views
         if len(st.session_state["val_courses"]) >= 3:
             w_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True)
             st.session_state["val_promo"] = w_promo
@@ -234,23 +205,23 @@ with col_input_flow:
         st.session_state["addon_state"] = False
 
         st.divider()
-        b_col1, b_col2, b_col3 = st.columns([2.0, 1.0, 1.0])
-        with b_col2:
-            if st.button("⬅️ Back", use_container_width=True):
+        b_spacer, b_back, b_continue = st.columns([2.0, 1.0, 1.0])
+        with b_back:
+            if st.button("⬅️ Back", use_container_width=True, key="step3_back_btn"):
                 st.session_state["wizard_step"] = 2
                 st.rerun()
-        with b_col3:
-            if st.button("Find Matches ➡️", use_container_width=True, type="primary"):
+        with b_continue:
+            if st.button("Find Matches ➡️", use_container_width=True, type="primary", key="step3_continue_btn"):
                 st.session_state["active_school_view"] = None
                 st.session_state["wizard_step"] = 4
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL MATCH GENERATOR ROWS
+    # STEP 4: INSTITUTIONAL COHORT MATRIX MATCH RESULTS
     # --------------------------------------------------------------------------
     elif current_step == 4:
-        st.markdown("### Secure Institutional Match Alignment")
-        st.markdown("Review the eligible educational institutions calculated from your intake profile parameters:")
+        st.markdown("### Step 4: Secure Institutional Match Alignment")
+        st.markdown("Review the eligible educational institutions calculated from your profile parameters:")
         
         student_state = st.session_state["val_state"]
         selected_state = str(student_state).strip().upper()
@@ -286,7 +257,7 @@ with col_input_flow:
         filtered_df = working_schools_df.copy()
 
         # ==============================================================================
-        # STANDARD DIALOG MODAL LAYOUT INFRASTRUCTURE
+        # MODAL EVALUATION POPUP DIALOG CAPABILITIES
         # ==============================================================================
         @st.dialog("Confirm & Lock Enrollment Package")
         def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list, school_card_ref):
@@ -303,17 +274,17 @@ with col_input_flow:
             local_include_prep = False
             
             if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-                st.info("ℹ️ Entrance exam parameter checks waived for this campus blueprint.")
+                st.info("ℹ️ Entrance exam compliance steps waived for this campus partner blueprint.")
                 local_include_prep = False
             else:
                 st.markdown(f"#### 🔒 Entrance Exam Compliance Gating")
                 user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], horizontal=True, key="modal_has_passed_radio")
                 
                 if user_has_passed == "No":
-                    st.warning(f"⚠️ Notice: We have added the required **{school_exam_type} Prep Course** package to your configuration list.")
-                    local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in bundle?", value=True, key="opt_out_chk_1")
+                    st.warning(f"⚠️ Notice: We have appended the required **{school_exam_type} Prep Course** layout tier to your checkout profile list.")
+                    local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_1")
                 else:
-                    raw_input_score = st.text_input("Enter your official exam score number:", placeholder="e.g., 75 or 740")
+                    raw_input_score = st.text_input("Enter your official exam score or percentage tracking metrics number:", placeholder="e.g., 75 or 740")
                     user_score_logged = raw_input_score
                     
                     if raw_input_score:
@@ -357,26 +328,26 @@ with col_input_flow:
 
                         if score_num > 0:
                             if matched_rule_type == "fail":
-                                st.error(f"🛑 Score below target threshold values. Adding **{school_exam_type} Prep Course** layout bundle parameters.")
-                                local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in bundle?", value=True, key="opt_out_chk_2")
+                                st.error(f"🛑 Verified testing metrics fall below admission baseline standards. Appending **{school_exam_type} Prep Course** layout bundle variables.")
+                                local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_2")
                             elif matched_rule_type == "pass":
                                 if age_limit_years:
                                     st.markdown("##### ⏳ Verification Check Required:")
                                     exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1)
                                     if exam_age > age_limit_years:
-                                        st.error(f"🛑 Historical evaluation parameter expired. Pre-adding the prep bundle.")
-                                        local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in bundle?", value=True, key="opt_out_chk_3")
+                                        st.error(f"🛑 Active testing score context has expired. Pre-adding verification bundle.")
+                                        local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_3")
                                     else:
-                                        st.success(f"✅ Verified: Score tracking variables remain active and verified!")
+                                        st.success(f"✅ Verified: Historical testing variables remain valid and active for enrollment!")
                                         local_include_prep = False
                                 else:
-                                    st.success(f"✅ Verified: Compliance verified for this campus track choice framework.")
+                                    st.success(f"✅ Verified: Compliance verified for this candidate tracking route.")
                                     local_include_prep = False
                             elif matched_rule_type == "retest":
-                                st.warning(f"⚠️ Verification conditional layer cleared. {custom_message}")
-                                local_include_prep = st.checkbox(f"Add **{school_exam_type} Retest Prep** to maximize credit value?", value=True, key="opt_out_chk_4")
+                                st.warning(f"⚠️ Conditional parameter validation passed. {custom_message}")
+                                local_include_prep = st.checkbox(f"Add **{school_exam_type} Retest Prep** options?", value=True, key="opt_out_chk_4")
                             elif matched_rule_type == "exempt":
-                                st.success(f"🎉 Automatic credit waiver exemption unlocked from **{waived_course_name}**.")
+                                st.success(f"🎉 Automatic waiver credit exemption unlocked from **{waived_course_name}**.")
                                 local_include_prep = False
 
             st.markdown("---")
@@ -399,7 +370,7 @@ with col_input_flow:
             modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + grant_input
             modal_final_total = max(0.0, final_base_total - modal_credits_sum)
 
-            st.metric("Adjusted Base Tuition Total", f"${final_base_total:,.2f}")
+            st.metric("Adjusted Base Tuition", f"${final_base_total:,.2f}")
             st.metric("Final Balance Due", f"${modal_final_total:,.2f}")
             
             if st.button("🔒 Lock in Enrollment Package", key="modal_lock_btn", use_container_width=True):
@@ -419,7 +390,7 @@ with col_input_flow:
                 }
                 st.rerun()
 
-        # Render program card match frames list
+        # Render list blocks cards
         if not filtered_df.empty:
             card_rows = []
             for idx, school_row in filtered_df.iterrows():
@@ -479,32 +450,32 @@ with col_input_flow:
                     with sc2:
                         st.markdown(f"🏫 **{card['name']}** ({card['track']} Track)")
                         courses_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
-                        st.markdown(f"🧬 *Deficiencies Met ({len(card['accepted_courses'])}):* `{courses_string}`")
+                        st.markdown(f"🧬 *Deficiencies Fulfilled ({len(card['accepted_courses'])}):* `{courses_string}`")
                     with sc3:
                         st.metric("Est Profit Margin", f"${card['profit']:,.2f}")
         else:
-            st.warning("No partner institutions match your geofencing filters profile layout matrix parameters.")
+            st.warning("No partner institutions match your geofencing profile filters rules configuration vectors parameters.")
         
         st.divider()
-        b_col1, b_col2 = st.columns([3.0, 1.0])
-        with b_col2:
-            if st.button("⬅️ Back to Review", use_container_width=True):
+        b_spacer, b_back = st.columns([3.0, 1.0])
+        with b_back:
+            if st.button("⬅️ Back to Review", use_container_width=True, key="step4_back_btn"):
                 st.session_state["val_courses"] = list(st.session_state["val_courses"])
                 st.session_state["wizard_step"] = 3
                 st.rerun()
 
 # ==============================================================================
-# 5. SMART INVOICE CHECKOUT LEDGER ENGINE MODULE
+# 5. SMART CHECKOUT LEDGER ENGINE PILL (FEE-FREE AND OPT-IN SYNCHRONIZED)
 # ==============================================================================
 if col_ledger_flow is not None:
     with col_ledger_flow:
-        st.header("🛒 Itemized Invoice Cart")
+        st.subheader("🛒 Itemized Invoice Cart")
         
         license_type = st.session_state["val_lic"]
         
-        # Keep ledger hidden placeholder style until formal card button locks commit parameters
+        # 🔒 LOCKED INTERFACE: Cart stays safely hidden until a formal popup selection button executes
         if st.session_state["confirmed_package"] is None:
-            st.info("👉 Please select a partner program card block option layout row on the left to verify compliance data and unlock ledger parameters calculation maps.")
+            st.info("👉 Please click 'Select School' on any partner institution option on the left to resolve compliance variables and display checkout numbers.")
         else:
             needed_courses = st.session_state["active_school_view"]["accepted_courses"]
             st.success(f"🎯 Locked Target: **{st.session_state['active_school_view']['name']}**")
@@ -519,8 +490,8 @@ if col_ledger_flow is not None:
             base_total = base_classes * main_price
             
             st.markdown("#### Adjustments & Grants Parameters")
-            deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0.0, value=st.session_state["val_deposit"], step=50.0)
-            grant_input = st.number_input("Institutional Grant Amount ($)", min_value=0.0, value=st.session_state["val_grant"], step=50.0)
+            deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0.0, value=st.session_state["val_deposit"], step=50.0, key="ledger_deposit_input_field")
+            grant_input = st.number_input("Institutional Grant Amount ($)", min_value=0.0, value=st.session_state["val_grant"], step=50.0, key="ledger_grant_input_field")
             
             st.session_state["val_deposit"] = deposit_input
             st.session_state["val_grant"] = grant_input
@@ -528,7 +499,7 @@ if col_ledger_flow is not None:
             q_ref = st.session_state["val_ref"]
             q_mil = st.session_state["val_mil"]
             
-            # Context lookahead block calculation evaluation framework live check
+            # 🔑 LOOKAHEAD SAFEGUARD LAYER: Automatically ties promo options strictly to selection metrics lists length
             if len(needed_courses) >= 3:
                 q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio")
                 st.session_state["val_promo"] = q_promo
@@ -545,16 +516,23 @@ if col_ledger_flow is not None:
             final_total = max(0.0, base_total - credits_sum)
 
             st.divider()
-            st.markdown(f"**Gross Base Tuition Balance:** `${0.00 if is_completely_empty else base_total:,.2f}`")
-            st.markdown(f"**Waivers & Promo Grants Applied:** `-${credits_sum:,.2f}`")
-            st.markdown(f"### **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
+            st.markdown(f"**Gross Base Tuition Cost:** `${0.00 if is_completely_empty else base_total:,.2f}`")
+            st.markdown(f"**Waivers & Grants Applied:** `-${credits_sum:,.2f}`")
+            st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
 
-# Final success logging verification metrics blocks
+# Global Baseline Form Clear Footer Utility Reset Block
+st.markdown("<br><br>", unsafe_allow_html=True)
+f_col1, f_col2 = st.columns([3.0, 1.0])
+with f_col2:
+    if st.button("🔄 Restart Process Flow", use_container_width=True, type="secondary", key="global_footer_restart_btn"):
+        restart_wizard()
+
+# final signed voucher outputs render manifest fields blocks
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
     st.balloons()
     st.success(f"🎉 **Bridge Plan Successfully Finalized for {pkg['student_name']}!**")
     st.markdown(f"### Selected School Locked: **{pkg['school_name']}**")
-    st.metric("Final Adjusted Price Due", f"${pkg['final_total']:,.2f}")
-    with st.expander("📄 View Final Signed Voucher Audit Manifest Record Parameters"):
+    st.metric("Final Adjusted Balance Due", f"${pkg['final_total']:,.2f}")
+    with st.expander("📄 View Final Signed Voucher Audit Manifest Parameters Record"):
         st.json(pkg)
