@@ -133,17 +133,38 @@ is_finalized = st.session_state["confirmed_package"] is not None
 # Dashboard Master Title Header
 st.markdown("## 🗺️ Bridge Plan Generator")
 
-# 🔧 FIXED INTERPOLATION PARSER: Shifter toggles 4. School Matches to Green instantly when finalized is locked!
+# ==============================================================================
+# 🔧 RE-ENGINEERED STEP PROGRESS TRACKER (FIXED TIMELINE FONT STATE COLORS)
+# ==============================================================================
+# Compute Step 1 Color Metrics
+if current_step == 1: s1_col, s1_w = "#1E3A8A", "bold"
+else: s1_col, s1_w = "#10B981", "normal"
+
+# Compute Step 2 Color Metrics
+if current_step == 2: s2_col, s2_w = "#1E3A8A", "bold"
+elif current_step > 2: s2_col, s2_w = "#10B981", "normal"
+else: s2_col, s2_w = "#2563EB", "normal"
+
+# Compute Step 3 Color Metrics
+if current_step == 3: s3_col, s3_w = "#1E3A8A", "bold"
+elif current_step > 3: s3_col, s3_w = "#10B981", "normal"
+else: s3_col, s3_w = "#2563EB", "normal"
+
+# Compute Step 4 Color Metrics
+if is_finalized: s4_col, s4_w = "#10B981", "normal"
+elif current_step == 4: s4_col, s4_w = "#1E3A8A", "bold"
+else: s4_col, s4_w = "#2563EB", "normal"
+
 st.markdown(
     f"""
     <div style="font-family: sans-serif; font-size: 15px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 5px;">
-        <span style="color: {'#1E3A8A' if current_step==1 else '#10B981'}; font-weight: {'bold' if current_step==1 else 'normal'};">{'✅ ' if current_step>1 else ''}1. Identity Profile</span> 
+        <span style="color: {s1_col}; font-weight: {s1_w};">{'✅ ' if current_step>1 else ''}1. Identity Profile</span> 
         <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
-        <span style="color: {'#1E3A8A' if current_step==2 else ('#10B981' if current_step>2 else '#94a3b8')}; font-weight: {'bold' if current_step==2 else 'normal'};">{'✅ ' if current_step>2 else ''}2. Baseline Profile</span> 
+        <span style="color: {s2_col}; font-weight: {s2_w};">{'✅ ' if current_step>2 else ''}2. Baseline Profile</span> 
         <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
-        <span style="color: {'#1E3A8A' if current_step==3 else ('#10B981' if current_step>3 else '#94a3b8')}; font-weight: {'bold' if current_step==3 else 'normal'};">{'✅ ' if current_step>3 else ''}3. Transcripts Review</span> 
+        <span style="color: {s3_col}; font-weight: {s3_w};">{'✅ ' if current_step>3 else ''}3. Prerequisite Review</span> 
         <span style="color: #cbd5e1;">&nbsp;&nbsp;➔&nbsp;&nbsp;</span>
-        <span style="color: {'#10B981' if is_finalized else '#1E3A8A'}; font-weight: {'bold' if current_step==4 else 'normal'};">{'✅ ' if is_finalized else ''}4. School Matches</span>
+        <span style="color: {s4_col}; font-weight: {s4_w};">{'✅ ' if is_finalized else ''}4. School Matches</span>
     </div>
     """, 
     unsafe_allow_html=True
@@ -297,7 +318,7 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 2: PROFESSIONAL HEALTHCARE BASELINE BACKGROUND
+    # STEP 2: PROFESSIONAL HEALTHCARE BACKGROUND
     # --------------------------------------------------------------------------
     elif current_step == 2:
         st.subheader("Step 2: Professional Licensing & History")
@@ -477,9 +498,6 @@ with col_input_flow:
                 is_this_card_selected = (st.session_state["selected_school_id"] == card["id"])
                 courses_text_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
                 
-                # 🔑 THE STUBBORN WHITE BOX FIXED PERMANENTLY:
-                # We replace conflicting custom css wrappers entirely. The active chosen card now morphs gracefully 
-                # into an un-boxed native text block using a theme-compliant green alert component banner.
                 if is_this_card_selected:
                     st.success(f"🎯 **{card['name']} (SELECTED)**")
                     st.markdown(f"**Degree Track Program:** `{card['track']}`")
@@ -566,7 +584,6 @@ if col_ledger_flow is not None:
             st.divider()
             st.markdown(f"**Gross Base Tuition Balance:** `${0.00 if is_completely_empty else base_total:,.2f}`")
             
-            # 🔑 THE BULLET FIX: All dot tags are completely gone. Swapped out for stylized price tokens.
             st.markdown("##### 🎖️ Applied Fee Waivers & Adjustments:")
             if calc_dep_match > 0:
                 st.markdown(f"🏷️ *Deposit Match Program Incentive:* `-${calc_dep_match:,.2f}`")
