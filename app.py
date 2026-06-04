@@ -64,13 +64,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 1. NEW: PERSISTENT WIZARD VALUE INITIALIZATION ENGINE
+# 1. PERSISTENT WIZARD VALUE INITIALIZATION ENGINE
 # ==============================================================================
 if "wizard_step" not in st.session_state: st.session_state["wizard_step"] = 1
 if "confirmed_package" not in st.session_state: st.session_state["confirmed_package"] = None
 if "addon_state" not in st.session_state: st.session_state["addon_state"] = False
 
-# Form Memory Values (Hydrated to preserve memory across step switches)
+# Session Memory Repositories
 if "val_name" not in st.session_state: st.session_state["val_name"] = ""
 if "val_state" not in st.session_state: st.session_state["val_state"] = "Select state"
 if "val_zip" not in st.session_state: st.session_state["val_zip"] = ""
@@ -84,6 +84,7 @@ if "val_dismiss_mos" not in st.session_state: st.session_state["val_dismiss_mos"
 if "val_travel" not in st.session_state: st.session_state["val_travel"] = "Yes"
 if "val_track" not in st.session_state: st.session_state["val_track"] = "BSN"
 
+# Fixed Default Arrays to prevent compilation crashes
 if "val_courses" not in st.session_state: st.session_state["val_courses"] = []
 if "val_deposit" not in st.session_state: st.session_state["val_deposit"] = 0.0
 if "val_grant" not in st.session_state: st.session_state["val_grant"] = 0.0
@@ -147,7 +148,7 @@ current_step = st.session_state["wizard_step"]
 st.title("🗺️ Bridge Plan Generator")
 st.markdown("### **Self-Serve Enrollment Matrix**")
 
-# Interactive Progress Indicator Bar Layout
+# Progress bar layout indicators
 step_cols = st.columns(4)
 step_names = ["1. Identity Profile", "2. Baseline Profile", "3. Transcripts Review", "4. School Matches"]
 for i, name in enumerate(step_names):
@@ -162,7 +163,7 @@ for i, name in enumerate(step_names):
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==============================================================================
-# 4. ADAPTIVE RESPONSIVE LAYOUT ENGINE ROUTER
+# 4. ADAPTIVE LAYOUT MATRIX CONTROLLER
 # ==============================================================================
 if current_step >= 3:
     col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
@@ -181,7 +182,6 @@ with col_input_flow:
         st.markdown("Let's capture your baseline territory parameters to filter institutional regional availability.")
         st.divider()
         
-        # Wired with explicit key/value bindings to preserve internal memory state
         i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name")
         i_state = st.selectbox("Select your residency home state:", options=STATE_OPTIONS, index=STATE_OPTIONS.index(st.session_state["val_state"]))
         i_zip = st.text_input("What is your zip code?", value=st.session_state["val_zip"], placeholder="e.g. 19013", max_chars=14)
@@ -198,7 +198,6 @@ with col_input_flow:
                 elif i_adult == "No":
                     st.error("🛑 Registration Blocked: Applicants under 18 require internal agent validation verification.")
                 else:
-                    # Save local values into persistent vaults before step progression
                     st.session_state["val_name"] = i_name
                     st.session_state["val_state"] = i_state
                     st.session_state["val_zip"] = i_zip
@@ -237,7 +236,6 @@ with col_input_flow:
         with btn_b1:
             st.markdown("<div class='secondary-btn'>", unsafe_allow_html=True)
             if st.button("⬅️ Back", use_container_width=True):
-                # Save data state even when moving backwards
                 st.session_state["val_lic"] = i_lic
                 st.session_state["val_exp"] = i_exp
                 st.session_state["val_dismiss"] = i_dismiss
@@ -263,26 +261,27 @@ with col_input_flow:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT REVIEW
+    # STEP 3: TRANSCRIPT REVIEW (FIXED FOR LIVE CALCULATION REACTION)
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.markdown("### **Step 3: Foundational Transcript Review**")
-        st.markdown("Select any core prerequisite deficiencies you still need to fulfill. Your **Live Ledger Balance Cart** has now slid open on the right.")
+        st.markdown("Select any core prerequisite deficiencies you still need to fulfill. Your **Live Ledger Balance Cart** updates instantly as you check blocks.")
         st.divider()
         
-        i_courses = st.multiselect(
+        # 🔑 FIXED CRITICAL CONSTRAINTS: Bind explicitly to state key so clicking forces an immediate layout total refresh
+        st.multiselect(
             "Check the boxes for courses you still NEED to complete:",
             options=course_list,
-            default=st.session_state["val_courses"]
+            key="val_courses" 
         )
         
-        st.markdown("#### Add-on Packages Configuration")
-        base_count = len(i_courses)
-        temp_base_classes = base_count if base_count > 0 else 1
+        # Pull reactive synchronized arrays
+        active_courses_count = len(st.session_state["val_courses"])
+        temp_base_classes = active_courses_count if active_courses_count > 0 else 1
         temp_main_p = 1179 if temp_base_classes >= 10 else (1229 if temp_base_classes >= 4 else 1289)
         baseline_only_total = temp_base_classes * temp_main_p
         
-        if baseline_only_total >= 14500 and base_count > 0:
+        if baseline_only_total >= 14500 and active_courses_count > 0:
             st.warning("⚠️ Package ceiling limit reached ($14,500 Floor cap). Advanced add-on switches forced offline.")
             st.session_state["addon_state"] = False
             has_addons = False
@@ -294,7 +293,7 @@ with col_input_flow:
             t_addon_p = 749 if t_total_classes >= 10 else (799 if t_total_classes >= 4 else 859)
             projected_total = (temp_base_classes * t_main_p) + (t_addons * t_addon_p)
             
-            if projected_total >= 14500 and (base_count > 0 or has_addons):
+            if projected_total >= 14500 and (active_courses_count > 0 or has_addons):
                 st.error("🛑 Selection Defeated: Combined total breaches the $14,500 Package threshold rules.")
                 st.session_state["addon_state"] = False
                 st.rerun()
@@ -306,14 +305,12 @@ with col_input_flow:
         with btn_b1:
             st.markdown("<div class='secondary-btn'>", unsafe_allow_html=True)
             if st.button("⬅️ Back", use_container_width=True):
-                st.session_state["val_courses"] = i_courses
                 st.session_state["wizard_step"] = 2
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
         with btn_b2:
             st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
             if st.button("Find Matches ➡️", use_container_width=True):
-                st.session_state["val_courses"] = i_courses
                 st.session_state["wizard_step"] = 4
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
@@ -326,7 +323,6 @@ with col_input_flow:
         st.markdown("Review the eligible educational institutions calculated from your intake profile parameters:")
         st.divider()
         
-        # Read from persistent memory structures
         student_state = st.session_state["val_state"]
         selected_state = str(student_state).strip().upper()
         selected_track = str(st.session_state["val_track"]).strip().upper()
@@ -517,7 +513,6 @@ with col_input_flow:
                 }
                 st.rerun()
 
-        # Render list of dynamic matching cards
         if not filtered_df.empty:
             status_log, cash_yield_margins, deficiencies_resolved_log, exam_requirements_list, exam_notes_list = [], [], [], [], []
             for _, school_row in filtered_df.iterrows():
@@ -590,13 +585,14 @@ with col_input_flow:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. SLIDING ADAPTIVE INVOICE SHOPPING CART LEDGER (WIRED WITH MEMORY HOOKS)
+# 5. SLIDING ADAPTIVE INVOICE SHOPPING CART LEDGER (100% LIVE REFLECTION SYSTEM)
 # ==============================================================================
 if current_step >= 3 and col_ledger_flow is not None:
     with col_ledger_flow:
         st.markdown("<div style='background-color: #ffffff; padding: 25px; border-radius: 12px; border: 2px solid #1E3A8A; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>", unsafe_allow_html=True)
         st.subheader("🛒 Itemized Invoice Cart")
         
+        # 🔑 READ DIRECTLY FROM SYNCHRONIZED REPOSITORY
         needed_courses = st.session_state["val_courses"]
         has_addons = st.session_state["addon_state"]
         license_type = st.session_state["val_lic"]
@@ -613,8 +609,6 @@ if current_step >= 3 and col_ledger_flow is not None:
         else: base_total = (base_classes * main_price) + (addons_count * addon_price)
         
         st.markdown("#### **Adjustments & Grants**")
-        
-        # Wired with continuous value bindings to prevent erasure state
         deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0.0, value=st.session_state["val_deposit"], step=50.0)
         grant_input = st.number_input("Institutional Grant Amount ($)", min_value=0.0, value=st.session_state["val_grant"], step=50.0)
         
@@ -625,7 +619,7 @@ if current_step >= 3 and col_ledger_flow is not None:
         if len(needed_courses) >= 3:
             q_promo = st.radio("Possess free course promo code?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True)
 
-        # Immediate sync mechanism back to memory vault live on typing
+        # Dynamic live synchronizers 
         st.session_state["val_deposit"] = deposit_input
         st.session_state["val_grant"] = grant_input
         st.session_state["val_ref"] = q_ref
@@ -673,7 +667,7 @@ with reset_btn_block:
     if st.button("🔄 Restart Process", type="secondary", use_container_width=True):
         restart_wizard()
 
-# Success state block container injection
+# Success state blocks
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
     st.balloons()
