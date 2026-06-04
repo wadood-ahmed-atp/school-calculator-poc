@@ -8,6 +8,7 @@ import re
 # ==============================================================================
 st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
+# Custom premium UI styling overrides
 st.markdown("""
     <style>
     /* 🚫 HIDE DEFAULT WHITE TOP BAR & MENU INFRASTRUCTURE */
@@ -169,6 +170,7 @@ course_list = [
 
 current_step = st.session_state["wizard_step"]
 
+# Consolidated Title & Clean Top-Right Utility Row Layout
 header_title_col, header_utility_col = st.columns([3.0, 1.0])
 with header_title_col:
     st.title("🗺️ Bridge Plan Generator")
@@ -179,6 +181,7 @@ with header_utility_col:
         restart_wizard()
     st.markdown("</div>", unsafe_allow_html=True)
 
+# Progress indicator timeline wizard headings
 step_cols = st.columns(4)
 step_names = ["1. Identity Profile", "2. Baseline Profile", "3. Transcripts Review", "4. School Matches"]
 for i, name in enumerate(step_names):
@@ -323,7 +326,7 @@ with col_input_flow:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL MATCHES & SMART EVALUATOR DIALOG
+    # STEP 4: INSTITUTIONAL MATCHES & MODAL COMPLIANCE GATING
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.markdown("### **Step 4: Secure Institutional Match Alignment**")
@@ -365,7 +368,7 @@ with col_input_flow:
         filtered_df = working_schools_df.copy()
 
         # ==============================================================================
-        # 🧠 THE OPT-IN LOCKER MODAL CORE ENGINE
+        # MODAL EXAM INTERPRETER DIALOG BOX
         # ==============================================================================
         @st.dialog("Confirm & Lock Enrollment Package")
         def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list, school_card_ref):
@@ -379,8 +382,6 @@ with col_input_flow:
             
             deposit_input = st.session_state["val_deposit"]
             grant_input = st.session_state["val_grant"]
-            
-            # Temporary state wrapper to parse inputs *inside* the modal box seamlessly
             local_include_prep = False
             
             if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
@@ -438,7 +439,7 @@ with col_input_flow:
 
                         if score_num > 0:
                             if matched_rule_type == "fail":
-                                st.error(f"🛑 **Score Below Target:** Pre-adding the **{school_exam_type} Prep Course** bundle to bridge the proficiency gap.")
+                                st.error(f"🛑 **Score Below Target:** Pre-adding the **{school_exam_type} Prep Course** bundle.")
                                 local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in tuition bundle?", value=True, key="opt_out_chk_2")
                             elif matched_rule_type == "pass":
                                 if age_limit_years:
@@ -484,7 +485,6 @@ with col_input_flow:
             st.metric("Adjusted Base Tuition", f"${final_base_total:,.2f}")
             st.metric("Final Balance Due", f"${modal_final_total:,.2f}")
             
-            # 🔒 THE ACTIVATION SWITCH TRAP: Only locks down calculations into global state upon button click!
             if st.button("🔒 Lock in Enrollment Package", key="modal_lock_btn"):
                 st.session_state["modal_include_exam_prep"] = local_include_prep
                 st.session_state["active_school_view"] = school_card_ref
@@ -502,7 +502,7 @@ with col_input_flow:
                 }
                 st.rerun()
 
-        # Render lists engine
+        # Render rows engine
         if not filtered_df.empty:
             card_rows = []
             for idx, school_row in filtered_df.iterrows():
@@ -559,7 +559,6 @@ with col_input_flow:
                     with sc1:
                         st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
                         if st.button("Select School", key=f"btn_card_sel_{card['idx']}", use_container_width=True):
-                            # Opens popup modal cleanly without triggering the ledger cart calculations prematurely
                             render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"], card)
                         st.markdown("</div>", unsafe_allow_html=True)
                     with sc2:
@@ -584,7 +583,7 @@ with col_input_flow:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. SMART INVOICE CART SHOPPING LEDGER COMPONENT (WIRED WITH LOCK-SYNC LAYERS)
+# 5. SHOPPING CART LEDGER COMPONENT (WIRED WITH LOCK-SYNC LAYERS)
 # ==============================================================================
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -593,11 +592,10 @@ if col_ledger_flow is not None:
         
         license_type = st.session_state["val_lic"]
         
-        # 🔑 FIXED SAFETY CONDITION: Cart stays locked down until the user explicitly clicks the final confirmation lock button
+        # 🔑 Cart stays locked down placeholder style until the user hits final lock package submittal buttons
         if st.session_state["confirmed_package"] is None:
             st.info("👉 Please select an institutional partner row on the left and finalize your entrance exam compliance settings to generate your custom itemized checkout ledger statement.")
         else:
-            # Rehydrate calculations strictly using verified, package-locked states
             needed_courses = st.session_state["active_school_view"]["accepted_courses"]
             st.markdown(f"🎯 *Active Locked Context:* **{st.session_state['active_school_view']['name']}**")
 
@@ -635,12 +633,7 @@ if col_ledger_flow is not None:
             st.markdown(f"## **Balance Due: ${0.00 if is_completely_empty else final_total:,.2f}**")
         st.markdown("</div>", unsafe_allow_html=True)
 
-# Global Clear Footer Reset Button
-st.markdown("<br>", unsafe_allow_html=True)
-reset_spacer, reset_btn_block = st.columns([3.0, 1.0])
-with reset_btn_block:
-    if st.button("🔄 Restart Process", type="secondary", use_container_width=True):
-        restart_wizard()
+# 🚫 REMOVED: Redundant "Restart Process" button from the bottom block is entirely gone!
 
 if st.session_state["confirmed_package"]:
     pkg = st.session_state["confirmed_package"]
