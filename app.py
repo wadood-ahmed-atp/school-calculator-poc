@@ -287,7 +287,7 @@ else:
 with col_input_flow:
 
     # --------------------------------------------------------------------------
-    # STEP 1: IDENTITY PROFILE WORKSPACE
+    # STEP 1: IDENTITY PROFILE WORKSPACE (FRONT-LOADED ARIZONA INTERCEPT RUNNING)
     # --------------------------------------------------------------------------
     if current_step == 1:
         st.subheader("Step 1: Contact & Residency Details")
@@ -308,28 +308,38 @@ with col_input_flow:
             i_gpa = st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=float(st.session_state["val_gpa"]), step=0.1, format="%.1f", disabled=is_finalized)
         
         st.divider()
-        b_reset_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
-        with b_reset_col:
-            if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step1_reset_btn"):
+        
+        # ==============================================================================
+        # 🔑 IN-LINE STEP 1 HARD STOP INTERCEPT SYSTEM FOR ARIZONA PROSPECTIVE CUSTOMERS
+        # ==============================================================================
+        if str(i_state).strip().upper() == "AZ":
+            st.error("I apologize, but based on the current program availability and state restrictions, there are unfortunately no online nursing school options available in your state at this time, so let's look at a local opportunity to earn your degree.")
+            if st.button("🔄 Restart Process", type="secondary", key="az_step1_reset_btn"):
                 execute_safe_restart()
-        with b_continue_col:
-            if st.button("Continue ➡️", use_container_width=True, type="primary", key="step1_continue_action", disabled=is_finalized):
-                if i_state == "Select state":
-                    st.warning("⚠️ Please select your home state before continuing.")
-                elif i_adult == "No":
-                    st.error("🛑 Registration Blocked: Applicants under 18 require manual admissions review.")
-                else:
-                    st.session_state["val_name"] = i_name
-                    st.session_state["val_state"] = i_state
-                    st.session_state["val_zip"] = i_zip
-                    st.session_state["val_adult"] = i_adult
-                    st.session_state["val_gpa"] = i_gpa
-                    st.session_state["val_gpa_unknown"] = i_gpa_unknown
-                    st.session_state["wizard_step"] = 2
-                    st.rerun()
+        else:
+            # Standard state users proceed normally
+            b_reset_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
+            with b_reset_col:
+                if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step1_reset_btn"):
+                    execute_safe_restart()
+            with b_continue_col:
+                if st.button("Continue ➡️", use_container_width=True, type="primary", key="step1_continue_action", disabled=is_finalized):
+                    if i_state == "Select state":
+                        st.warning("⚠️ Please select your home state before continuing.")
+                    elif i_adult == "No":
+                        st.error("🛑 Registration Blocked: Applicants under 18 require manual admissions review.")
+                    else:
+                        st.session_state["val_name"] = i_name
+                        st.session_state["val_state"] = i_state
+                        st.session_state["val_zip"] = i_zip
+                        st.session_state["val_adult"] = i_adult
+                        st.session_state["val_gpa"] = i_gpa
+                        st.session_state["val_gpa_unknown"] = i_gpa_unknown
+                        st.session_state["wizard_step"] = 2
+                        st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 2: PROFESSIONAL HEALTHCARE BACKGROUND
+    # STEP 2: PROFESSIONAL HEALTHCARE BACKGROUND & TRACK ALIGNMENT CHECK
     # --------------------------------------------------------------------------
     elif current_step == 2:
         st.subheader("Step 2: Professional Licensing & History")
@@ -348,26 +358,75 @@ with col_input_flow:
             
         i_travel = st.selectbox("Are you willing to travel regionally for clinical rotations?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]), disabled=is_finalized)
         i_track = st.selectbox("Which degree program track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]), disabled=is_finalized)
-        
+
+        # Background matrix checks for cross-track options optimization
+        cust_state = str(st.session_state["val_state"]).strip().upper()
+        state_schools = master_schools_df[master_schools_df["States Accepted"].str.upper().str.contains(cust_state, na=False)]
+        has_state_bsn = not state_schools[state_schools["ASN/BSN"].str.upper() == "BSN"].empty
+        has_state_asn = not state_schools[state_schools["ASN/BSN"].str.upper() == "ASN"].empty
+
         st.divider()
-        b_reset_col, b_spacer, b_back_col, b_continue_col = st.columns([1.0, 0.5, 1.0, 1.0])
-        with b_reset_col:
-            if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step2_reset_btn"):
-                execute_safe_restart()
-        with b_back_col:
-            if st.button("⬅️ Back", use_container_width=True, key="step2_back_action", disabled=is_finalized):
-                st.session_state["wizard_step"] = 1
-                st.rerun()
-        with b_continue_col:
-            if st.button("Continue ➡️", use_container_width=True, type="primary", key="step2_continue_action", disabled=is_finalized):
-                st.session_state["val_lic"] = i_lic
-                st.session_state["val_exp"] = int(i_exp) if i_exp is not None else 0
-                st.session_state["val_dismiss"] = i_dismiss
-                st.session_state["val_dismiss_mos"] = int(i_dismiss_mos) if i_dismiss_mos is not None else 0
-                st.session_state["val_travel"] = i_travel
-                st.session_state["val_track"] = i_track
-                st.session_state["wizard_step"] = 3
-                st.rerun()
+        
+        # 🔄 CASE 1: TARGETING ASN, BUT STATE ONLY HAS BSN SCHOOLS
+        if i_track == "ASN" and has_state_bsn and not has_state_asn:
+            st.info("💡 **Important Regional Notice:**\n\nThere is no online ADN bridge option available in your state. However, there are online BSN options. Going straight for the BSN can help maximize your career potential, especially if your goal is to work in a hospital, since many hospitals prefer or require BSN-prepared RNs. It also allows you to work toward becoming a BSN, RN through one school. Would you like to review the online Bachelor's option?")
+            
+            y_col, n_col = st.columns(2)
+            with y_col:
+                if st.button("Yes, review the BSN option", use_container_width=True, type="primary", key="inter_yes_bsn"):
+                    st.session_state["val_lic"] = i_lic
+                    st.session_state["val_exp"] = int(i_exp) if i_exp is not None else 0
+                    st.session_state["val_dismiss"] = i_dismiss
+                    st.session_state["val_dismiss_mos"] = int(i_dismiss_mos) if i_dismiss_mos is not None else 0
+                    st.session_state["val_travel"] = i_travel
+                    st.session_state["val_track"] = "BSN" 
+                    st.success("🎉 Great choice! Switching your target option over to BSN...")
+                    st.session_state["wizard_step"] = 3
+                    st.rerun()
+            with n_col:
+                if st.button("No, thank you", use_container_width=True, key="inter_no_bsn"):
+                    st.warning("Let's look at a local degree option.")
+
+        # 🔄 CASE 2: TARGETING BSN, BUT STATE ONLY HAS ASN SCHOOLS
+        elif i_track == "BSN" and has_state_asn and not has_state_bsn:
+            st.info("💡 **Important Regional Notice:**\n\nI think earning your BSN is very important. However, in your state there is not a direct BSN bridge available. What I recommend most of my nurses do is get their RN by earning the Associate degree first, then bridge from RN to BSN, and we can make this feel like one seamless program. This way, you will be able to sit for your boards much sooner, start working as an RN, earn RN pay, and gain RN experience much sooner. That extra income could be helpful to then pursue your BSN. Knowing what you know now, would you like to start with the ADN first?")
+            
+            y_col, n_col = st.columns(2)
+            with y_col:
+                if st.button("Yes, start with the ADN first", use_container_width=True, type="primary", key="inter_yes_asn"):
+                    st.session_state["val_lic"] = i_lic
+                    st.session_state["val_exp"] = int(i_exp) if i_exp is not None else 0
+                    st.session_state["val_dismiss"] = i_dismiss
+                    st.session_state["val_dismiss_mos"] = int(i_dismiss_mos) if i_dismiss_mos is not None else 0
+                    st.session_state["val_travel"] = i_travel
+                    st.session_state["val_track"] = "ASN" 
+                    st.success("🎉 Great choice! Switching your target option over to ASN...")
+                    st.session_state["wizard_step"] = 3
+                    st.rerun()
+            with n_col:
+                if st.button("No, thank you", use_container_width=True, key="inter_no_asn"):
+                    st.warning("Let's look at a local degree option.")
+
+        # ✅ STANDARD FLOW: ALL CHECKS CLEAR SAFELY
+        else:
+            b_reset_col, b_spacer, b_back_col, b_continue_col = st.columns([1.0, 0.5, 1.0, 1.0])
+            with b_reset_col:
+                if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step2_reset_btn"):
+                    execute_safe_restart()
+            with b_back_col:
+                if st.button("⬅️ Back", use_container_width=True, key="step2_back_action", disabled=is_finalized):
+                    st.session_state["wizard_step"] = 1
+                    st.rerun()
+            with b_continue_col:
+                if st.button("Continue ➡️", use_container_width=True, type="primary", key="step2_continue_action", disabled=is_finalized):
+                    st.session_state["val_lic"] = i_lic
+                    st.session_state["val_exp"] = int(i_exp) if i_exp is not None else 0
+                    st.session_state["val_dismiss"] = i_dismiss
+                    st.session_state["val_dismiss_mos"] = int(i_dismiss_mos) if i_dismiss_mos is not None else 0
+                    st.session_state["val_travel"] = i_travel
+                    st.session_state["val_track"] = i_track
+                    st.session_state["wizard_step"] = 3
+                    st.rerun()
 
     # --------------------------------------------------------------------------
     # STEP 3: CREDIT TRANSCRIPT REVIEW CHECKLIST PANELS
@@ -546,7 +605,7 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 sideBAR ITEMIZED INVOICE CART (GRANT CALCULATIONS DROPPED COMPLETELY)
+# 🛒 sideBAR ITEMIZED INVOICE CART
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -569,7 +628,6 @@ if col_ledger_flow is not None:
             base_total = int(base_classes * main_price)
             
             st.markdown("#### Adjustments & Savings")
-            # 🔧 REMOVED FIELD: Institutional Grant input box deleted gracefully
             deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0, value=int(st.session_state["val_deposit"]), step=50, key="ledger_deposit_input_field", disabled=is_finalized)
             st.session_state["val_deposit"] = int(deposit_input)
 
@@ -588,7 +646,6 @@ if col_ledger_flow is not None:
             calc_military = 200 if q_mil == "Yes" else 0
             calc_free_course = int(main_price) if (q_promo == "Yes" and len(needed_courses) >= 3) else 0
             
-            # 🔧 REMOVED PARAMETER: Grant variable wiped out from mathematical aggregation structures
             credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course
             final_total = max(0, base_total - credits_sum)
 
@@ -604,7 +661,6 @@ if col_ledger_flow is not None:
                 st.markdown(f"🏷️ *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
             if calc_free_course > 0:
                 st.markdown(f"🏷️ *Complimentary Course Code Applied:* `-${calc_free_course:,}`")
-            # 🔧 REMOVED FIELD: Institutional Grant text output string completely deleted
             if credits_sum == 0:
                 st.markdown("🏷️ *No additional discounts applied to this estimate.*")
                 
