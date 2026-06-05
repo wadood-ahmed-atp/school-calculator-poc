@@ -67,7 +67,8 @@ def initialize_base_states(force_reset=False):
         "val_grant": 0,   
         "val_promo": "No",
         "val_ref": "No",
-        "val_mil": "No"
+        "val_mil": "No",
+        "customer_exam_prep_toggle": False # 🔑 Global tracking key hook added
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -164,7 +165,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 🔧 CUSTOMER REPHRASING: "Reviewing Exam Requirements & Waivers for..." Spawns natively inside the modal
+# Globally Scoped Admissions GATING DIALOG WINDOW MODULE
 @st.dialog("Reviewing Exam Requirements & Waivers")
 def render_institutional_modal(school_name, school_exam_type, school_exam_notes, valid_courses_list, school_card_ref, school_unique_id):
     st.markdown(f"### 📋 Reviewing Exam Requirements & Waivers for: **{school_name}**")
@@ -174,18 +175,19 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
     classes_waived = 0
     waived_course_name = ""
     user_score_logged = ""
-    local_include_prep = False
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
         st.info("ℹ️ There are no entrance testing requirements for this specific nursing track configuration.")
-        local_include_prep = False
+        # Auto-bypass toggle value calculations smoothly if no exam exists
+        st.session_state["customer_exam_prep_toggle"] = False
     else:
         st.markdown(f"#### 🔒 Entrance Exam Verification")
         user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], horizontal=True, key="modal_has_passed_radio")
         
         if user_has_passed == "No":
             st.warning(f"⚠️ Note: A required **{school_exam_type} Prep Course** has been added to your preparation bundle.")
-            local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", value=True, key="opt_out_chk_1")
+            # 🔑 STABILIZED INTERACTIVE TOGGLE: Binds directly to the unique session state key slot
+            st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", key="customer_exam_prep_toggle")
         else:
             raw_input_score = st.text_input("Enter your official score:", placeholder="e.g., 75 or 740")
             user_score_logged = raw_input_score
@@ -231,31 +233,35 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
                 if score_num > 0:
                     if matched_rule_type == "fail":
                         st.error(f"🛑 This score is below the automatic waiver threshold. We've added a **{school_exam_type} Prep Course** to help you prepare.")
-                        local_include_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", value=True, key="opt_out_chk_2")
+                        st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", key="customer_exam_prep_toggle")
                     elif matched_rule_type == "pass":
                         if age_limit_years:
                             st.markdown("##### ⏳ Verification Check:")
                             exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1)
                             if exam_age > age_limit_years:
                                 st.error(f"🛑 Your test score has expired. Adding a refresher preparation course to your plan.")
-                                local_include_prep = True
+                                st.session_state["customer_exam_prep_toggle"] = True
                             else:
                                 st.success(f"✅ Verified: Your score is active and valid!")
-                                local_include_prep = False
+                                st.session_state["customer_exam_prep_toggle"] = False
                         else:
                             st.success(f"✅ Verified: Entrance testing requirements successfully met!")
-                            local_include_prep = False
+                            st.session_state["customer_exam_prep_toggle"] = False
                     elif matched_rule_type == "retest":
                         st.warning(f"⚠️ {custom_message}")
-                        local_include_prep = st.checkbox(f"Add **{school_exam_type} Advanced Retest Preparation** to your layout?", value=True, key="opt_out_chk_4")
+                        st.checkbox(f"Add **{school_exam_type} Advanced Retest Preparation** to your layout?", key="customer_exam_prep_toggle")
                     elif matched_rule_type == "exempt":
                         st.success(f"🎉 Exemption unlocked! You have successfully waived out of **{waived_course_name}**.")
-                        local_include_prep = False
+                        st.session_state["customer_exam_prep_toggle"] = False
 
         st.markdown("---")
-        m_classes_tier = modal_base_count if modal_base_count > 0 else 1
+        # 🔑 MATHEMATICAL REALignment LOOKAHEAD: Directly reads active reactive checkbox state keys safely
+        extra_class_modifier = 1 if st.session_state["customer_exam_prep_toggle"] else 0
+        computed_classes_count = modal_base_count + extra_class_modifier
+        
+        m_classes_tier = computed_classes_count if computed_classes_count > 0 else 1
         m_price_tier = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
-        final_base_total = int(modal_base_count * m_price_tier)
+        final_base_total = int(computed_classes_count * m_price_tier)
         
         calc_dep_match = min(int(st.session_state["val_deposit"]), 1000) if (st.session_state["val_deposit"] >= 300) else 0
         calc_referral = 50 if st.session_state["val_ref"] == "Yes" else 0
@@ -268,7 +274,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
         st.metric("Estimated Balance Due", f"${modal_final_total:,}")
 
     if st.button("🟢 OK", key="modal_ok_btn", use_container_width=True):
-        st.session_state["modal_include_exam_prep"] = local_include_prep
+        st.session_state["modal_include_exam_prep"] = st.session_state["customer_exam_prep_toggle"]
         st.session_state["modal_score_logged"] = user_score_logged
         st.session_state["modal_classes_waived"] = classes_waived
         st.session_state["active_school_view"] = school_card_ref
@@ -285,7 +291,7 @@ else:
 with col_input_flow:
 
     # --------------------------------------------------------------------------
-    # STEP 1: IDENTITY PROFILE WORKSPACE (HUMAN TONING DEPLOYED)
+    # STEP 1: IDENTITY PROFILE WORKSPACE
     # --------------------------------------------------------------------------
     if current_step == 1:
         st.subheader("Step 1: Contact & Residency Details")
@@ -321,16 +327,16 @@ with col_input_flow:
                     st.session_state["val_state"] = i_state
                     st.session_state["val_zip"] = i_zip
                     st.session_state["val_adult"] = i_adult
-                    st.session_state["val_gpa"] = round(float(i_gpa), 1)
+                    st.session_state["val_gpa"] = i_gpa
                     st.session_state["val_gpa_unknown"] = i_gpa_unknown
                     st.session_state["wizard_step"] = 2
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 2: PROFESSIONAL BACKGROUND History (HUMAN TONING DEPLOYED)
+    # STEP 2: PROFESSIONAL HEALTHCARE BACKGROUND
     # --------------------------------------------------------------------------
     elif current_step == 2:
-        st.subheader("Step 2: Experience & History")
+        st.subheader("Step 2: Professional Licensing & History")
         st.markdown("Tell us a bit about your healthcare background so we can match you with programs that fit your experience.")
         st.divider()
         
@@ -368,10 +374,10 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: TRANSCRIPT review (HUMAN TONING DEPLOYED)
+    # STEP 3: CREDIT TRANSCRIPT REVIEW CHECKLIST PANELS
     # --------------------------------------------------------------------------
     elif current_step == 3:
-        st.subheader("Step 3: Prerequisite Review")
+        st.subheader("Step 3: Foundational Transcript Review")
         st.markdown("Select any general education or prerequisite courses you still need to complete.")
         st.divider()
         
@@ -385,7 +391,6 @@ with col_input_flow:
         st.session_state["val_courses"] = st.session_state["temp_courses"]
         
         st.markdown("#### **Savings & Promotional Codes**")
-        # 🔧 RIPPED OUT THE ADMISSIONS AGENT COPIES: direct and short student text prompt matches
         w_ref = st.radio("Were you referred by a student?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True, disabled=is_finalized)
         w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True, disabled=is_finalized)
         
@@ -404,15 +409,16 @@ with col_input_flow:
                 st.rerun()
         with b_continue_col:
             if st.button("Find Matches ➡️", use_container_width=True, type="primary", key="step3_continue_action", disabled=is_finalized):
+                # 🔑 SAFE FRESH BOOTSTRAP: Resets selection slots upon transition loop executions
+                st.session_state["customer_exam_prep_toggle"] = False
                 st.session_state["wizard_step"] = 4
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: SCHOOL RESULTS (HUMAN TONING DEPLOYED)
+    # STEP 4: SECURE MATCHES RESULTS
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Your Eligible Matches")
-        # 🔑 REWRITTEN CUSTOMER HEADER PROMPT LINK: Explicit match string applied cleanly
         st.markdown("Based on your background, here are the schools that best match your goals:")
         st.divider()
         
@@ -545,21 +551,21 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 sideBAR ITEMIZED INVOICE CART (HUMAN TONING DEPLOYED)
+# 🛒 sideBAR ITEMIZED INVOICE CART (TOTAL WHOLE INTEGER RE-CONSTRUCTION COMPLETE)
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Your Cost Estimate")
         
         if st.session_state["selected_school_id"] is None or st.session_state["active_school_view"] is None:
-            # 🔑 CUSTOMER ANCHOR HOOK: Conversational text directly engages the customer
             st.info("👉 Click **Select School** on the left to review entrance requirements and view your personalized cost estimate.")
         else:
             needed_courses = st.session_state["active_school_view"]["accepted_courses"]
             school_name = st.session_state["active_school_view"]["name"]
             st.success(f"🎯 Selected: **{school_name}**")
 
-            extra_exam_count = 1 if st.session_state.get("modal_include_exam_prep", False) else 0
+            # 🔑 TOTAL STABILIZATION FOR MODAL OVERWRITES: Calculation reads dynamically from global selection states keys
+            extra_exam_count = 1 if st.session_state["modal_include_exam_prep"] else 0
             base_classes = len(needed_courses) + extra_exam_count
             total_classes = base_classes
             is_completely_empty = (total_classes == 0)
@@ -598,17 +604,17 @@ if col_ledger_flow is not None:
             
             st.markdown("##### 🎖️ Discounts & Savings Applied:")
             if calc_dep_match > 0:
-                st.markdown(f"%TAG% *Deposit Match Program Savings:* `-${calc_dep_match:,}`")
+                st.markdown(f"🏷️ *Deposit Match Program Savings:* `-${calc_dep_match:,}`")
             if calc_referral > 0:
-                st.markdown(f"%TAG% *Student Referral Credit:* `-${calc_referral:,}`")
+                st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,}`")
             if calc_military > 0:
-                st.markdown(f"%TAG% *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
+                st.markdown(f"🏷️ *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
             if calc_free_course > 0:
-                st.markdown(f"%TAG% *Complimentary Course Code Applied:* `-${calc_free_course:,}`")
+                st.markdown(f"🏷️ *Complimentary Course Code Applied:* `-${calc_free_course:,}`")
             if grant_input > 0:
-                st.markdown(f"%TAG% *Institutional Grant Award:* `-${grant_input:,}`")
+                st.markdown(f"🏷️ *Institutional Grant Award:* `-${grant_input:,}`")
             if credits_sum == 0:
-                st.markdown("%TAG% *No additional discounts applied to this estimate.*")
+                st.markdown("🏷️ *No additional discounts applied to this estimate.*")
                 
             st.markdown(f"**Total Savings:** `-${credits_sum:,}`")
             st.markdown(f"## **Balance Due: ${0 if is_completely_empty else final_total:,}**")
