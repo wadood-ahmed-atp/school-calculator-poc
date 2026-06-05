@@ -176,7 +176,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
     user_score_logged = ""
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-        st.info("ℹ️ There are no entrance testing requirements for this specific nursing track configuration.")
+        st.info("ℹ️ There are no entrance testing requirements for this specific nursing school.")
         st.session_state["customer_exam_prep_toggle"] = False
     else:
         st.markdown(f"#### 🔒 Entrance Exam Verification")
