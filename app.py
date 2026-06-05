@@ -4,7 +4,7 @@ import os
 import re
 
 # ==============================================================================
-# 0. DESKTOP GRID & CUSTOM BUTTON CHECKBOX CSS INJECTIONS
+# 0. DESKTOP GRID & ENTERPRISE INFRASTRUCTURE TOOLBAR REMOVALS
 # ==============================================================================
 st.set_page_config(page_title="Bridge Plan Generator", layout="wide")
 
@@ -62,7 +62,7 @@ def initialize_base_states(force_reset=False):
         "val_dismiss_mos": None, 
         "val_travel": "Yes",
         "val_track": "BSN",
-        "val_courses": [], # Array stores the custom string values toggled by button grids
+        "val_courses": [], 
         "val_deposit": 0, 
         "val_promo": "No",
         "val_ref": "No",
@@ -120,11 +120,12 @@ DISMISSAL_OPTIONS = ["No", "Yes"]
 LICENSE_OPTIONS = ["None / Other", "LPN", "CNA/CMA"]
 TRACK_OPTIONS = ["BSN", "ASN"]
 
+# 🔧 FIXED GRID LENGTH ALIGNMENT: Shortened long course titles to keep heights consistent
 course_list = [
     "Eng Comp 1", "College Algebra", "Statistics", "Humanities 1", "Humanities 2", 
-    "Humanities 3", "Human Growth & Development", "Psychology", "Sociology", "Speech", 
+    "Humanities 3", "Human Growth & Dev", "Psychology", "Sociology", "Speech", 
     "General Biology", "Chemistry", "Government", "History", "Foreign Language", 
-    "Macro/Micro Economics", "Elective 1", "Elective 2"
+    "Macro/Micro Econ", "Elective 1", "Elective 2"
 ]
 
 current_step = st.session_state["wizard_step"]
@@ -421,17 +422,14 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: PREREQUISITE BUTTON MATRIX SELECTION GRID (REPLACED THE DROPDOWN PICKLIST)
+    # STEP 3: PREREQUISITE BUTTON MATRIX SELECTION GRID
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Prerequisite Review")
         st.markdown("Select any general education or prerequisite courses you still need to complete:")
         st.divider()
         
-        # 🔑 3 ROWS OF 6 BUTTON BADGES: Dynamic execution replaces select picklists entirely
         rows = [course_list[0:6], course_list[6:12], course_list[12:18]]
-        
-        # Pull or initialize active list array references natively
         current_selections = set(st.session_state["val_courses"])
         
         for row_courses in rows:
@@ -439,7 +437,6 @@ with col_input_flow:
             for i, course in enumerate(row_courses):
                 with cols[i]:
                     is_toggled = course in current_selections
-                    # Render selection aesthetics dynamically based on active dictionary checks
                     btn_type = "primary" if is_toggled else "secondary"
                     btn_prefix = "✓ " if is_toggled else "+ "
                     
@@ -537,8 +534,10 @@ with col_input_flow:
                 
                 if not rule_row.empty:
                     for required_course in needed_courses:
-                        if required_course in rule_row.columns:
-                            if str(rule_row[required_course].values[0]).strip().upper() == "Y":
+                        # 🔧 DATA CONTEXT PIPELINE BACKFILL: Maps shortened label keys back out safely
+                        check_course = "Human Growth & Development" if required_course == "Human Growth & Dev" else ("Macro/Micro Economics" if required_course == "Macro/Micro Econ" else required_course)
+                        if check_course in rule_row.columns:
+                            if str(rule_row[check_course].values[0]).strip().upper() == "Y":
                                 school_accepted_list.append(required_course)
                             else: has_all_courses = False
                         else: has_all_courses = False
