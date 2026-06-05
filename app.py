@@ -472,7 +472,7 @@ with col_input_flow:
                 st.rerun()
         with b_continue_col:
             if st.button("Find Matches ➡️", use_container_width=True, type="primary", key="step3_continue_action", disabled=is_finalized):
-                st.session_state["customer_exam_prep_toggle"] = False
+                # 🔑 STATE RETENTION BUG FIXED: We dropped the aggressive hard-reset statement block here!
                 st.session_state["wizard_step"] = 4
                 st.rerun()
 
@@ -596,6 +596,9 @@ with col_input_flow:
                 if st.button(btn_label, key=f"btn_card_sel_{card['id']}", use_container_width=True, type="secondary" if is_this_card_selected else "primary", disabled=is_finalized):
                     st.session_state["active_school_view"] = card
                     st.session_state["selected_school_id"] = card["id"]
+                    
+                    # Synchronize popup inputs directly with historically stored metrics configurations
+                    st.session_state["customer_exam_prep_toggle"] = st.session_state["modal_include_exam_prep"]
                     render_institutional_modal(card["name"], card["exam"], card["notes"], card["accepted_courses"], card, card["id"])
                     
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -614,7 +617,7 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 sideBAR ITEMIZED INVOICE CART (GIVEAWAY TEXT EXPOSED BUG FIX TERMINATED)
+# 🛒 sideBAR ITEMIZED INVOICE CART
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -650,7 +653,6 @@ if col_ledger_flow is not None:
             promo_tier_name = ""
             
             if q_promo == "Yes":
-                # 🔑 THE FIX: Swapped out the old explicit code reminder string hint block
                 promo_input = st.text_input("Enter promotional code:", value=st.session_state["val_promo_code_input"], placeholder="Enter code here", disabled=is_finalized)
                 st.session_state["val_promo_code_input"] = promo_input
                 
