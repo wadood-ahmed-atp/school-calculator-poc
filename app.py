@@ -678,4 +678,53 @@ if col_ledger_flow is not None:
             else:
                 st.session_state["val_promo_code_input"] = ""
 
-            calc_dep
+            calc_dep_match = min(int(deposit_input), 1000) if (deposit_input >= 300) else 0
+            calc_referral = 50 if q_ref == "Yes" else 0
+            calc_military = 200 if q_mil == "Yes" else 0
+            
+            credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course
+            final_total = max(0, base_total - credits_sum)
+
+            st.divider()
+            st.markdown(f"**Gross Base Tuition:** `${0 if is_completely_empty else base_total:,}`")
+            
+            st.markdown("##### 🎖️ Discounts & Savings Applied:")
+            if calc_dep_match > 0:
+                st.markdown(f"🏷️ *Deposit Match Program Savings:* `-${calc_dep_match:,}`")
+            if calc_referral > 0:
+                st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,}`")
+            if calc_military > 0:
+                st.markdown(f"🏷️ *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
+            if calc_free_course > 0:
+                st.markdown(f"🏷️ *Complimentary Course ({promo_tier_name}):* `-${calc_free_course:,}`")
+            if credits_sum == 0:
+                st.markdown("🏷️ *No additional discounts applied to this estimate.*")
+                
+            st.markdown(f"**Total Savings:** `-${credits_sum:,}`")
+            st.markdown(f"## **Balance Due: ${0 if is_completely_empty else final_total:,}**")
+            
+            st.divider()
+            if st.button("🔒 Lock in Enrollment Package", key="ledger_final_lock_action_btn", use_container_width=True, type="primary", disabled=is_finalized):
+                st.session_state["confirmed_package"] = {
+                    "school_name": school_name,
+                    "student_name": st.session_state["val_name"],
+                    "base_total": int(base_total),
+                    "reg_fee": 0,
+                    "final_total": int(final_total),
+                    "courses_included": needed_courses,
+                    "entrance_exam_prep_added": st.session_state["modal_include_exam_prep"],
+                    "entrance_exam_score_logged": st.session_state["modal_score_logged"],
+                    "classes_waived_count": st.session_state["modal_classes_waived"],
+                    "promo_tier_applied": promo_tier_name,
+                    "addons_active": False
+                }
+                st.rerun()
+
+if is_finalized:
+    pkg = st.session_state["confirmed_package"]
+    st.balloons()
+    st.success(f"🎉 **Your Bridge Plan has been successfully finalized, {pkg['student_name']}!**")
+    st.markdown(f"### School Selection Locked: **{pkg['school_name']}**")
+    st.metric("Final Balance Due", f"${int(pkg['final_total']):,}")
+    with st.expander("📄 View Your Signed Enrollment Summary Manifest"):
+        st.json(pkg)
