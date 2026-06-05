@@ -120,7 +120,6 @@ DISMISSAL_OPTIONS = ["No", "Yes"]
 LICENSE_OPTIONS = ["None / Other", "LPN", "CNA/CMA"]
 TRACK_OPTIONS = ["BSN", "ASN"]
 
-# 🔧 FIXED GRID LENGTH ALIGNMENT: Shortened long course titles to keep heights consistent
 course_list = [
     "Eng Comp 1", "College Algebra", "Statistics", "Humanities 1", "Humanities 2", 
     "Humanities 3", "Human Growth & Dev", "Psychology", "Sociology", "Speech", 
@@ -177,7 +176,8 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
     user_score_logged = ""
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-        st.info("ℹ️ There are no entrance testing requirements for this specific nursing track configuration.")
+        # 🔑 PHRASING ALIGNMENT INSTALLED HERE: Changed "nursing track configuration" to "nursing school"
+        st.info("ℹ️ There are no entrance testing requirements for this specific nursing school.")
         st.session_state["customer_exam_prep_toggle"] = False
     else:
         st.markdown(f"#### 🔒 Entrance Exam Verification")
@@ -534,7 +534,6 @@ with col_input_flow:
                 
                 if not rule_row.empty:
                     for required_course in needed_courses:
-                        # 🔧 DATA CONTEXT PIPELINE BACKFILL: Maps shortened label keys back out safely
                         check_course = "Human Growth & Development" if required_course == "Human Growth & Dev" else ("Macro/Micro Economics" if required_course == "Macro/Micro Econ" else required_course)
                         if check_course in rule_row.columns:
                             if str(rule_row[check_course].values[0]).strip().upper() == "Y":
