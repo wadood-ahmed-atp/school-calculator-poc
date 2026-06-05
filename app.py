@@ -65,6 +65,7 @@ def initialize_base_states(force_reset=False):
         "val_courses": [], 
         "val_deposit": 0, 
         "val_promo": "No",
+        "val_promo_code_input": "", 
         "val_ref": "No",
         "val_mil": "No",
         "customer_exam_prep_toggle": False 
@@ -176,7 +177,6 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
     user_score_logged = ""
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
-        # 🔑 PHRASING ALIGNMENT INSTALLED HERE: Changed "nursing track configuration" to "nursing school"
         st.info("ℹ️ There are no entrance testing requirements for this specific nursing school.")
         st.session_state["customer_exam_prep_toggle"] = False
     else:
@@ -263,7 +263,11 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
         calc_dep_match = min(int(st.session_state["val_deposit"]), 1000) if (st.session_state["val_deposit"] >= 300) else 0
         calc_referral = 50 if st.session_state["val_ref"] == "Yes" else 0
         calc_military = 200 if st.session_state["val_mil"] == "Yes" else 0
-        calc_free_course = m_price_tier if (st.session_state["val_promo"] == "Yes" and modal_base_count >= 3) else 0
+        
+        calc_free_course = 0
+        if st.session_state["val_promo"] == "Yes" and computed_classes_count >= 3:
+            calc_free_course = 1179 if computed_classes_count >= 10 else (1229 if computed_classes_count >= 4 else 1289)
+            
         modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course
         modal_final_total = max(0, final_base_total - modal_credits_sum)
 
@@ -610,7 +614,7 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 sideBAR ITEMIZED INVOICE CART
+# 🛒 sideBAR ITEMIZED INVOICE CART (GEN-ED EXCLUSIVITY LOCKED IN)
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -639,17 +643,47 @@ if col_ledger_flow is not None:
             q_ref = st.session_state["val_ref"]
             q_mil = st.session_state["val_mil"]
             
-            if len(needed_courses) >= 3:
-                q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio", disabled=is_finalized)
-                st.session_state["val_promo"] = q_promo
+            # ==============================================================================
+            # 🔑 STABILIZED PROMO CALCULATOR: Maps directly to FreeCourse 7, 8, & 9 active rules
+            # ==============================================================================
+            q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio", disabled=is_finalized)
+            st.session_state["val_promo"] = q_promo
+            
+            calc_free_course = 0
+            promo_tier_name = ""
+            
+            if q_promo == "Yes":
+                promo_input = st.text_input("Enter promotional code:", value=st.session_state["val_promo_code_input"], placeholder="e.g. FREECOURSE", disabled=is_finalized)
+                st.session_state["val_promo_code_input"] = promo_input
+                
+                clean_promo = str(promo_input).strip().upper()
+                
+                if clean_promo == "":
+                    st.info("ℹ️ Please type your promotional code above to activate your discount.")
+                elif clean_promo in ["FREECOURSE", "FREE COURSE"]:
+                    if base_classes < 3:
+                        st.warning("⚠️ This code requires a minimum package layout bundle of at least 3 classes to activate.")
+                    else:
+                        # 🔧 Gen Ed rules are implicitly satisfied per package definitions
+                        if base_classes >= 10:
+                            calc_free_course = 1179
+                            promo_tier_name = "FreeCourse9"
+                        elif base_classes >= 4:
+                            calc_free_course = 1229
+                            promo_tier_name = "FreeCourse8"
+                        else:
+                            calc_free_course = 1289
+                            promo_tier_name = "FreeCourse7"
+                                
+                        st.success(f"🎉 Code Approved! Unlocked Tier: **{promo_tier_name}** (-${calc_free_course:,})")
+                else:
+                    st.error("❌ Invalid promotional code. Please check your spelling and try again.")
             else:
-                st.session_state["val_promo"] = "No"
-                q_promo = "No"
+                st.session_state["val_promo_code_input"] = ""
 
             calc_dep_match = min(int(deposit_input), 1000) if (deposit_input >= 300) else 0
             calc_referral = 50 if q_ref == "Yes" else 0
             calc_military = 200 if q_mil == "Yes" else 0
-            calc_free_course = int(main_price) if (q_promo == "Yes" and len(needed_courses) >= 3) else 0
             
             credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course
             final_total = max(0, base_total - credits_sum)
@@ -665,7 +699,7 @@ if col_ledger_flow is not None:
             if calc_military > 0:
                 st.markdown(f"🏷️ *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
             if calc_free_course > 0:
-                st.markdown(f"🏷️ *Complimentary Course Code Applied:* `-${calc_free_course:,}`")
+                st.markdown(f"🏷️ *Complimentary Course ({promo_tier_name}):* `-${calc_free_course:,}`")
             if credits_sum == 0:
                 st.markdown("🏷️ *No additional discounts applied to this estimate.*")
                 
@@ -684,6 +718,7 @@ if col_ledger_flow is not None:
                     "entrance_exam_prep_added": st.session_state["modal_include_exam_prep"],
                     "entrance_exam_score_logged": st.session_state["modal_score_logged"],
                     "classes_waived_count": st.session_state["modal_classes_waived"],
+                    "promo_tier_applied": promo_tier_name,
                     "addons_active": False
                 }
                 st.rerun()
