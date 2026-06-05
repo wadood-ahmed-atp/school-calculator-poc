@@ -64,11 +64,10 @@ def initialize_base_states(force_reset=False):
         "val_track": "BSN",
         "val_courses": [],
         "val_deposit": 0, 
-        "val_grant": 0,   
         "val_promo": "No",
         "val_ref": "No",
         "val_mil": "No",
-        "customer_exam_prep_toggle": False # 🔑 Global tracking key hook added
+        "customer_exam_prep_toggle": False 
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -178,7 +177,6 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
     
     if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
         st.info("ℹ️ There are no entrance testing requirements for this specific nursing track configuration.")
-        # Auto-bypass toggle value calculations smoothly if no exam exists
         st.session_state["customer_exam_prep_toggle"] = False
     else:
         st.markdown(f"#### 🔒 Entrance Exam Verification")
@@ -186,7 +184,6 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
         
         if user_has_passed == "No":
             st.warning(f"⚠️ Note: A required **{school_exam_type} Prep Course** has been added to your preparation bundle.")
-            # 🔑 STABILIZED INTERACTIVE TOGGLE: Binds directly to the unique session state key slot
             st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", key="customer_exam_prep_toggle")
         else:
             raw_input_score = st.text_input("Enter your official score:", placeholder="e.g., 75 or 740")
@@ -255,7 +252,6 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
                         st.session_state["customer_exam_prep_toggle"] = False
 
         st.markdown("---")
-        # 🔑 MATHEMATICAL REALignment LOOKAHEAD: Directly reads active reactive checkbox state keys safely
         extra_class_modifier = 1 if st.session_state["customer_exam_prep_toggle"] else 0
         computed_classes_count = modal_base_count + extra_class_modifier
         
@@ -267,7 +263,7 @@ def render_institutional_modal(school_name, school_exam_type, school_exam_notes,
         calc_referral = 50 if st.session_state["val_ref"] == "Yes" else 0
         calc_military = 200 if st.session_state["val_mil"] == "Yes" else 0
         calc_free_course = m_price_tier if (st.session_state["val_promo"] == "Yes" and modal_base_count >= 3) else 0
-        modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + int(st.session_state["val_grant"])
+        modal_credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course
         modal_final_total = max(0, final_base_total - modal_credits_sum)
 
         st.metric("Estimated Base Tuition", f"${final_base_total:,}")
@@ -409,7 +405,6 @@ with col_input_flow:
                 st.rerun()
         with b_continue_col:
             if st.button("Find Matches ➡️", use_container_width=True, type="primary", key="step3_continue_action", disabled=is_finalized):
-                # 🔑 SAFE FRESH BOOTSTRAP: Resets selection slots upon transition loop executions
                 st.session_state["customer_exam_prep_toggle"] = False
                 st.session_state["wizard_step"] = 4
                 st.rerun()
@@ -551,7 +546,7 @@ with col_input_flow:
                 st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 sideBAR ITEMIZED INVOICE CART (TOTAL WHOLE INTEGER RE-CONSTRUCTION COMPLETE)
+# 🛒 sideBAR ITEMIZED INVOICE CART (GRANT CALCULATIONS DROPPED COMPLETELY)
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -564,7 +559,6 @@ if col_ledger_flow is not None:
             school_name = st.session_state["active_school_view"]["name"]
             st.success(f"🎯 Selected: **{school_name}**")
 
-            # 🔑 TOTAL STABILIZATION FOR MODAL OVERWRITES: Calculation reads dynamically from global selection states keys
             extra_exam_count = 1 if st.session_state["modal_include_exam_prep"] else 0
             base_classes = len(needed_courses) + extra_exam_count
             total_classes = base_classes
@@ -574,12 +568,10 @@ if col_ledger_flow is not None:
             main_price = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
             base_total = int(base_classes * main_price)
             
-            st.markdown("#### Adjustments & Grants")
+            st.markdown("#### Adjustments & Savings")
+            # 🔧 REMOVED FIELD: Institutional Grant input box deleted gracefully
             deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0, value=int(st.session_state["val_deposit"]), step=50, key="ledger_deposit_input_field", disabled=is_finalized)
-            grant_input = st.number_input("Institutional Grant Amount ($)", min_value=0, value=int(st.session_state["val_grant"]), step=50, key="ledger_grant_input_field", disabled=is_finalized)
-            
             st.session_state["val_deposit"] = int(deposit_input)
-            st.session_state["val_grant"] = int(grant_input)
 
             q_ref = st.session_state["val_ref"]
             q_mil = st.session_state["val_mil"]
@@ -596,7 +588,8 @@ if col_ledger_flow is not None:
             calc_military = 200 if q_mil == "Yes" else 0
             calc_free_course = int(main_price) if (q_promo == "Yes" and len(needed_courses) >= 3) else 0
             
-            credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course + int(grant_input)
+            # 🔧 REMOVED PARAMETER: Grant variable wiped out from mathematical aggregation structures
+            credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course
             final_total = max(0, base_total - credits_sum)
 
             st.divider()
@@ -611,8 +604,7 @@ if col_ledger_flow is not None:
                 st.markdown(f"🏷️ *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
             if calc_free_course > 0:
                 st.markdown(f"🏷️ *Complimentary Course Code Applied:* `-${calc_free_course:,}`")
-            if grant_input > 0:
-                st.markdown(f"🏷️ *Institutional Grant Award:* `-${grant_input:,}`")
+            # 🔧 REMOVED FIELD: Institutional Grant text output string completely deleted
             if credits_sum == 0:
                 st.markdown("🏷️ *No additional discounts applied to this estimate.*")
                 
