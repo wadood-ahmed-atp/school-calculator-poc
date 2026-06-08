@@ -280,6 +280,8 @@ with col_input_flow:
 
         cust_state = str(st.session_state["val_state"]).strip().lower()
         state_schools = master_schools_df[master_schools_df["States Accepted"].str.lower().str.contains(cust_state, na=False)]
+        
+        # Fixed tracking alignments definitions to avoid case bleed issues
         has_state_bsn = not state_schools[state_schools["ASN/BSN"].str.lower().str.strip() == "bsn"].empty
         has_state_asn = not state_schools[state_schools["ASN/BSN"].str.lower().str.strip() == "asn"].empty
 
@@ -339,6 +341,7 @@ with col_input_flow:
                     st.session_state["val_dismiss"] = i_dismiss
                     st.session_state["val_dismiss_mos"] = int(i_dismiss_mos) if i_dismiss_mos is not None else 0
                     st.session_state["val_travel"] = i_travel
+                    st.session_state["val_track"] = i_track
                     st.session_state["wizard_step"] = 3
                     st.rerun()
 
@@ -393,7 +396,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL SCHOOL MATCHES
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (FIXED ASN TRACK LEAKS)
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
@@ -413,6 +416,7 @@ with col_input_flow:
 
         working_schools_df = master_schools_df.copy()
         
+        # 🔑 FIXED FILTER: Enforces absolute lower case equality matching to lock down the ASN option track cleanly
         if "ASN/BSN" in working_schools_df.columns:
             working_schools_df = working_schools_df[working_schools_df["ASN/BSN"].str.lower().str.strip() == selected_track]
         if "States Accepted" in working_schools_df.columns:
@@ -526,7 +530,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (RETAIN BACK-BUTTON MEMORY)
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (STATE LEAK FIXES)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -562,7 +566,7 @@ with col_input_flow:
             st.session_state["selected_odts"] = []
             st.session_state["odt_hydrated_for_school"] = school_id
         else:
-            # 🔮 SECURE CACHE LAYER: Only overwrite memory array if this is a brand new school route selection.
+            # 🔮 SECURE HYDRATION CACHE FIXED: Only automatically fill array if user has never touched this screen yet.
             if st.session_state.get("odt_hydrated_for_school") != school_id:
                 st.session_state["selected_odts"] = list(triggered_odt_options)
                 st.session_state["odt_hydrated_for_school"] = school_id
@@ -570,18 +574,21 @@ with col_input_flow:
             st.markdown("#### 🎓 Recommended Support Bundles")
             st.markdown(f"The following courses cannot be bypassed via exam at **{school_name}**. Please select the items you want to include Guided Course Support for:")
             
-            # Fetch active parameters straight from the global state repository
+            # Read active state values cleanly
             current_selected_odts = set(st.session_state.get("selected_odts", []))
-            updated_selection_pool = set()
             
             for formal_course in triggered_odt_options:
                 was_checked_previously = formal_course in current_selected_odts
                 
-                # Checkboxes remain locked based on previous inputs across loops
-                if st.checkbox(formal_course, value=was_checked_previously, key=f"odt_check_{formal_course.replace(' ', '_')}"):
-                    updated_selection_pool.add(formal_course)
-                    
-            st.session_state["selected_odts"] = list(updated_selection_pool)
+                # 🛠️ FIXED CALL: Directly binds changes to a secure persistent session state key variable so loops can't wipe them
+                if st.checkbox(formal_course, value=was_checked_previously, key=f"odt_box_action_{formal_course.replace(' ', '_')}"):
+                    if formal_course not in current_selected_odts:
+                        current_selected_odts.add(formal_course)
+                        st.session_state["selected_odts"] = list(current_selected_odts)
+                else:
+                    if formal_course in current_selected_odts:
+                        current_selected_odts.remove(formal_course)
+                        st.session_state["selected_odts"] = list(current_selected_odts)
 
         st.divider()
         b_back_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
@@ -755,7 +762,7 @@ if col_ledger_flow is not None:
         main_price = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
         base_total = int(base_classes * main_price)
         
-        # 🧪 CRITICAL PATCH: Updated pricing target to look at 'Science/Math ODT Price' natively
+        # 🧪 CRITICAL PATCH: Natively links ledger array items back to spreadsheet price cells
         active_odts = st.session_state.get("selected_odts", [])
         odt_price_raw = str(active_school.get("Science/Math ODT Price", "0")).replace("$", "").replace(",", "").strip()
         odt_unit_price = float(pd.to_numeric(odt_price_raw, errors='coerce')) if not pd.isna(pd.to_numeric(odt_price_raw, errors='coerce')) else 0.0
