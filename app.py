@@ -69,7 +69,7 @@ def initialize_base_states(force_reset=False):
         "val_mil": "No",
         "customer_exam_prep_toggle": False,
         "selected_odts": [],
-        "odt_hydrated_for_school": None # Safety lock to prevent resetting user selections during page redraws
+        "odt_hydrated_for_school": None # Safety lock to avoid dropping selections on live view updates
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -278,10 +278,10 @@ with col_input_flow:
         i_travel = st.selectbox("Are you willing to travel regionally for clinical rotations?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]), disabled=is_finalized)
         i_track = st.selectbox("Which degree program track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]), disabled=is_finalized)
 
-        cust_state = str(st.session_state["val_state"]).strip().upper()
-        state_schools = master_schools_df[master_schools_df["States Accepted"].str.upper().str.contains(cust_state, na=False)]
-        has_state_bsn = not state_schools[state_schools["ASN/BSN"].str.upper() == "BSN"].empty
-        has_state_asn = not state_schools[state_schools["ASN/BSN"].str.upper() == "ASN"].empty
+        cust_state = str(st.session_state["val_state"]).strip().lower()
+        state_schools = master_schools_df[master_schools_df["States Accepted"].str.lower().str.contains(cust_state, na=False)]
+        has_state_bsn = not state_schools[state_schools["ASN/BSN"].str.lower().str.strip() == "bsn"].empty
+        has_state_asn = not state_schools[state_schools["ASN/BSN"].str.lower().str.strip() == "asn"].empty
 
         st.divider()
         
@@ -339,6 +339,7 @@ with col_input_flow:
                     st.session_state["val_dismiss"] = i_dismiss
                     st.session_state["val_dismiss_mos"] = int(i_dismiss_mos) if i_dismiss_mos is not None else 0
                     st.session_state["val_travel"] = i_travel
+                    st.session_state["val_track"] = i_track
                     st.session_state["wizard_step"] = 3
                     st.rerun()
 
@@ -393,7 +394,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL SCHOOL MATCHES
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (PRISTINE ROBUST TRIMMING LAYER)
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
@@ -401,8 +402,8 @@ with col_input_flow:
         st.divider()
         
         student_state = st.session_state["val_state"]
-        selected_state = str(student_state).strip().upper()
-        selected_track = str(st.session_state["val_track"]).strip().upper()
+        selected_state = str(student_state).strip().lower()
+        selected_track = str(st.session_state["val_track"]).strip().lower()
         license_type = st.session_state["val_lic"]
         lpn_exp = int(st.session_state["val_exp"]) if st.session_state["val_exp"] is not None else 0
         gpa_val = round(float(st.session_state["val_gpa"]), 1)
@@ -412,12 +413,14 @@ with col_input_flow:
         needed_courses = st.session_state["val_courses"]
 
         working_schools_df = master_schools_df.copy()
+        
+        # 🟢 SECURE MATCH ENGINE: Upgraded parsing using robust lower casing and strict trimming rules
         if "ASN/BSN" in working_schools_df.columns:
-            working_schools_df = working_schools_df[working_schools_df["ASN/BSN"].str.upper() == selected_track]
+            working_schools_df = working_schools_df[working_schools_df["ASN/BSN"].str.lower().str.strip() == selected_track]
         if "States Accepted" in working_schools_df.columns:
-            working_schools_df = working_schools_df[working_schools_df["States Accepted"].str.upper().str.contains(selected_state)]
+            working_schools_df = working_schools_df[working_schools_df["States Accepted"].str.lower().str.contains(selected_state, na=False)]
         if "LPN Required?" in working_schools_df.columns and license_type in ["None", "None / Other"]:
-            working_schools_df = working_schools_df[working_schools_df["LPN Required?"].astype(str).str.upper().str.strip() != "Y"]
+            working_schools_df = working_schools_df[working_schools_df["LPN Required?"].astype(str).str.lower().str.strip() != "y"]
         if "Min Work Experience Required (mos)" in working_schools_df.columns:
             working_schools_df["Min Work Experience Required (mos)"] = pd.to_numeric(working_schools_df["Min Work Experience Required (mos)"], errors='coerce').fillna(0)
             working_schools_df = working_schools_df[working_schools_df["Min Work Experience Required (mos)"] <= lpn_exp]
@@ -425,11 +428,11 @@ with col_input_flow:
             working_schools_df["Min GPA"] = pd.to_numeric(working_schools_df["Min GPA"], errors='coerce').fillna(0.0)
             working_schools_df = working_schools_df[working_schools_df["Min GPA"] <= gpa_val]
         if "Clinical Travel?" in working_schools_df.columns and travel_ok == "No":
-            travel_clean = working_schools_df["Clinical Travel?"].astype(str).str.upper().str.strip()
-            working_schools_df = working_schools_df[travel_clean.isin(["NO", "N", "NONE", "0"])]
+            travel_clean = working_schools_df["Clinical Travel?"].astype(str).str.lower().str.strip()
+            working_schools_df = working_schools_df[travel_clean.isin(["no", "n", "none", "0"])]
         if "Prior Nursing Dismissal Policy" in working_schools_df.columns and dismissal_y:
             if dismissal_months <= 60:
-                working_schools_df = working_schools_df[working_schools_df["Prior Nursing Dismissal Policy"].astype(str).str.upper().str.strip() != "DOES NOT ACCEPT"]
+                working_schools_df = working_schools_df[working_schools_df["Prior Nursing Dismissal Policy"].astype(str).str.lower().str.strip() != "does not accept"]
 
         filtered_df = working_schools_df.copy()
 
