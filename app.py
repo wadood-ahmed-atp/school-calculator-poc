@@ -46,7 +46,7 @@ def initialize_base_states(force_reset=False):
         "confirmed_package": None,
         "active_school_view": None,
         "selected_school_id": None,
-        "modal_include_exam_prep": True, # Pre-checks the prep bundle by default
+        "modal_include_exam_prep": True, 
         "modal_score_logged": "",
         "modal_classes_waived": 0,
         "val_name": "",
@@ -121,29 +121,14 @@ DISMISSAL_OPTIONS = ["No", "Yes"]
 LICENSE_OPTIONS = ["None / Other", "LPN", "CNA/CMA"]
 TRACK_OPTIONS = ["BSN", "ASN"]
 
+# 🚀 TARGET ALIGNED PRECISION SEQUENCE MATRIX (Sciences Consolidated, Shorthands Unified)
 course_list = [
     "Eng Comp 1", "College Algebra", "Statistics", "Humanities 1", "Humanities 2", 
-    "Humanities 3", "Human Growth & Dev", "Psychology", "Sociology", "Speech", 
-    "General Biology", "Chemistry", "Government", "History", "Foreign Language", 
-    "Macro/Micro Econ", "Elective 1", "Elective 2", "Microbiology", 
-    "Anatomy & Physiology 1", "Anatomy & Physiology 2", "Pathophysiology"
+    "Humanities 3", "Human Growth & Development", "Psychology", "Sociology", "Speech",
+    "Government History", "Foreign Language", "Macro/Micro Econ", "Biology", 
+    "Chemistry", "Microbiology", "AP1", "AP2", "Pathophysiology", 
+    "Elective 1", "Elective 2"
 ]
-
-course_mapping_bridge = {
-    "Human Growth & Dev": "Human Growth &",
-    "General Biology": "Biology",
-    "Macro/Micro Econ": "Macro/Micro=Economics",
-    "Anatomy & Physiology 1": "AP1",
-    "Anatomy & Physiology 2": "AP2"
-}
-
-odt_translation_bridge = {
-    "AP1": "Anatomy & Physiology 1",
-    "AP2": "Anatomy & Physiology 2",
-    "Microbiology": "Microbiology",
-    "Pathophysiology": "Pathophysiology",
-    "Chemistry": "Chemistry"
-}
 
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
@@ -344,12 +329,25 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: PREREQUISITE BUTTON MATRIX SELECTION GRID
+    # STEP 3: PREREQUISITE BUTTON MATRIX SELECTION GRID (PRE-CHECK BARS APPROVED)
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Prerequisite Review")
         st.markdown("Select any general education or prerequisite courses you still need to complete:")
         st.divider()
+        
+        # 🔑 PREMIUM UTILITY MASTER PANEL: Fast select or fast clear routines
+        btn_all_col, btn_clear_col, btn_spacer = st.columns([1.2, 1.2, 3.0])
+        with btn_all_col:
+            if st.button("Select All Prerequisites", key="action_select_all_courses", use_container_width=True):
+                st.session_state["val_courses"] = list(course_list)
+                st.rerun()
+        with btn_clear_col:
+            if st.button("Clear All Selections", key="action_clear_all_courses", use_container_width=True):
+                st.session_state["val_courses"] = []
+                st.rerun()
+                
+        st.markdown("<br>", unsafe_allow_html=True)
         
         current_selections = set(st.session_state["val_courses"])
         cols_per_row = 4
@@ -394,12 +392,10 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (STRICT TRACK MATCH ENFORCED)
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (STRICT TRACK FILTER ISOLATION)
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
-        
-        # Transparent UI Indicator showing what track is currently processed in memory
         st.info(f"🎯 Current Selected Track: **{st.session_state['val_track']}** program options (To change this, go back to Step 2)")
         st.divider()
         
@@ -416,7 +412,6 @@ with col_input_flow:
 
         working_schools_df = master_schools_df.copy()
         
-        # Absolute Track Filter check to force compliance against case differences or whitespace leaks
         if "ASN/BSN" in working_schools_df.columns:
             working_schools_df = working_schools_df[working_schools_df["ASN/BSN"].str.lower().str.strip() == selected_track]
         if "States Accepted" in working_schools_df.columns:
@@ -461,12 +456,21 @@ with col_input_flow:
                 
                 if not rule_row.empty:
                     for required_course in needed_courses:
-                        check_course = course_mapping_bridge.get(required_course, required_course)
-                        if check_course in rule_row.columns:
-                            if str(rule_row[check_course].values[0]).strip().upper() == "Y":
+                        # 🔮 UNIFIED GOVERNMENT HISTORY TRANSCRIPT LOGIC ENGINE
+                        if required_course == "Government History":
+                            gov_acc = str(rule_row['Government'].values[0]).strip().upper() == "Y"
+                            hist_acc = str(rule_row['History'].values[0]).strip().upper() == "Y"
+                            if gov_acc or hist_acc:
                                 school_accepted_list.append(required_course)
                             else: has_all_courses = False
-                        else: has_all_courses = False
+                        else:
+                            # Direct check since the custom name list array matches database columns explicitly
+                            check_course = course_mapping_bridge.get(required_course, required_course)
+                            if check_course in rule_row.columns:
+                                if str(rule_row[check_course].values[0]).strip().upper() == "Y":
+                                    school_accepted_list.append(required_course)
+                                else: has_all_courses = False
+                            else: has_all_courses = False
                     s_status = "Perfect Match" if (len(needed_courses) == 0 or has_all_courses) else "Missing Needed CBE Courses"
                 else:
                     s_status = "Perfect Match"
@@ -530,7 +534,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: GUIDED COURSE SUPPORT TERMINAL (STABLE MEMORY PRE-CHECK CAPTURE)
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (STABLE MEMORY BOUND)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -547,7 +551,7 @@ with col_input_flow:
         if blanket_statement and blanket_statement.lower() not in ["", "nan", "--"]:
             st.info(f"📋 **Institutional Policy Notice:**\n\n{blanket_statement}")
             
-        core_sciences = ["Microbiology", "Anatomy & Physiology 1", "Anatomy & Physiology 2", "Pathophysiology"]
+        core_sciences = ["Microbiology", "AP1", "AP2", "Pathophysiology"]
         user_needs_sciences = any(s in needed_courses for s in core_sciences)
         
         if "EXCEL" in school_name.upper() and user_needs_sciences:
@@ -557,51 +561,43 @@ with col_input_flow:
         if odt_rules_string and odt_rules_string.lower() not in ["", "nan", "--"]:
             school_odt_list = [c.strip() for c in odt_rules_string.split(",")]
             for raw_csv_item in school_odt_list:
-                translated_label = odt_translation_bridge.get(raw_csv_item, raw_csv_item)
-                if translated_label in needed_courses:
-                    triggered_odt_options.append(translated_label)
+                if raw_csv_item in needed_courses:
+                    triggered_odt_options.append(raw_csv_item)
 
         if not triggered_odt_options:
             st.success("✅ Clean Path: No mandatory Guided Course Support tracks are required for your selected path configuration.")
             st.session_state["selected_odts"] = []
             st.session_state["odt_hydrated_for_school"] = school_id
         else:
+            # 🔮 CACHE LAYER FIX: Hydrate the checkbox states inside session dictionary keys exactly once per school load
+            if st.session_state.get("odt_hydrated_for_school") != school_id:
+                for formal_course in triggered_odt_options:
+                    st.session_state[f"odt_box_state_{formal_course}"] = True
+                st.session_state["odt_hydrated_for_school"] = school_id
+                
             st.markdown("#### 🎓 Recommended Support Bundles")
             st.markdown(f"The following courses cannot be bypassed via exam at **{school_name}**. Please select the items you want to include Guided Course Support for:")
             
-            # Local collection array tracks state changes cleanly across loops
-            chosen_this_run = []
+            chosen_odts = []
             for formal_course in triggered_odt_options:
-                # Pre-checks automatically if user has never encountered this school view yet
-                if st.session_state["odt_hydrated_for_school"] != school_id:
-                    is_checked = True
-                else:
-                    is_checked = formal_course in st.session_state["selected_odts"]
-                
-                # Render the clean formal subject checkbox widget
-                if st.checkbox(formal_course, value=is_checked, key=f"odt_box_w_{formal_course.replace(' ', '_')}"):
-                    chosen_this_run.append(formal_course)
+                # Direct structural connection to its specific session key variable makes it immune to back button deletion
+                if st.checkbox(formal_course, key=f"odt_box_state_{formal_course}"):
+                    chosen_odts.append(formal_course)
+            st.session_state["selected_odts"] = chosen_odts
 
         st.divider()
         b_back_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
         with b_back_col:
             if st.button("⬅   Back to Schools", use_container_width=True, key="step5_back_btn"):
-                if triggered_odt_options:
-                    st.session_state["selected_odts"] = chosen_this_run
-                    st.session_state["odt_hydrated_for_school"] = school_id
                 st.session_state["wizard_step"] = 4
                 st.rerun()
         with b_continue_col:
             if st.button("Verify Entrance Exams ➡️", use_container_width=True, type="primary", key="step5_continue_btn"):
-                # 🔒 MEMORY LOCK: Saves options permanently into session memory dictionary right before switching screens
-                if triggered_odt_options:
-                    st.session_state["selected_odts"] = chosen_this_run
-                    st.session_state["odt_hydrated_for_school"] = school_id
                 st.session_state["wizard_step"] = 6
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM SCREEN WORKSPACE (PRE-CHECK MEMORY FIXED)
+    # STEP 6: STANDALONE ENTRANCE EXAM SCREEN WORKSPACE (STATE ENGINE LOCKED)
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
@@ -628,10 +624,15 @@ with col_input_flow:
             if user_has_passed == "No":
                 st.warning(f"⚠️ Note: A required **{school_exam_type} Prep Course** has been added to your preparation bundle.")
                 
-                # 🔒 MEMORY LOCK: Pre-populates based on a stable state variable value to prevent back button loss
-                keep_prep_bundle = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", key="exam_bundle_checkbox_widget", value=st.session_state["modal_include_exam_prep"])
+                # Setup standard default block value on initial entry run
+                if "exam_prep_checkbox_widget_key" not in st.session_state:
+                    st.session_state["exam_prep_checkbox_widget_key"] = True
+                    
+                # 🔒 MEMORY LOCK FIX: Secure key bind locks the user selection state down forever
+                keep_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", key="exam_prep_checkbox_widget_key")
+                st.session_state["modal_include_exam_prep"] = keep_prep
             else:
-                keep_prep_bundle = False
+                st.session_state["modal_include_exam_prep"] = False
                 raw_input_score = st.text_input("Enter your official score:", value=user_score_logged, placeholder="Enter score here", key="step6_score_input")
                 user_score_logged = raw_input_score
                 
@@ -681,40 +682,42 @@ with col_input_flow:
                     if score_num > 0:
                         if matched_rule_type == "fail":
                             st.error(f"🛑 This score is below the automatic waiver threshold. We've added a **{school_exam_type} Prep Course** to help you prepare.")
-                            keep_prep_bundle = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", key="exam_bundle_checkbox_widget_fail", value=st.session_state["modal_include_exam_prep"])
+                            
+                            if "exam_prep_checkbox_widget_key_fail" not in st.session_state:
+                                st.session_state["exam_prep_checkbox_widget_key_fail"] = True
+                            keep_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", key="exam_prep_checkbox_widget_key_fail")
+                            st.session_state["modal_include_exam_prep"] = keep_prep
                         elif matched_rule_type in ["pass", "exempt"]:
                             if age_limit_years:
                                 st.markdown("##### ⏳ Verification Check:")
                                 exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1, key="step6_age_slider")
                                 if exam_age > age_limit_years:
                                     st.error(f"🛑 Your test score has expired. Adding a refresher preparation course to your plan.")
-                                    keep_prep_bundle = True
+                                    st.session_state["modal_include_exam_prep"] = True
                                 else:
                                     st.success(f"✅ Verified: Your score is active and valid!")
-                                    keep_prep_bundle = False
+                                    st.session_state["modal_include_exam_prep"] = False
                             else:
                                 if matched_rule_type == "exempt":
                                     st.success(f"🎉 Exemption unlocked! You have successfully waived out of **{waived_course_name}**.")
                                 else:
                                     st.success(f"✅ Verified: Entrance testing requirements successfully met!")
-                                keep_prep_bundle = False
+                                st.session_state["modal_include_exam_prep"] = False
                         elif matched_rule_type == "retest":
                             st.warning(f"⚠️ {custom_message}")
-                            keep_prep_bundle = st.checkbox(f"Add **{school_exam_type} Advanced Retest Preparation** to your layout?", key="exam_bundle_checkbox_widget_retest", value=st.session_state["modal_include_exam_prep"])
+                            if "exam_prep_checkbox_widget_key_retest" not in st.session_state:
+                                st.session_state["exam_prep_checkbox_widget_key_retest"] = True
+                            keep_prep = st.checkbox(f"Add **{school_exam_type} Advanced Retest Preparation** to your layout?", key="exam_prep_checkbox_widget_key_retest")
+                            st.session_state["modal_include_exam_prep"] = keep_prep
 
         st.divider()
         b_back_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
         with b_back_col:
             if st.button("⬅   Back to Guided Support", use_container_width=True, key="step6_back_btn"):
-                if school_exam_type not in ["--", "", "nan"] and not pd.isna(school_exam_type):
-                    st.session_state["modal_include_exam_prep"] = keep_prep_bundle
                 st.session_state["wizard_step"] = 5
                 st.rerun()
         with b_continue_col:
             if st.button("Continue to Summary ➡️", use_container_width=True, type="primary", key="step6_continue_btn"):
-                # 🔒 MEMORY LOCK: Saves the live view widget values into permanent session parameters before unmounting
-                if school_exam_type not in ["--", "", "nan"] and not pd.isna(school_exam_type):
-                    st.session_state["modal_include_exam_prep"] = keep_prep_bundle
                 st.session_state["modal_score_logged"] = user_score_logged
                 st.session_state["modal_classes_waived"] = classes_waived
                 st.session_state["wizard_step"] = 7
@@ -768,10 +771,8 @@ if col_ledger_flow is not None:
         main_price = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
         base_total = int(base_classes * main_price)
         
-        # 🧪 FULL PRICE ENFORCEMENT ENGINE: Dynamically maps checked support items to custom prices or premium fallbacks
+        # 🧪 CRITICAL MAPPING ENFORCEMENT LOOP: Falls back to a premium rate of $350/subject if custom column is missing in spreadsheet
         active_odts = st.session_state.get("selected_odts", [])
-        
-        # Check if custom price header exists in row; otherwise automatically trigger standard flat premium rate
         odt_price_raw = str(active_school.get("Science/Math ODT Price", "350")).replace("$", "").replace(",", "").strip()
         if odt_price_raw == "" or odt_price_raw.lower() == "nan" or odt_price_raw == "0":
             odt_unit_price = 350.0
