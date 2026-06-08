@@ -1,12 +1,12 @@
 School Name,School State,County,States Accepted,ASN/BSN,Min Work Experience Required (mos),Min GPA,LPN Required?,Clinical Travel?,In-County Tuition,In-StateTuition,Out-of-State Tuition,Prior Nursing Dismissal Policy,Reentry Requirements,Max ODts/NCLEX Allowed,Entrance Exam,Entrance Exam Notes,Science/Math ODTs,Science/Math ODT Notes,RN ODTs,Non-ODT GenEds That Can't Test Out Of
 Allegany College of Maryland,MD,Allegany,"DE, FL, ID, KY, ME, MD, MO, NH, NC, OH, PA, SC, TX, VT, VA, WV, WY",ASN,6,2,Y,N,272,576,784,ACCEPTS,None,8,HESI Mobility,0-699:fail:HESI Prep Course|700-899:retest:Eligible to retest to exempt Nursing 3 (Save 9 credits!)|900+:exempt:3:Nursing 3,"Microbiology, AP1, AP2",ACM recommends repeating Microbiology and A&P I/II if over 10 years old.,4,
-Herizng University ASN,WI,,"FL, IL, IN, KY, MI, MO, MT, NC, OH, SC, WI",ASN,,2,N,Y,925,925,925,DOES NOT ACCEPT,None,8,TEAS,0-65.9:fail:TEAS Prep Course|66+:pass,"Microbiology, AP1, AP2",,4,"Information Literacy, Professional Development"
+Herzing University ASN,WI,,"FL, IL, IN, KY, MI, MO, MT, NC, OH, SC, WI",ASN,,2,N,Y,925,925,925,DOES NOT ACCEPT,None,8,TEAS,0-65.9:fail:TEAS Prep Course|66+:pass,"Microbiology, AP1, AP2",,4,"Information Literacy, Professional Development"
 Salem University,WI,,IN; OH; PA; WV,ASN,,2.5,N,N,475,475,475,ACCEPTS,None,8,TEAS,,"Microbiology, AP1, AP2",,4,"Philosophy
 Life Science (Any)"
 Excelsior University,NY,,"CT, FL, GA, IN, KY, MN, MO, NJ, NY, OH, PA, SC, TN, TX, VA, WV",ASN,,1.5,Y,Y,550,550,550,ACCEPTS,None,8,TEAS,0-58.6:fail:TEAS Prep Course|58.7+:pass,"Microbiology, AP1, AP2",Sciences can not be older than 5 years,4,"Ethics
 Developmental Psychology
 Sociology"
-Herizng University BSN,WI,,"FL, IL, IN, KY, MI, MO, NC, OH, SC, TN, TX, VA, WI",BSN,,2,N,Y,755,755,755,DOES NOT ACCEPT,None,12,TEAS,0-65.9:fail:TEAS Prep Course|66+:pass,"Microbiology, AP1, AP2, Chemistry",,7,"Information Literacy
+Herzing University BSN,WI,,"FL, IL, IN, KY, MI, MO, NC, OH, SC, TN, TX, VA, WI",BSN,,2,N,Y,755,755,755,DOES NOT ACCEPT,None,12,TEAS,0-65.9:fail:TEAS Prep Course|66+:pass,"Microbiology, AP1, AP2, Chemistry",,7,"Information Literacy
 English Composition 2
 Professional Development
 Nutrition"
