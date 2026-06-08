@@ -130,6 +130,26 @@ course_list = [
     "Elective 1", "Elective 2"
 ]
 
+# 🛡️ RESTORED BRIDGE DICTIONARIES: Prevents the NameError from triggering
+course_mapping_bridge = {
+    "Human Growth & Development": "Human Growth & Development",
+    "Biology": "Biology",
+    "Chemistry": "Chemistry",
+    "Microbiology": "Microbiology",
+    "AP1": "AP1",
+    "AP2": "AP2",
+    "Pathophysiology": "Pathophysiology"
+}
+
+odt_translation_bridge = {
+    "AP1": "AP1",
+    "AP2": "AP2",
+    "Microbiology": "Microbiology",
+    "Pathophysiology": "Pathophysiology",
+    "Chemistry": "Chemistry",
+    "Statistics": "Statistics"
+}
+
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
 
@@ -329,14 +349,13 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: PREREQUISITE BUTTON MATRIX SELECTION GRID (PRE-CHECK BARS APPROVED)
+    # STEP 3: PREREQUISITE BUTTON MATRIX SELECTION GRID
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Prerequisite Review")
         st.markdown("Select any general education or prerequisite courses you still need to complete:")
         st.divider()
         
-        # 🔑 PREMIUM UTILITY MASTER PANEL: Fast select or fast clear routines
         btn_all_col, btn_clear_col, btn_spacer = st.columns([1.2, 1.2, 3.0])
         with btn_all_col:
             if st.button("Select All Prerequisites", key="action_select_all_courses", use_container_width=True):
@@ -392,7 +411,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (STRICT TRACK FILTER ISOLATION)
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
@@ -464,7 +483,6 @@ with col_input_flow:
                                 school_accepted_list.append(required_course)
                             else: has_all_courses = False
                         else:
-                            # Direct check since the custom name list array matches database columns explicitly
                             check_course = course_mapping_bridge.get(required_course, required_course)
                             if check_course in rule_row.columns:
                                 if str(rule_row[check_course].values[0]).strip().upper() == "Y":
@@ -534,7 +552,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (STABLE MEMORY BOUND)
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -569,7 +587,6 @@ with col_input_flow:
             st.session_state["selected_odts"] = []
             st.session_state["odt_hydrated_for_school"] = school_id
         else:
-            # 🔮 CACHE LAYER FIX: Hydrate the checkbox states inside session dictionary keys exactly once per school load
             if st.session_state.get("odt_hydrated_for_school") != school_id:
                 for formal_course in triggered_odt_options:
                     st.session_state[f"odt_box_state_{formal_course}"] = True
@@ -580,7 +597,6 @@ with col_input_flow:
             
             chosen_odts = []
             for formal_course in triggered_odt_options:
-                # Direct structural connection to its specific session key variable makes it immune to back button deletion
                 if st.checkbox(formal_course, key=f"odt_box_state_{formal_course}"):
                     chosen_odts.append(formal_course)
             st.session_state["selected_odts"] = chosen_odts
@@ -597,7 +613,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM SCREEN WORKSPACE (STATE ENGINE LOCKED)
+    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
@@ -624,11 +640,9 @@ with col_input_flow:
             if user_has_passed == "No":
                 st.warning(f"⚠️ Note: A required **{school_exam_type} Prep Course** has been added to your preparation bundle.")
                 
-                # Setup standard default block value on initial entry run
                 if "exam_prep_checkbox_widget_key" not in st.session_state:
                     st.session_state["exam_prep_checkbox_widget_key"] = True
                     
-                # 🔒 MEMORY LOCK FIX: Secure key bind locks the user selection state down forever
                 keep_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", key="exam_prep_checkbox_widget_key")
                 st.session_state["modal_include_exam_prep"] = keep_prep
             else:
@@ -753,7 +767,7 @@ with col_input_flow:
             st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 STEP 7 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL (PRICING FIXED)
+# 🛒 STEP 7 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL
 # --------------------------------==========================================
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -771,7 +785,6 @@ if col_ledger_flow is not None:
         main_price = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
         base_total = int(base_classes * main_price)
         
-        # 🧪 CRITICAL MAPPING ENFORCEMENT LOOP: Falls back to a premium rate of $350/subject if custom column is missing in spreadsheet
         active_odts = st.session_state.get("selected_odts", [])
         odt_price_raw = str(active_school.get("Science/Math ODT Price", "350")).replace("$", "").replace(",", "").strip()
         if odt_price_raw == "" or odt_price_raw.lower() == "nan" or odt_price_raw == "0":
