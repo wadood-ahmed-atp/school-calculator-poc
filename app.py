@@ -186,7 +186,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-if current_step >= 4:
+# 🔑 THE MASTER ALIGNMENT PIVOT: The page splits into an itemized checkout interface ONLY on Step 6.
+if current_step == 6:
     col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
 else:
     col_input_flow = st.container()
@@ -329,7 +330,7 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: PREREQUISITE BUTTON MATRIX SELECTION GRID (22 COURSES RESPONSIVE MATRIX)
+    # STEP 3: PREREQUISITE BUTTON MATRIX SELECTION GRID (22 COURSES MATRICES)
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Prerequisite Review")
@@ -380,7 +381,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: SECURE MATCHES RESULTS
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
@@ -481,27 +482,17 @@ with col_input_flow:
                 is_this_card_selected = (st.session_state["selected_school_id"] == card["id"])
                 courses_text_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
                 
-                if is_this_card_selected:
-                    st.success(f"🎯 **{card['name']} (SELECTED)**")
+                with st.container(border=True):
+                    st.markdown(f"### 🏫 {card['name']}")
                     st.markdown(f"**Degree Track Program:** `{card['track']}`")
                     st.markdown(f"🧬 *Prerequisites Fulfilled ({len(card['accepted_courses'])}):* **{courses_text_string}**")
-                else:
-                    with st.container(border=True):
-                        st.markdown(f"### 🏫 {card['name']}")
-                        s_left_col, s_right_col = st.columns([2.8, 1.2])
-                        with s_left_col:
-                            st.markdown(f"**Degree Track Program:** `{card['track']}`")
-                            st.markdown(f"🧬 *Prerequisites Fulfilled ({len(card['accepted_courses'])}):* **{courses_text_string}**")
-                        with s_right_col:
-                            st.metric(label="Estimated Cost", value=f"${card['profit']:,}")
-                
-                btn_label = "✓ Active Selection Unlocked" if is_this_card_selected else "Select School & Fulfill Prerequisites"
-                if st.button(btn_label, key=f"btn_card_sel_{card['id']}", use_container_width=True, type="secondary" if is_this_card_selected else "primary", disabled=is_finalized):
-                    st.session_state["active_school_view"] = card
-                    st.session_state["selected_school_id"] = card["id"]
-                    st.session_state["customer_exam_prep_toggle"] = st.session_state["modal_include_exam_prep"]
-                    st.session_state["wizard_step"] = 5
-                    st.rerun()
+                    
+                    btn_label = "✓ Active Selection Unlocked" if is_this_card_selected else "Select School & Fulfill Prerequisites"
+                    if st.button(btn_label, key=f"btn_card_sel_{card['id']}", use_container_width=True, type="secondary" if is_this_card_selected else "primary", disabled=is_finalized):
+                        st.session_state["active_school_view"] = card
+                        st.session_state["selected_school_id"] = card["id"]
+                        st.session_state["wizard_step"] = 5
+                        st.rerun()
                     
                 st.markdown("<br>", unsafe_allow_html=True)
         else:
@@ -514,7 +505,6 @@ with col_input_flow:
                 execute_safe_restart()
         with b_back_col:
             if st.button("⬅️ Back to Review", use_container_width=True, key="step4_reverse_button_action", disabled=is_finalized):
-                st.session_state["val_courses"] = list(st.session_state["val_courses"])
                 st.session_state["wizard_step"] = 3
                 st.rerun()
 
@@ -532,7 +522,6 @@ with col_input_flow:
         st.markdown(f"Configuring standard entrance benchmarks for targeted program path: **{school_name}**")
         st.divider()
         
-        modal_base_count = len(valid_courses_list)
         classes_waived = 0
         waived_course_name = ""
         user_score_logged = st.session_state.get("modal_score_logged", "")
@@ -628,130 +617,126 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: REVIEW SUMMARY CHECKOUT TERMINAL
+    # STEP 6: REVIEW SUMMARY CHECKOUT TERMINAL (LEFT COMPONENT PANEL)
     # --------------------------------------------------------------------------
     elif current_step == 6:
-        st.subheader("Step 6: Review & Finalize Your Bridge Plan")
-        st.markdown("Please review your final selection parameters on the right side. Once everything looks correct, lock down your profile package below.")
+        card = st.session_state["active_school_view"]
+        st.subheader("Step 6: Review Your Enrollment Parameters")
+        st.markdown("Please verify your registration parameters. If you need to make corrections, click 'Adjust Parameters' below.")
         st.divider()
         
-        st.info("💡 You can step backward to make changes to your prerequisite options or testing credentials at any time.")
+        st.markdown(f"👤 **Student Name:** `{st.session_state['val_name'] or 'Prospective Student'}`")
+        st.markdown(f"🏫 **Target Institution Path:** `{card['name']}`")
+        st.markdown(f"🎯 **Program Track:** `{card['track']}`")
         
-        if st.button("⬅️ Adjust Exam Requirements", use_container_width=True, key="step6_back_btn"):
+        courses_txt = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None selected / required"
+        st.markdown(f"🧬 **Prerequisites Fulfilled ({len(card['accepted_courses'])}): {courses_txt}")
+        
+        if card['exam'] != "--":
+            exam_status_txt = "Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "Prep Course Bundle Attached"
+            st.markdown(f"🔒  Requirement:** {exam_status_txt}")
+
+        st.divider()
+        if st.button("⬅️ Adjust Parameters", use_container_width=True, key="step6_back_btn", disabled=is_finalized):
             st.session_state["wizard_step"] = 5
             st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 sideBAR ITEMIZED INVOICE CART (SURGICALLY REPAIRED & LOGIC ENFORCED)
+# 🛒 STEP 6 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
-        st.subheader("🛒 Your Cost Estimate")
+        st.subheader("🛒 Final Checkout Receipt")
         
-        if st.session_state["selected_school_id"] is None or st.session_state["active_school_view"] is None:
-            st.info("👉 Click **Select School** on the left to review entrance requirements and view your personalized cost estimate.")
-        else:
-            needed_courses = st.session_state["active_school_view"]["accepted_courses"]
-            school_name = st.session_state["active_school_view"]["name"]
-            st.success(f"🎯 Selected: **{school_name}**")
+        needed_courses = st.session_state["active_school_view"]["accepted_courses"]
+        school_name = st.session_state["active_school_view"]["name"]
+        
+        extra_exam_count = 1 if st.session_state["modal_include_exam_prep"] else 0
+        base_classes = len(needed_courses) + extra_exam_count
+        is_completely_empty = (base_classes == 0)
+        
+        m_classes_tier = base_classes if base_classes > 0 else 1
+        main_price = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
+        base_total = int(base_classes * main_price)
+        
+        st.markdown("#### Adjustments & Savings")
+        st.session_state["val_deposit"] = 0
 
-            if current_step == 5:
-                extra_exam_count = 1 if st.session_state["customer_exam_prep_toggle"] else 0
-            else:
-                extra_exam_count = 1 if st.session_state["modal_include_exam_prep"] else 0
+        q_ref = st.session_state["val_ref"]
+        q_mil = st.session_state["val_mil"]
+        
+        calc_free_course = 0
+        promo_tier_name = ""
+        
+        # 🔑 PERFECTED PLACEMENT: The promo box lives exclusively here and accurately reads the true course count
+        if len(needed_courses) >= 3:
+            q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio", disabled=is_finalized)
+            st.session_state["val_promo"] = q_promo
+            
+            if q_promo == "Yes":
+                promo_input = st.text_input("Enter promotional code:", value=st.session_state["val_promo_code_input"], placeholder="Enter code here", disabled=is_finalized)
+                st.session_state["val_promo_code_input"] = promo_input
                 
-            base_classes = len(needed_courses) + extra_exam_count
-            total_classes = base_classes
-            is_completely_empty = (total_classes == 0)
-            
-            m_classes_tier = base_classes if base_classes > 0 else 1
-            main_price = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
-            base_total = int(base_classes * main_price)
-            
-            st.markdown("#### Adjustments & Savings")
-            
-            # 🟢 FIX 1: ENROLLMENT DEPOSIT WIDGET FULLY REMOVED AT ALL COSTS
-            st.session_state["val_deposit"] = 0
-
-            q_ref = st.session_state["val_ref"]
-            q_mil = st.session_state["val_mil"]
-            
-            calc_free_course = 0
-            promo_tier_name = ""
-            
-            # 🟢 FIX 2: Radio field is now inside the conditional lookup block
-            if len(needed_courses) >= 3:
-                q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio", disabled=is_finalized)
-                st.session_state["val_promo"] = q_promo
+                clean_promo = str(promo_input).strip().upper()
                 
-                if q_promo == "Yes":
-                    promo_input = st.text_input("Enter promotional code:", value=st.session_state["val_promo_code_input"], placeholder="Enter code here", disabled=is_finalized)
-                    st.session_state["val_promo_code_input"] = promo_input
-                    
-                    clean_promo = str(promo_input).strip().upper()
-                    
-                    if clean_promo == "":
-                        st.info("ℹ️ Please type your promotional code above to activate your discount.")
-                    elif clean_promo in ["FREECOURSE", "FREE COURSE"]:
-                        if base_classes < 3:
-                            st.warning("⚠️ This code requires a minimum package layout bundle of at least 3 classes to activate.")
-                        else:
-                            if base_classes >= 10:
-                                calc_free_course = 1179
-                                promo_tier_name = "FreeCourse9"
-                            elif base_classes >= 4:
-                                calc_free_course = 1229
-                                promo_tier_name = "FreeCourse8"
-                            else:
-                                calc_free_course = 1289
-                                promo_tier_name = "FreeCourse7"
-                                    
-                            st.success(f"🎉 Code Approved! Unlocked Tier: **{promo_tier_name}** (-${calc_free_course:,})")
+                if clean_promo == "":
+                    st.info("ℹ️ Please type your promotional code above to activate your discount.")
+                elif clean_promo in ["FREECOURSE", "FREE COURSE"]:
+                    if base_classes >= 10:
+                        calc_free_course = 1179
+                        promo_tier_name = "FreeCourse9"
+                    elif base_classes >= 4:
+                        calc_free_course = 1229
+                        promo_tier_name = "FreeCourse8"
                     else:
-                        st.error("❌ Invalid promotional code. Please check your spelling and try again.")
-            else:
-                # Forces parameters clean when prerequisites criteria fails condition rules
-                st.session_state["val_promo"] = "No"
-                st.session_state["val_promo_code_input"] = ""
+                        calc_free_course = 1289
+                        promo_tier_name = "FreeCourse7"
+                            
+                    st.success(f"🎉 Code Approved! Unlocked Tier: **{promo_tier_name}** (-${calc_free_course:,})")
+                else:
+                    st.error("❌ Invalid promotional code. Please check your spelling and try again.")
+        else:
+            st.session_state["val_promo"] = "No"
+            st.session_state["val_promo_code_input"] = ""
 
-            calc_referral = 50 if q_ref == "Yes" else 0
-            calc_military = 200 if q_mil == "Yes" else 0
-            
-            credits_sum = calc_referral + calc_military + calc_free_course
-            final_total = max(0, base_total - credits_sum)
+        calc_referral = 50 if q_ref == "Yes" else 0
+        calc_military = 200 if q_mil == "Yes" else 0
+        
+        credits_sum = calc_referral + calc_military + calc_free_course
+        final_total = max(0, base_total - credits_sum)
 
-            st.divider()
-            st.markdown(f"**Gross Base Tuition:** `${0 if is_completely_empty else base_total:,}`")
+        st.divider()
+        st.markdown(f"**Gross Base Tuition:** `${0 if is_completely_empty else base_total:,}`")
+        
+        st.markdown("##### 🎖️ Discounts & Savings Applied:")
+        if calc_referral > 0:
+            st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,}`")
+        if calc_military > 0:
+            st.markdown(f"🏷️ *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
+        if calc_free_course > 0:
+            st.markdown(f"🏷️ *Complimentary Course ({promo_tier_name}):* `-${calc_free_course:,}`")
+        if credits_sum == 0:
+            st.markdown("🏷️ *No additional discounts applied to this estimate.*")
             
-            st.markdown("##### 🎖️ Discounts & Savings Applied:")
-            if calc_referral > 0:
-                st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,}`")
-            if calc_military > 0:
-                st.markdown(f"🏷️ *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
-            if calc_free_course > 0:
-                st.markdown(f"🏷️ *Complimentary Course ({promo_tier_name}):* `-${calc_free_course:,}`")
-            if credits_sum == 0:
-                st.markdown("🏷️ *No additional discounts applied to this estimate.*")
-                
-            st.markdown(f"**Total Savings:** `-${credits_sum:,}`")
-            st.markdown(f"## **Balance Due: ${0 if is_completely_empty else final_total:,}**")
-            
-            st.divider()
-            if st.button("🔒 Lock in Enrollment Package", key="ledger_final_lock_action_btn", use_container_width=True, type="primary", disabled=is_finalized or current_step < 5):
-                st.session_state["confirmed_package"] = {
-                    "school_name": school_name,
-                    "student_name": st.session_state["val_name"],
-                    "base_total": int(base_total),
-                    "reg_fee": 0,
-                    "final_total": int(final_total),
-                    "courses_included": needed_courses,
-                    "entrance_exam_prep_added": st.session_state["modal_include_exam_prep"],
-                    "entrance_exam_score_logged": st.session_state["modal_score_logged"],
-                    "classes_waived_count": st.session_state["modal_classes_waived"],
-                    "promo_tier_applied": promo_tier_name,
-                    "addons_active": False
-                }
-                st.rerun()
+        st.markdown(f"**Total Savings:** `-${credits_sum:,}`")
+        st.markdown(f"## **Balance Due: ${0 if is_completely_empty else final_total:,}**")
+        
+        st.divider()
+        if st.button("🔒 Lock in Enrollment Package", key="ledger_final_lock_action_btn", use_container_width=True, type="primary", disabled=is_finalized):
+            st.session_state["confirmed_package"] = {
+                "school_name": school_name,
+                "student_name": st.session_state["val_name"],
+                "base_total": int(base_total),
+                "reg_fee": 0,
+                "final_total": int(final_total),
+                "courses_included": needed_courses,
+                "entrance_exam_prep_added": st.session_state["modal_include_exam_prep"],
+                "entrance_exam_score_logged": st.session_state["modal_score_logged"],
+                "classes_waived_count": st.session_state["modal_classes_waived"],
+                "promo_tier_applied": promo_tier_name,
+                "addons_active": False
+            }
+            st.rerun()
 
 if is_finalized:
     pkg = st.session_state["confirmed_package"]
