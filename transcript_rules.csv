@@ -1,13 +1,13 @@
-School Name,Eng Comp 1,College Algebra,Statistics,Humanities 1,Humanities 2,Humanities 3,Human Growth & Development,Psychology,Sociology,Speech,Biology,Chemistry,Government,History,Foreign Language,Macro/Micro=Economics,Elective 1,Elective 2,Total CBE
-Allegany College of Maryland,Y,Y,N,Y,Y,N,Y,Y,Y,N,N,N,N,N,N,N,N,N,7
-Herizng University ASN,Y,Y,N,Y,N,N,Y,N,N,N,N,N,N,N,N,N,N,N,4
-Salem University,Y,Y,N,N,N,N,N,Y,N,N,N,N,N,N,N,N,N,N,3
-Excelsior University,Y,Y,N,Y,N,N,N,N,N,N,N,N,N,N,N,N,N,N,3
-Herizng University BSN,Y,Y,Y,Y,Y,Y,Y,Y,Y,Y,N,N,N,N,N,N,N,N,10
-Chamberlain University,Y,N,N,Y,Y,N,N,N,Y,N,N,N,N,N,N,N,N,N,4
-Western Governors University,Y,Y,Y,Y,N,N,Y,Y,Y,Y,N,Y,N,Y,N,N,N,N,10
-University of South Alabama,Y,N,N,N,N,N,N,Y,Y,N,Y,Y,Y,Y,N,Y,N,N,8
-Wilson College,Y,Y,N,N,N,N,Y,Y,Y,N,N,N,N,Y,Y,N,N,N,7
-University of Arkansas,Y,Y,N,N,N,N,Y,Y,Y,N,N,Y,N,Y,N,N,N,N,7
-Indiana St University,Y,N,Y,N,N,N,Y,Y,N,N,N,Y,N,Y,Y,N,N,N,7
-Capella University,Y,N,Y,Y,Y,N,Y,Y,N,N,Y,N,N,N,N,N,Y,Y,9
+School Name,Eng Comp 1,College Algebra,Statistics,Humanities 1,Humanities 2,Humanities 3,Human Growth & Development,Psychology,Sociology,Speech,Biology,Chemistry,Government,History,Foreign Language,Macro/Micro Econ,Elective 1,Elective 2,Microbiology,AP1,AP2,Pathophysiology,Total CBE
+Allegany College of Maryland,Y,Y,N,Y,Y,N,Y,Y,Y,N,N,N,N,N,N,N,N,N,N,N,N,N,7
+Herizng University ASN,Y,Y,N,Y,N,N,Y,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,4
+Salem University,Y,Y,N,N,N,N,N,Y,N,N,N,N,N,N,N,N,N,N,N,N,N,N,3
+Excelsior University,Y,Y,N,Y,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,3
+Herizng University BSN,Y,Y,Y,Y,Y,Y,Y,Y,Y,Y,N,N,N,N,N,N,N,N,N,N,N,N,10
+Chamberlain University,Y,N,N,Y,Y,N,N,N,Y,N,N,N,N,N,N,N,N,N,N,N,N,N,4
+Western Governors University,Y,Y,Y,Y,N,N,Y,Y,Y,Y,N,Y,N,Y,N,N,N,N,N,N,N,N,10
+University of South Alabama,Y,N,N,N,N,N,N,Y,Y,N,Y,Y,Y,Y,N,Y,N,N,N,N,N,N,8
+Wilson College,Y,Y,N,N,N,N,Y,Y,Y,N,N,N,N,Y,Y,N,N,N,N,N,N,N,7
+University of Arkansas,Y,Y,N,N,N,N,Y,Y,Y,N,N,Y,N,Y,N,N,N,N,N,N,N,N,7
+Indiana St University,Y,N,Y,N,N,N,Y,Y,N,N,N,Y,N,Y,Y,N,N,N,N,N,N,N,7
+Capella University,Y,N,Y,Y,Y,N,Y,Y,N,N,Y,N,N,N,N,N,Y,Y,N,N,N,N,9
