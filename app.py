@@ -121,7 +121,6 @@ DISMISSAL_OPTIONS = ["No", "Yes"]
 LICENSE_OPTIONS = ["None / Other", "LPN", "CNA/CMA"]
 TRACK_OPTIONS = ["BSN", "ASN"]
 
-# Full 22 course option categories grid array
 course_list = [
     "Eng Comp 1", "College Algebra", "Statistics", "Humanities 1", "Humanities 2", 
     "Humanities 3", "Human Growth & Dev", "Psychology", "Sociology", "Speech", 
@@ -130,7 +129,6 @@ course_list = [
     "Anatomy & Physiology 1", "Anatomy & Physiology 2", "Pathophysiology"
 ]
 
-# 🔑 RESTORED STABILIZATION BRIDGE: Maps human button labels safely back to your reverted shorthand keys
 course_mapping_bridge = {
     "Human Growth & Dev": "Human Growth &",
     "General Biology": "Biology",
@@ -644,7 +642,7 @@ with col_input_flow:
             st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 sideBAR ITEMIZED INVOICE CART
+# 🛒 sideBAR ITEMIZED INVOICE CART (SURGICALLY REPAIRED & LOGIC ENFORCED)
 # --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -671,59 +669,61 @@ if col_ledger_flow is not None:
             base_total = int(base_classes * main_price)
             
             st.markdown("#### Adjustments & Savings")
-            deposit_input = st.number_input("Enrollment Deposit Amount ($)", min_value=0, value=int(st.session_state["val_deposit"]), step=50, key="ledger_deposit_input_field", disabled=is_finalized)
-            st.session_state["val_deposit"] = int(deposit_input)
+            
+            # 🟢 FIX 1: ENROLLMENT DEPOSIT WIDGET FULLY REMOVED AT ALL COSTS
+            st.session_state["val_deposit"] = 0
 
             q_ref = st.session_state["val_ref"]
             q_mil = st.session_state["val_mil"]
             
-            q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio", disabled=is_finalized)
-            st.session_state["val_promo"] = q_promo
-            
             calc_free_course = 0
             promo_tier_name = ""
             
-            if q_promo == "Yes":
-                promo_input = st.text_input("Enter promotional code:", value=st.session_state["val_promo_code_input"], placeholder="Enter code here", disabled=is_finalized)
-                st.session_state["val_promo_code_input"] = promo_input
+            # 🟢 FIX 2: Radio field is now inside the conditional lookup block
+            if len(needed_courses) >= 3:
+                q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio", disabled=is_finalized)
+                st.session_state["val_promo"] = q_promo
                 
-                clean_promo = str(promo_input).strip().upper()
-                
-                if clean_promo == "":
-                    st.info("ℹ️ Please type your promotional code above to activate your discount.")
-                elif clean_promo in ["FREECOURSE", "FREE COURSE"]:
-                    if base_classes < 3:
-                        st.warning("⚠️ This code requires a minimum package layout bundle of at least 3 classes to activate.")
-                    else:
-                        if base_classes >= 10:
-                            calc_free_course = 1179
-                            promo_tier_name = "FreeCourse9"
-                        elif base_classes >= 4:
-                            calc_free_course = 1229
-                            promo_tier_name = "FreeCourse8"
+                if q_promo == "Yes":
+                    promo_input = st.text_input("Enter promotional code:", value=st.session_state["val_promo_code_input"], placeholder="Enter code here", disabled=is_finalized)
+                    st.session_state["val_promo_code_input"] = promo_input
+                    
+                    clean_promo = str(promo_input).strip().upper()
+                    
+                    if clean_promo == "":
+                        st.info("ℹ️ Please type your promotional code above to activate your discount.")
+                    elif clean_promo in ["FREECOURSE", "FREE COURSE"]:
+                        if base_classes < 3:
+                            st.warning("⚠️ This code requires a minimum package layout bundle of at least 3 classes to activate.")
                         else:
-                            calc_free_course = 1289
-                            promo_tier_name = "FreeCourse7"
-                                
-                        st.success(f"🎉 Code Approved! Unlocked Tier: **{promo_tier_name}** (-${calc_free_course:,})")
-                else:
-                    st.error("❌ Invalid promotional code. Please check your spelling and try again.")
+                            if base_classes >= 10:
+                                calc_free_course = 1179
+                                promo_tier_name = "FreeCourse9"
+                            elif base_classes >= 4:
+                                calc_free_course = 1229
+                                promo_tier_name = "FreeCourse8"
+                            else:
+                                calc_free_course = 1289
+                                promo_tier_name = "FreeCourse7"
+                                    
+                            st.success(f"🎉 Code Approved! Unlocked Tier: **{promo_tier_name}** (-${calc_free_course:,})")
+                    else:
+                        st.error("❌ Invalid promotional code. Please check your spelling and try again.")
             else:
+                # Forces parameters clean when prerequisites criteria fails condition rules
+                st.session_state["val_promo"] = "No"
                 st.session_state["val_promo_code_input"] = ""
 
-            calc_dep_match = min(int(deposit_input), 1000) if (deposit_input >= 300) else 0
             calc_referral = 50 if q_ref == "Yes" else 0
             calc_military = 200 if q_mil == "Yes" else 0
             
-            credits_sum = calc_dep_match + calc_referral + calc_military + calc_free_course
+            credits_sum = calc_referral + calc_military + calc_free_course
             final_total = max(0, base_total - credits_sum)
 
             st.divider()
             st.markdown(f"**Gross Base Tuition:** `${0 if is_completely_empty else base_total:,}`")
             
             st.markdown("##### 🎖️ Discounts & Savings Applied:")
-            if calc_dep_match > 0:
-                st.markdown(f"🏷️ *Deposit Match Program Savings:* `-${calc_dep_match:,}`")
             if calc_referral > 0:
                 st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,}`")
             if calc_military > 0:
