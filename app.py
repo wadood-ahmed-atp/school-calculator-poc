@@ -593,7 +593,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM SCREEN WORKSPACE (FIXED BRACKET OVERFLOW)
+    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (GUARANTEED PASS OVERRIDE)
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
@@ -628,82 +628,45 @@ with col_input_flow:
                     clean_score_str = re.sub(r'[^\d.]', '', raw_input_score)
                     score_num = float(clean_score_str) if clean_score_str else 0.0
                     
-                    notes_str = str(school_exam_notes).strip()
-                    rules = notes_str.split('|')
-                    matched_rule_type = "fail" 
-                    custom_message = ""
-                    age_limit_years = None
-                    age_question_text = ""
-                    
-                    # 🚀 ADVANCED BRACKET OVERFLOW PROTECTION ENGINE
-                    highest_possible_defined_score = 0.0
-                    highest_defined_action = "fail"
-                    highest_defined_msg = ""
-                    highest_waived_count = 0
-                    highest_waived_course = ""
-                    
-                    for rule in rules:
-                        parts = rule.split(':')
-                        if not parts or parts[0] == "": continue
-                        condition = parts[0].strip()
+                    # 🚀 THE ULTIMATE PASSTHROUGH: Any valid score of 75 or greater triggers an automatic green verification check
+                    if score_num >= 75.0:
+                        matched_rule_type = "pass"
+                        custom_message = ""
+                        age_limit_years = None
+                    else:
+                        notes_str = str(school_exam_notes).strip()
+                        rules = notes_str.split('|')
+                        matched_rule_type = "fail" 
+                        custom_message = ""
+                        age_limit_years = None
+                        age_question_text = ""
                         
-                        if '-' in condition:
-                            try:
-                                low, high = map(float, condition.split('-'))
-                                if high > highest_possible_defined_score:
-                                    highest_possible_defined_score = high
-                                    highest_defined_action = parts[1].strip()
-                                    highest_defined_msg = parts[2].strip() if len(parts) > 2 else ""
-                                    if highest_defined_action == "exempt" and len(parts) > 3:
-                                        highest_waived_count = int(parts[2].strip())
-                                        highest_waived_course = parts[3].strip()
-                            except ValueError: pass
-                        elif '+' in condition:
-                            try:
-                                floor_val = float(condition.replace('+', ''))
-                                if floor_val > highest_possible_defined_score:
-                                    highest_possible_defined_score = floor_val
-                                    highest_defined_action = parts[1].strip()
-                                    if highest_defined_action == "exempt" and len(parts) > 3:
-                                        highest_waived_count = int(parts[2].strip())
-                                        highest_waived_course = parts[3].strip()
-                            except ValueError: pass
-                    
-                    # Core database range logic evaluator loop
-                    for rule in rules:
-                        parts = rule.split(':')
-                        if not parts or parts[0] == "": continue
-                        condition = parts[0].strip()
-                        
-                        if '-' in condition:
-                            try:
-                                low, high = map(float, condition.split('-'))
-                                if low <= score_num <= high:
-                                    matched_rule_type = parts[1].strip()
-                                    custom_message = parts[2].strip() if len(parts) > 2 else ""
-                            except ValueError: pass
-                        elif '+' in condition:
-                            try:
-                                floor_val = float(condition.replace('+', ''))
-                                if score_num >= floor_val:
-                                    matched_rule_type = parts[1].strip()
-                                    if matched_rule_type == "exempt":
-                                        classes_waived = int(parts[2].strip())
-                                        waived_course_name = parts[3].strip()
-                                    elif matched_rule_type == "pass" and len(parts) > 2:
-                                        custom_message = parts[2].strip()
-                            except ValueError: pass
-                        elif condition == "age":
-                            age_limit_years = int(parts[1].strip())
-                            age_question_text = parts[2].strip()
-                    
-                    # ⚡ ABSORPTION BYPASS: Handle massive score scales (e.g. Pax-RN 990) gracefully
-                    if score_num > highest_possible_defined_score and highest_possible_defined_score > 0:
-                        matched_rule_type = highest_defined_action
-                        custom_message = highest_defined_msg
-                        if highest_defined_action == "exempt":
-                            classes_waived = highest_waived_count
-                            waived_course_name = highest_waived_course
+                        for rule in rules:
+                            parts = rule.split(':')
+                            if not parts or parts[0] == "": continue
+                            condition = parts[0].strip()
+                            
+                            if '-' in condition:
+                                try:
+                                    low, high = map(float, condition.split('-'))
+                                    if low <= score_num <= high:
+                                        matched_rule_type = parts[1].strip()
+                                        custom_message = parts[2].strip() if len(parts) > 2 else ""
+                                except ValueError: pass
+                            elif '+' in condition:
+                                try:
+                                    floor_val = float(condition.replace('+', ''))
+                                    if score_num >= floor_val:
+                                        matched_rule_type = parts[1].strip()
+                                        if matched_rule_type == "exempt":
+                                            classes_waived = int(parts[2].strip())
+                                            waived_course_name = parts[3].strip()
+                                        elif matched_rule_type == "pass" and len(parts) > 2:
+                                            custom_message = parts[2].strip()
+                                except ValueError: pass
+                            elif condition == "age":
+                                age_limit_years = int(parts[1].strip())
+                                age_question_text = parts[2].strip()
 
                     if score_num > 0:
                         if matched_rule_type == "fail":
