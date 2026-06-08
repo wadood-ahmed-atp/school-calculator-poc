@@ -68,7 +68,7 @@ def initialize_base_states(force_reset=False):
         "val_ref": "No",
         "val_mil": "No",
         "customer_exam_prep_toggle": False,
-        "selected_odts": []  # Holds student's active tutoring bundle selections
+        "selected_odts": []  # Tracks student's chosen Guided Course Support bundles
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -137,6 +137,15 @@ course_mapping_bridge = {
     "Anatomy & Physiology 2": "AP2"
 }
 
+# 🔑 THE ADVANCED ODT REVERSE BRIDGE: Corrects Scenario B by mapping database shorthands back to code labels
+odt_translation_bridge = {
+    "AP1": "Anatomy & Physiology 1",
+    "AP2": "Anatomy & Physiology 2",
+    "Microbiology": "Microbiology",
+    "Pathophysiology": "Pathophysiology",
+    "Chemistry": "Chemistry"
+}
+
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
 
@@ -182,7 +191,7 @@ st.markdown(
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
         <span style="color: {s4_col}; font-weight: {s4_w};">{'✅ ' if current_step>4 else ''}4. Schools</span>
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
-        <span style="color: {s5_col}; font-weight: {s5_w};">{'✅ ' if current_step>5 else ''}5. ODT Add-ons</span>
+        <span style="color: {s5_col}; font-weight: {s5_w};">{'✅ ' if current_step>5 else ''}5. Guided Support</span>
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
         <span style="color: {s6_col}; font-weight: {s6_w};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span>
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
@@ -192,7 +201,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Split view opens up exclusively on Step 7
 if current_step == 7:
     col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
 else:
@@ -331,11 +339,12 @@ with col_input_flow:
                     st.session_state["val_dismiss"] = i_dismiss
                     st.session_state["val_dismiss_mos"] = int(i_dismiss_mos) if i_dismiss_mos is not None else 0
                     st.session_state["val_travel"] = i_travel
+                    st.session_state["val_track"] = i_track
                     st.session_state["wizard_step"] = 3
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: PREREQUISITE BUTTON MATRIX SELECTION GRID (22 COURSES RESPONSIVE MATRIX)
+    # STEP 3: PREREQUISITE BUTTON MATRIX SELECTION GRID
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Prerequisite Review")
@@ -517,7 +526,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC ON-DEMAND TUTORING (ODT) ADD-ONS TERMINAL (NEW STEP)
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (REPAIRED MATCHING LOGIC)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -526,46 +535,45 @@ with col_input_flow:
         odt_rules_string = card["odt_rules"]
         needed_courses = st.session_state["val_courses"]
         
-        st.subheader("Step 5: On-Demand Tutoring & Institutional Requirements")
+        st.subheader("Step 5: Guided Course Support & Institutional Requirements")
         st.markdown(f"Reviewing academic support enhancements for target program path: **{school_name}**")
         st.divider()
         
-        # 🟢 CRITERIA 1: Display institutional blanket statement dynamically if defined
         if blanket_statement and blanket_statement.lower() not in ["", "nan", "--"]:
             st.info(f"📋 **Institutional Policy Notice:**\n\n{blanket_statement}")
             
-        # 🟢 CRITERIA 2: Excelsior strict 5-Year Science Safety Trigger check
         core_sciences = ["Microbiology", "Anatomy & Physiology 1", "Anatomy & Physiology 2", "Pathophysiology"]
         user_needs_sciences = any(s in needed_courses for s in core_sciences)
         
         if "EXCEL" in school_name.upper() and user_needs_sciences:
-            st.warning("⏳ **Excelsior 5-Year Recency Requirement:**\n\nExcelsior requires core science courses to have been completed within the past 5 years. Adding On-Demand Tutoring is highly recommended to guarantee passing scores on your first attempt.")
+            st.warning("⏳ **Excelsior 5-Year Recency Requirement:**\n\nExcelsior requires core science courses to have been completed within the past 5 years. Adding Guided Course Support is highly recommended to guarantee passing scores on your first attempt.")
 
-        # Evaluate what ODT courses are actually triggered based on school rules vs user needs
+        # Evaluate triggered options by feeding spreadsheet items through the reverse translation dictionary
         triggered_odt_options = []
         if odt_rules_string and odt_rules_string.lower() not in ["", "nan", "--"]:
             school_odt_list = [c.strip() for c in odt_rules_string.split(",")]
-            for odt_course in school_odt_list:
-                # Only show ODT package if user specifically indicated they still need it on Step 3
-                if odt_course in needed_courses:
-                    triggered_odt_options.append(odt_course)
+            for raw_csv_item in school_odt_list:
+                # 🔮 TRANSLATION LAYER: Convert spreadsheet shorthands ('AP1') into formal code text strings ('Anatomy & Physiology 1')
+                translated_label = odt_translation_bridge.get(raw_csv_item, raw_csv_item)
+                if translated_label in needed_courses:
+                    triggered_odt_options.append(translated_label)
 
         if not triggered_odt_options:
-            st.success("✅ Clean Path: No mandatory On-Demand Tutoring courses are required for your selected path configuration.")
+            st.success("✅ Clean Path: No mandatory Guided Course Support tracks are required for your selected path configuration.")
             st.session_state["selected_odts"] = []
         else:
             st.markdown("#### 🎓 Recommended Support Bundles")
-            st.markdown("The following courses cannot be tested out of at this institution. Select the ones you want to attach comprehensive On-Demand Tutoring support to:")
+            st.markdown("The following courses cannot be bypassed via exam at this institution. Select the items you want to include comprehensive Guided Course Support for:")
             
             current_selected_odts = set(st.session_state.get("selected_odts", []))
-            for course in triggered_odt_options:
-                is_selected = course in current_selected_odts
-                checkbox_label = f"Include On-Demand Tutoring support for **{course}**"
-                if st.checkbox(checkbox_label, value=is_selected, key=f"odt_check_{course.replace(' ', '_')}"):
-                    current_selected_odts.add(course)
+            for formal_course in triggered_odt_options:
+                is_selected = formal_course in current_selected_odts
+                checkbox_label = f"Include Guided Course Support for **{formal_course}**"
+                if st.checkbox(checkbox_label, value=is_selected, key=f"odt_check_{formal_course.replace(' ', '_')}"):
+                    current_selected_odts.add(formal_course)
                 else:
-                    if course in current_selected_odts:
-                        current_selected_odts.remove(course)
+                    if formal_course in current_selected_odts:
+                        current_selected_odts.remove(formal_course)
             st.session_state["selected_odts"] = list(current_selected_odts)
 
         st.divider()
@@ -580,7 +588,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM SCREEN WORKSPACE (REALIGNED)
+    # STEP 6: STANDALONE ENTRANCE EXAM SCREEN WORKSPACE
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
@@ -601,7 +609,7 @@ with col_input_flow:
             st.info("ℹ️ There are no entrance testing requirements for this specific nursing school.")
             st.session_state["customer_exam_prep_toggle"] = False
         else:
-            st.markdown(f"#### 🔒 Entrance Exam Verification")
+            st.markdown("#### 🔒 Entrance Exam Verification")
             user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], index=1 if user_score_logged else 0, horizontal=True, key="step6_has_passed_radio")
             
             if user_has_passed == "No":
@@ -676,7 +684,7 @@ with col_input_flow:
         st.divider()
         b_back_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
         with b_back_col:
-            if st.button("⬅   Back to Add-ons", use_container_width=True, key="step6_back_btn"):
+            if st.button("⬅   Back to Guided Support", use_container_width=True, key="step6_back_btn"):
                 st.session_state["wizard_step"] = 5
                 st.rerun()
         with b_continue_col:
@@ -688,7 +696,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 7: REVIEW SUMMARY CHECKOUT TERMINAL (LEFT COMPONENT PANEL)
+    # STEP 7: REVIEW SUMMARY CHECKOUT TERMINAL (LEFT PANEL)
     # --------------------------------------------------------------------------
     elif current_step == 7:
         card = st.session_state["active_school_view"]
@@ -703,10 +711,10 @@ with col_input_flow:
         courses_txt = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None selected / required"
         st.markdown(f"🧬 **Prerequisites Fulfilled ({len(card['accepted_courses'])}):** {courses_txt}")
         
-        # Display active ODT selection confirmations clearly
+        # Display human-friendly course support selections clearly
         active_odts = st.session_state.get("selected_odts", [])
         if active_odts:
-            st.markdown(f"🎓 **On-Demand Tutoring Classes Added: {', '.join(active_odts)}")
+            st.markdown(f"🎓 **Guided Course Support Added: {', '.join(active_odts)}")
         
         if card['exam'] != "--":
             exam_status_txt = "Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "Prep Course Bundle Attached"
@@ -736,7 +744,7 @@ if col_ledger_flow is not None:
         main_price = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
         base_total = int(base_classes * main_price)
         
-        # Calculate dynamic ODT add-on fees based on spreadsheet configuration values
+        # Calculate dynamic Guided Support fees based on spreadsheet pricing columns
         active_odts = st.session_state.get("selected_odts", [])
         odt_price_raw = str(active_school.get("Science ODT Price", "0")).replace("$", "").replace(",", "").strip()
         odt_unit_price = float(pd.to_numeric(odt_price_raw, errors='coerce')) if not pd.isna(pd.to_numeric(odt_price_raw, errors='coerce')) else 0.0
@@ -785,15 +793,13 @@ if col_ledger_flow is not None:
         calc_military = 200 if q_mil == "Yes" else 0
         
         credits_sum = calc_referral + calc_military + calc_free_course
-        
-        # Final pricing ledger balance incorporates both gross tuition fees and additional ODT add-on line items
         final_total = max(0, (base_total + total_odt_fees) - credits_sum)
 
         st.divider()
         st.markdown(f"**Gross Base Tuition:** `${0 if is_completely_empty else base_total:,}`")
         
         if total_odt_fees > 0:
-            st.markdown(f"➕ **On-Demand Tutoring Support ({len(active_odts)}):** `${total_odt_fees:,}`")
+            st.markdown(f"➕ **Guided Course Support ({len(active_odts)}):** `${total_odt_fees:,}`")
         
         st.markdown("##### 🎖️ Discounts & Savings Applied:")
         if calc_referral > 0:
