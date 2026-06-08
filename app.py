@@ -68,7 +68,8 @@ def initialize_base_states(force_reset=False):
         "val_ref": "No",
         "val_mil": "No",
         "customer_exam_prep_toggle": False,
-        "selected_odts": []  # Tracks student's chosen Guided Course Support bundles
+        "selected_odts": [],
+        "odt_hydrated_for_school": None # Safety lock to prevent resetting user selections during page redraws
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -137,7 +138,6 @@ course_mapping_bridge = {
     "Anatomy & Physiology 2": "AP2"
 }
 
-# 🔑 THE ADVANCED ODT REVERSE BRIDGE: Corrects Scenario B by mapping database shorthands back to code labels
 odt_translation_bridge = {
     "AP1": "Anatomy & Physiology 1",
     "AP2": "Anatomy & Physiology 2",
@@ -339,7 +339,6 @@ with col_input_flow:
                     st.session_state["val_dismiss"] = i_dismiss
                     st.session_state["val_dismiss_mos"] = int(i_dismiss_mos) if i_dismiss_mos is not None else 0
                     st.session_state["val_travel"] = i_travel
-                    st.session_state["val_track"] = i_track
                     st.session_state["wizard_step"] = 3
                     st.rerun()
 
@@ -526,11 +525,12 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (REPAIRED MATCHING LOGIC)
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (REFINED HEADERS & AUTO PRE-CHECK)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
         school_name = card["name"]
+        school_id = card["id"]
         blanket_statement = card["blanket"]
         odt_rules_string = card["odt_rules"]
         needed_courses = st.session_state["val_courses"]
@@ -548,12 +548,11 @@ with col_input_flow:
         if "EXCEL" in school_name.upper() and user_needs_sciences:
             st.warning("⏳ **Excelsior 5-Year Recency Requirement:**\n\nExcelsior requires core science courses to have been completed within the past 5 years. Adding Guided Course Support is highly recommended to guarantee passing scores on your first attempt.")
 
-        # Evaluate triggered options by feeding spreadsheet items through the reverse translation dictionary
+        # Map spreadsheet items to code names
         triggered_odt_options = []
         if odt_rules_string and odt_rules_string.lower() not in ["", "nan", "--"]:
             school_odt_list = [c.strip() for c in odt_rules_string.split(",")]
             for raw_csv_item in school_odt_list:
-                # 🔮 TRANSLATION LAYER: Convert spreadsheet shorthands ('AP1') into formal code text strings ('Anatomy & Physiology 1')
                 translated_label = odt_translation_bridge.get(raw_csv_item, raw_csv_item)
                 if translated_label in needed_courses:
                     triggered_odt_options.append(translated_label)
@@ -561,15 +560,23 @@ with col_input_flow:
         if not triggered_odt_options:
             st.success("✅ Clean Path: No mandatory Guided Course Support tracks are required for your selected path configuration.")
             st.session_state["selected_odts"] = []
+            st.session_state["odt_hydrated_for_school"] = school_id
         else:
+            # 🔮 HYDRATION ENGINE: If this school hasn't been pre-checked yet, instantly check all boxes by default
+            if st.session_state.get("odt_hydrated_for_school") != school_id:
+                st.session_state["selected_odts"] = list(triggered_odt_options)
+                st.session_state["odt_hydrated_for_school"] = school_id
+                
             st.markdown("#### 🎓 Recommended Support Bundles")
-            st.markdown("The following courses cannot be bypassed via exam at this institution. Select the items you want to include comprehensive Guided Course Support for:")
+            # 💡 REFINED DESIGN: Display the unified instruction string once as an elegant header block
+            st.markdown(f"The following courses cannot be bypassed via exam at **{school_name}**. Please select the items you want to include Guided Course Support for:")
             
             current_selected_odts = set(st.session_state.get("selected_odts", []))
             for formal_course in triggered_odt_options:
-                is_selected = formal_course in current_selected_odts
-                checkbox_label = f"Include Guided Course Support for **{formal_course}**"
-                if st.checkbox(checkbox_label, value=is_selected, key=f"odt_check_{formal_course.replace(' ', '_')}"):
+                is_checked_by_default = formal_course in current_selected_odts
+                
+                # 💡 REFINED DESIGN: Checkboxes now display only the clean formal subject name
+                if st.checkbox(formal_course, value=is_checked_by_default, key=f"odt_check_{formal_course.replace(' ', '_')}"):
                     current_selected_odts.add(formal_course)
                 else:
                     if formal_course in current_selected_odts:
@@ -711,7 +718,6 @@ with col_input_flow:
         courses_txt = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None selected / required"
         st.markdown(f"🧬 **Prerequisites Fulfilled ({len(card['accepted_courses'])}):** {courses_txt}")
         
-        # Display human-friendly course support selections clearly
         active_odts = st.session_state.get("selected_odts", [])
         if active_odts:
             st.markdown(f"🎓 **Guided Course Support Added: {', '.join(active_odts)}")
@@ -744,7 +750,7 @@ if col_ledger_flow is not None:
         main_price = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
         base_total = int(base_classes * main_price)
         
-        # Calculate dynamic Guided Support fees based on spreadsheet pricing columns
+        # Calculate tutoring add-on balances natively
         active_odts = st.session_state.get("selected_odts", [])
         odt_price_raw = str(active_school.get("Science ODT Price", "0")).replace("$", "").replace(",", "").strip()
         odt_unit_price = float(pd.to_numeric(odt_price_raw, errors='coerce')) if not pd.isna(pd.to_numeric(odt_price_raw, errors='coerce')) else 0.0
