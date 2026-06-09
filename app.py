@@ -544,7 +544,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (STATE ENGINE COMPLIANT)
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (STABLE SYNC RE-ENGINEERED)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -555,6 +555,10 @@ with col_input_flow:
         odt_notes_string = card.get("odt_notes", "")
         needed_courses = st.session_state["val_courses"]
         
+        # 🩹 THE SANITIZATION LAYER: Instantly neutralizes and wipes empty cell NaN/nan representations
+        if str(odt_notes_string).strip().lower() in ["", "nan", "--", "none"]:
+            odt_notes_string = ""
+            
         st.subheader("Step 5: Guided Course Support & Institutional Requirements")
         st.markdown(f"Reviewing academic support enhancements for target program path: **{school_name}**")
         st.divider()
@@ -604,7 +608,7 @@ with col_input_flow:
             st.session_state["selected_odts"] = []
             st.session_state["odt_hydrated_for_school"] = school_id
         else:
-            # 🔮 MEMORY SHIELD Engine: Hydrates array on fresh loads WITHOUT breaking baseline selections
+            # First-time user layout instantiation setup
             if st.session_state.get("odt_hydrated_for_school") != school_id:
                 st.session_state["selected_odts"] = list(triggered_odt_options)
                 st.session_state["odt_hydrated_for_school"] = school_id
@@ -616,18 +620,18 @@ with col_input_flow:
             current_selections_set = set(st.session_state["selected_odts"])
             
             for formal_course in triggered_odt_options:
-                # 🚀 IMMUNITY OVERRIDE SWITCH: If policy is locked, show it checked on screen but leave memory untouched.
                 if is_force_locked:
+                    # Render locked visual indicator
                     st.checkbox(formal_course, value=True, disabled=True, key=f"odt_box_frozen_view_{formal_course}")
                     chosen_odts.append(formal_course)
                 else:
-                    # Pre-check option activates if slider drops or if recommended window drops back into place
+                    # 🛠️ FIXED ISOLATED SYNC ENGINE: Listens to the current selections array or enforces an override check
                     was_checked = formal_course in current_selections_set or is_pre_checked_only
                     
                     if st.checkbox(formal_course, value=was_checked, key=f"odt_box_active_view_{formal_course}"):
                         chosen_odts.append(formal_course)
             
-            # Save actual screen checkmarks down unless forced override blocks it
+            # Commit the updated screen states to background memory vaults safely
             if not is_force_locked:
                 st.session_state["selected_odts"] = chosen_odts
             else:
@@ -764,8 +768,6 @@ with col_input_flow:
                 st.rerun()
         with b_continue_col:
             if st.button("Continue to Summary ➡️", use_container_width=True, type="primary", key="step6_continue_btn"):
-                st.session_state["modal_score_logged"] = user_score_logged
-                st.session_state["modal_classes_waived"] = classes_waived
                 st.session_state["wizard_step"] = 7
                 st.rerun()
 
