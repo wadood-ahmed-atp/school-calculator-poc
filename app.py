@@ -68,7 +68,8 @@ def initialize_base_states(force_reset=False):
         "val_ref": "No",
         "val_mil": "No",
         "selected_odts": [],
-        "odt_hydrated_for_school": None 
+        "odt_hydrated_for_school": None,
+        "science_years_elapsed": 1 # Tracks user's science age slider natively across loops
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -121,7 +122,7 @@ DISMISSAL_OPTIONS = ["No", "Yes"]
 LICENSE_OPTIONS = ["None / Other", "LPN", "CNA/CMA"]
 TRACK_OPTIONS = ["BSN", "ASN"]
 
-# 🚀 TARGET ALIGNED PRECISION SEQUENCE MATRIX (Sciences Consolidated, Shorthands Unified)
+# 🚀 TARGET ALIGNED PRECISION SEQUENCE MATRIX 
 course_list = [
     "Eng Comp 1", "College Algebra", "Statistics", "Humanities 1", "Humanities 2", 
     "Humanities 3", "Human Growth & Development", "Psychology", "Sociology", "Speech",
@@ -130,7 +131,6 @@ course_list = [
     "Elective 1", "Elective 2"
 ]
 
-# 🛡️ RESTORED BRIDGE DICTIONARIES: Prevents the NameError from triggering
 course_mapping_bridge = {
     "Human Growth & Development": "Human Growth & Development",
     "Biology": "Biology",
@@ -139,15 +139,6 @@ course_mapping_bridge = {
     "AP1": "AP1",
     "AP2": "AP2",
     "Pathophysiology": "Pathophysiology"
-}
-
-odt_translation_bridge = {
-    "AP1": "AP1",
-    "AP2": "AP2",
-    "Microbiology": "Microbiology",
-    "Pathophysiology": "Pathophysiology",
-    "Chemistry": "Chemistry",
-    "Statistics": "Statistics"
 }
 
 current_step = st.session_state["wizard_step"]
@@ -463,6 +454,7 @@ with col_input_flow:
                 s_notes = str(school_row.get("Entrance Exam Notes", "")).strip()
                 s_blanket = str(school_row.get("Blanket Statement", "")).strip()
                 s_odt_rules = str(school_row.get("Science/Math ODTs", "")).strip()
+                s_odt_notes = str(school_row.get("Science/Math ODT Notes", "")).strip()
                 
                 if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
                     rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains("HERZ|HERI", na=False)]
@@ -475,7 +467,6 @@ with col_input_flow:
                 
                 if not rule_row.empty:
                     for required_course in needed_courses:
-                        # 🔮 UNIFIED GOVERNMENT HISTORY TRANSCRIPT LOGIC ENGINE
                         if required_course == "Government History":
                             gov_acc = str(rule_row['Government'].values[0]).strip().upper() == "Y"
                             hist_acc = str(rule_row['History'].values[0]).strip().upper() == "Y"
@@ -513,6 +504,7 @@ with col_input_flow:
                     "notes": s_notes,
                     "blanket": s_blanket,
                     "odt_rules": s_odt_rules,
+                    "odt_notes": s_odt_notes,
                     "track": school_row["ASN/BSN"],
                     "status": s_status,
                     "accepted_courses": school_accepted_list,
@@ -552,7 +544,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (LIVE RULES ENGINE UNLOCKED)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -560,6 +552,7 @@ with col_input_flow:
         school_id = card["id"]
         blanket_statement = card["blanket"]
         odt_rules_string = card["odt_rules"]
+        odt_notes_string = card.get("odt_notes", "")
         needed_courses = st.session_state["val_courses"]
         
         st.subheader("Step 5: Guided Course Support & Institutional Requirements")
@@ -569,11 +562,39 @@ with col_input_flow:
         if blanket_statement and blanket_statement.lower() not in ["", "nan", "--"]:
             st.info(f"📋 **Institutional Policy Notice:**\n\n{blanket_statement}")
             
-        core_sciences = ["Microbiology", "AP1", "AP2", "Pathophysiology"]
-        user_needs_sciences = any(s in needed_courses for s in core_sciences)
+        # 🧠 PARSE NATIVE TOKENS: Reads your copy-pasted structural blueprint loops
+        is_force_locked = False
+        is_pre_checked_only = False
+        rule_threshold_years = 99
+        rule_display_message = ""
         
-        if "EXCEL" in school_name.upper() and user_needs_sciences:
-            st.warning("⏳ **Excelsior 5-Year Recency Requirement:**\n\nExcelsior requires core science courses to have been completed within the past 5 years. Adding Guided Course Support is highly recommended to guarantee passing scores on your first attempt.")
+        if odt_notes_string and ":" in odt_notes_string:
+            try:
+                parts = odt_notes_string.split(":")
+                rule_threshold_years = int(parts[0].strip())
+                policy_type = parts[1].strip().lower()
+                rule_display_message = parts[2].strip()
+                
+                st.markdown("##### ⏳ Credit Recency Verification")
+                # Interactive slider collects science course age timeline parameters live
+                user_age_input = st.slider("How many years ago did you complete your core science credits?", min_value=0, max_value=25, value=st.session_state["science_years_elapsed"], key="science_age_slider_widget")
+                st.session_state["science_years_elapsed"] = user_age_input
+                
+                # Check metrics against token parameters
+                if user_age_input > rule_threshold_years:
+                    if policy_type == "mandatory":
+                        is_force_locked = True
+                        st.error(f"🛑 **Strict Policy Cutoff Met:** {rule_display_message} Guided Course Support has been locked into your plan as a mandatory requirement.")
+                    elif policy_type == "recommended":
+                        is_pre_checked_only = True
+                        st.warning(f"⚠️ **Regional Window Recommendation:** {rule_display_message} Adding Guided Course Support is highly recommended to safeguard transferability.")
+                else:
+                    st.success(f"✅ Verified: Your science credits fall safely within **{school_name}**'s preferred {rule_threshold_years}-year window.")
+            except Exception:
+                # Fallback to standard text notice display if an invalid format is processed
+                if odt_notes_string: st.info(odt_notes_string)
+        elif odt_notes_string:
+            st.info(odt_notes_string)
 
         triggered_odt_options = []
         if odt_rules_string and odt_rules_string.lower() not in ["", "nan", "--"]:
@@ -587,9 +608,13 @@ with col_input_flow:
             st.session_state["selected_odts"] = []
             st.session_state["odt_hydrated_for_school"] = school_id
         else:
-            if st.session_state.get("odt_hydrated_for_school") != school_id:
+            # 🔮 ENGINE OVERRIDE: Automatically sync states based on the live timeline slider rules
+            if st.session_state.get("odt_hydrated_for_school") != school_id or is_force_locked or is_pre_checked_only:
                 for formal_course in triggered_odt_options:
-                    st.session_state[f"odt_box_state_{formal_course}"] = True
+                    if is_force_locked or is_pre_checked_only:
+                        st.session_state[f"odt_box_state_{formal_course}"] = True
+                    elif st.session_state.get("odt_hydrated_for_school") != school_id:
+                        st.session_state[f"odt_box_state_{formal_course}"] = True
                 st.session_state["odt_hydrated_for_school"] = school_id
                 
             st.markdown("#### 🎓 Recommended Support Bundles")
@@ -597,8 +622,14 @@ with col_input_flow:
             
             chosen_odts = []
             for formal_course in triggered_odt_options:
-                if st.checkbox(formal_course, key=f"odt_box_state_{formal_course}"):
+                # If mandatory criteria is triggered, the widget is frozen to 'True' and disabled on screen
+                if is_force_locked:
+                    st.checkbox(formal_course, value=True, disabled=True, key=f"odt_box_disabled_view_{formal_course}")
                     chosen_odts.append(formal_course)
+                else:
+                    was_checked = st.session_state.get(f"odt_box_state_{formal_course}", True)
+                    if st.checkbox(formal_course, key=f"odt_box_state_{formal_course}"):
+                        chosen_odts.append(formal_course)
             st.session_state["selected_odts"] = chosen_odts
 
         st.divider()
