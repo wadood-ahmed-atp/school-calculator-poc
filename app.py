@@ -181,6 +181,9 @@ SCIENCE_COURSES_SET = {"Biology", "Chemistry", "Microbiology", "AP1", "AP2", "Pa
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
 
+# 🚀 HARDENS AND RE-ANCHORS THE MISSING TITLE Header layout firmly above body grid frames
+st.markdown("<h1 style='padding-top: 0px; margin-top: -10px; font-family: sans-serif; font-size: 32px; font-weight: 700; color: #1E3A8A;'>🧮 Bridge Plan Generator</h1>", unsafe_allow_html=True)
+
 s_cols = ["#10B981" if current_step > i else ("#1E3A8A" if current_step == i else "#2563EB") for i in range(1, 9)]
 s_whts = ["bold" if current_step == i else "normal" for i in range(1, 9)]
 
@@ -359,7 +362,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (MULTI-LEVEL MATRIX SORT ARCHITECTURE)
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
@@ -433,7 +436,6 @@ with col_input_flow:
                     s_status = "Perfect Match"
                     school_accepted_list = list(needed_courses)
                 
-                # Pre-calculate active tutoring rules to execute pricing rank tie-breakers
                 raw_odt_options = [c.strip() for c in s_odt_rules.split(",")] if s_odt_rules and str(s_odt_rules).lower() not in ["", "nan", "--"] else []
                 raw_odt_options = [c for c in raw_odt_options if c in school_accepted_list]
                 
@@ -445,7 +447,6 @@ with col_input_flow:
                     "odt_count_weight": len(raw_odt_options)
                 })
             
-            # 🎯 PRECISION SORT CORE TIE-BREAKER ENGINE: Primary rank Descending on CBE count, Secondary tie-breaker ascending on ODT requirements (yielding cleaner premium pricing)
             card_rows = sorted(card_rows, key=lambda x: (len(x["accepted_courses"]), -x["odt_count_weight"]), reverse=True)
             
             for card in card_rows:
@@ -479,7 +480,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL 
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -729,9 +730,9 @@ with col_input_flow:
             st.session_state["wizard_step"] = 7
             st.rerun()
 
-# --------------------------------------------------------------------------
+# ==============================================================================
 # 🛒 STEP 8 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL
-# --------------------------------------------------------------------------
+# ==============================================================================
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Final Checkout Receipt")
