@@ -83,7 +83,7 @@ def execute_safe_restart():
     st.rerun()
 
 # ==============================================================================
-# 2. HIGH-SPEED MEMORY CACHE LOADING PIPELINE (OPTIMIZED)
+# 2. HIGH-SPEED MEMORY CACHE LOADING PIPELINE
 # ==============================================================================
 @st.cache_data(ttl=600)
 def load_and_sanitize_source_data(schools_path, rules_path):
@@ -162,7 +162,7 @@ st.markdown(
         <span style="color: {s_cols[0]}; font-weight: {s_whts[0]};">{'✅ ' if current_step>1 else ''}1. Profile</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[1]}; font-weight: {s_whts[1]};">{'✅ ' if current_step>2 else ''}2. Licensing</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[2]}; font-weight: {s_whts[2]};">{'✅ ' if current_step>3 else ''}3. Transcript</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: {s_cols[3]}; font-weight: {s_whts[3]};">{'✅ ' if current_step>4 else ''}4. Schools</span> <span style="color: #cbd5e1;">➔ platform</span>
+        <span style="color: {s_cols[3]}; font-weight: {s_whts[3]};">{'✅ ' if current_step>4 else ''}4. Schools</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[4]}; font-weight: {s_whts[4]};">{'✅ ' if current_step>5 else ''}5. Guided Support</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[5]}; font-weight: {s_whts[5]};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[6]}; font-weight: {s_whts[6]};">{'✅ ' if is_finalized else ''}7. Summary Receipt</span>
@@ -203,10 +203,9 @@ with col_input_flow:
         else:
             b_reset_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
             with b_reset_col:
-                if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step1_reset_btn"):
-                    execute_safe_restart()
+                if st.button("🔄 Restart Process", use_container_width=True, type="secondary"): execute_safe_restart()
             with b_continue_col:
-                if st.button("Continue ➡️", use_container_width=True, type="primary", key="step1_continue_action", disabled=is_finalized):
+                if st.button("Continue ➡️", use_container_width=True, type="primary", disabled=is_finalized):
                     if i_state == "Select state":
                         st.warning("⚠️ Please select your home state before continuing.")
                     elif i_adult == "No":
@@ -380,7 +379,6 @@ with col_input_flow:
                 s_odt_rules = str(school_row.get("Science/Math ODTs", "")).strip()
                 s_odt_notes = str(school_row.get("Science/Math ODT Notes", "")).strip()
                 
-                # Optimized partial string token scanner rules
                 if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
                     rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains("HERZ|HERI", na=False)]
                 elif "EXCEL" in raw_name.upper():
@@ -526,7 +524,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE
+    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (STATE MACHINE IMMUNITY ENFORCED)
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
@@ -551,7 +549,10 @@ with col_input_flow:
             
             if user_has_passed == "No":
                 st.warning(f"⚠️ Note: A required **{school_exam_type} Prep Course** has been added to your preparation bundle.")
-                st.session_state["modal_include_exam_prep"] = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", key="ex_prep_check")
+                
+                # 🔒 MEMORY COUPLING SHIELD: Forces widget to bind directly to true historical background state value
+                keep_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", value=st.session_state["modal_include_exam_prep"], key="ex_prep_persistent_widget")
+                st.session_state["modal_include_exam_prep"] = keep_prep
             else:
                 st.session_state["modal_include_exam_prep"] = False
                 raw_input_score = st.text_input("Enter your official score:", value=user_score_logged, placeholder="Enter score here", key="step6_score")
@@ -596,7 +597,8 @@ with col_input_flow:
                     if score_num > 0:
                         if matched_rule_type == "fail":
                             st.error(f"🛑 This score is below the automatic waiver threshold. We've added a **{school_exam_type} Prep Course**.")
-                            st.session_state["modal_include_exam_prep"] = st.checkbox(f"Keep **{school_exam_type} Prep Course** included?", key="ex_fail_check")
+                            keep_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included?", value=st.session_state["modal_include_exam_prep"], key="ex_fail_persistent_widget")
+                            st.session_state["modal_include_exam_prep"] = keep_prep
                         elif matched_rule_type in ["pass", "exempt"]:
                             if age_limit_years:
                                 st.markdown("##### ⏳ Verification Check:")
@@ -610,7 +612,8 @@ with col_input_flow:
                                 st.session_state["modal_include_exam_prep"] = False
                         elif matched_rule_type == "retest":
                             st.warning(f"⚠️ {custom_message}")
-                            st.session_state["modal_include_exam_prep"] = st.checkbox(f"Add **{school_exam_type} Advanced Retest Prep**?", key="ex_retest_check")
+                            keep_prep = st.checkbox(f"Add **{school_exam_type} Advanced Retest Prep**?", value=st.session_state["modal_include_exam_prep"], key="ex_retest_persistent_widget")
+                            st.session_state["modal_include_exam_prep"] = keep_prep
 
         st.divider()
         b_back_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
@@ -671,7 +674,7 @@ with col_input_flow:
             st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 STEP 7 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL (OPTIMIZED PRICING 8)
+# 🛒 STEP 7 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL
 # --------------------------------==========================================
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -684,7 +687,7 @@ if col_ledger_flow is not None:
         extra_exam_count = 1 if st.session_state["modal_include_exam_prep"] else 0
         active_odts = st.session_state.get("selected_odts", [])
         
-        # 🔑 PRICING MODEL 8 CORE LEDGER MATRIX ENGINE
+        # ⚡ UNIFIED VOLUME AGGREGATOR MATRIX
         total_products = len(needed_courses) + extra_exam_count + len(active_odts)
         
         if total_products >= 10:
