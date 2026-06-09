@@ -74,7 +74,7 @@ def initialize_base_states(force_reset=False):
         "val_exam_passed_status": "No",
         "modal_include_nclex_prep": True,          
         "nclex_prep_manually_toggled": False,
-        "science_credits_expired": False          # 🔒 Core global tracking flag for Clint's policy enforcement
+        "science_credits_expired": False          
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -471,7 +471,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (SCIENCE EXPIRATION HARDENED)
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (SLIDER DIALOGUE OPTIMIZED)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -510,7 +510,7 @@ with col_input_flow:
                 if user_age_input > rule_threshold_years:
                     if policy_type == "mandatory":
                         is_force_locked = True
-                        st.session_state["science_credits_expired"] = True  # 🔒 Permanently bind expiration flag into memory pool
+                        st.session_state["science_credits_expired"] = True  
                         st.error(f"🛑 **Strict Policy Cutoff Met:** {rule_display_message} Guided Course Support has been locked into your plan as a mandatory requirement.")
                     elif policy_type == "recommended":
                         is_pre_checked_only = True
@@ -518,7 +518,9 @@ with col_input_flow:
                         st.warning(f"⚠️ **Regional Window Recommendation:** {rule_display_message} Support highly recommended.")
                 else:
                     st.session_state["science_credits_expired"] = False
-                    st.success(f"✅ Verified: Your science credits fall within the acceptable {rule_threshold_years}-year window.")
+                    
+                    # 🛠️ DYNAMIC FIX: References both parameters properly to show an accurate, non-confusing validation statement
+                    st.success(f"✅ Verified: Your science credits are active ({user_age_input} years old), which safely falls within the school's approved {rule_threshold_years}-year recency window.")
             except Exception:
                 if odt_notes_string: st.info(odt_notes_string)
         else:
@@ -565,7 +567,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (CLINT SIMPLIFIED COMPLIANCE METRICS)
+    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
@@ -610,7 +612,6 @@ with col_input_flow:
             else:
                 st.session_state["modal_include_exam_prep"] = False
                 
-                # 📈 CLINT ANALYTICAL SIMPLIFIED ENGINE: Bypasses complex rules and logs historical track metrics for competitive ranking
                 st.text_input(
                     f"Enter your official **{school_exam_type}** score (Higher score tracks indicate accelerated admission priority thresholds):", 
                     value=st.session_state["modal_score_logged"], 
@@ -733,14 +734,14 @@ if col_ledger_flow is not None:
         needed_courses = active_school["accepted_courses"]
         school_name = active_school["name"]
         
-        # Determine active biological science courses that will get targeted if expired
         triggered_odt_options = [c.strip() for c in str(active_school.get("odt_rules", "")).split(",")] if active_school.get("odt_rules") else []
         triggered_odt_options = [c for c in triggered_odt_options if c in needed_courses]
         
-        # 🔒 CLINT POLICY INTEGRATOR MATRIX: If the science expiration flag is locked to True, force-load ALL available science ODT modules
         if st.session_state.get("science_credits_expired") and triggered_odt_options:
             active_odts = list(set(triggered_odt_options))
             st.session_state["selected_odts"] = active_odts
+        else:
+            active_odts = st.session_state.get("selected_odts", [])
             
         extra_exam_count = 1 if st.session_state["modal_include_exam_prep"] else 0
         extra_nclex_count = 1 if st.session_state["modal_include_nclex_prep"] else 0
