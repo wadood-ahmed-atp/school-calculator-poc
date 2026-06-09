@@ -69,7 +69,7 @@ def initialize_base_states(force_reset=False):
         "val_mil": "No",
         "selected_odts": [],
         "odt_hydrated_for_school": None,
-        "science_years_elapsed": 1 # Tracks user's science age slider natively across loops
+        "science_years_elapsed": 1 
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -544,7 +544,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (LIVE RULES ENGINE UNLOCKED)
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (STATE ENGINE COMPLIANT)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -562,7 +562,6 @@ with col_input_flow:
         if blanket_statement and blanket_statement.lower() not in ["", "nan", "--"]:
             st.info(f"📋 **Institutional Policy Notice:**\n\n{blanket_statement}")
             
-        # 🧠 PARSE NATIVE TOKENS: Reads your copy-pasted structural blueprint loops
         is_force_locked = False
         is_pre_checked_only = False
         rule_threshold_years = 99
@@ -576,11 +575,9 @@ with col_input_flow:
                 rule_display_message = parts[2].strip()
                 
                 st.markdown("##### ⏳ Credit Recency Verification")
-                # Interactive slider collects science course age timeline parameters live
                 user_age_input = st.slider("How many years ago did you complete your core science credits?", min_value=0, max_value=25, value=st.session_state["science_years_elapsed"], key="science_age_slider_widget")
                 st.session_state["science_years_elapsed"] = user_age_input
                 
-                # Check metrics against token parameters
                 if user_age_input > rule_threshold_years:
                     if policy_type == "mandatory":
                         is_force_locked = True
@@ -591,7 +588,6 @@ with col_input_flow:
                 else:
                     st.success(f"✅ Verified: Your science credits fall safely within **{school_name}**'s preferred {rule_threshold_years}-year window.")
             except Exception:
-                # Fallback to standard text notice display if an invalid format is processed
                 if odt_notes_string: st.info(odt_notes_string)
         elif odt_notes_string:
             st.info(odt_notes_string)
@@ -608,29 +604,34 @@ with col_input_flow:
             st.session_state["selected_odts"] = []
             st.session_state["odt_hydrated_for_school"] = school_id
         else:
-            # 🔮 ENGINE OVERRIDE: Automatically sync states based on the live timeline slider rules
-            if st.session_state.get("odt_hydrated_for_school") != school_id or is_force_locked or is_pre_checked_only:
-                for formal_course in triggered_odt_options:
-                    if is_force_locked or is_pre_checked_only:
-                        st.session_state[f"odt_box_state_{formal_course}"] = True
-                    elif st.session_state.get("odt_hydrated_for_school") != school_id:
-                        st.session_state[f"odt_box_state_{formal_course}"] = True
+            # 🔮 MEMORY SHIELD Engine: Hydrates array on fresh loads WITHOUT breaking baseline selections
+            if st.session_state.get("odt_hydrated_for_school") != school_id:
+                st.session_state["selected_odts"] = list(triggered_odt_options)
                 st.session_state["odt_hydrated_for_school"] = school_id
                 
             st.markdown("#### 🎓 Recommended Support Bundles")
             st.markdown(f"The following courses cannot be bypassed via exam at **{school_name}**. Please select the items you want to include Guided Course Support for:")
             
             chosen_odts = []
+            current_selections_set = set(st.session_state["selected_odts"])
+            
             for formal_course in triggered_odt_options:
-                # If mandatory criteria is triggered, the widget is frozen to 'True' and disabled on screen
+                # 🚀 IMMUNITY OVERRIDE SWITCH: If policy is locked, show it checked on screen but leave memory untouched.
                 if is_force_locked:
-                    st.checkbox(formal_course, value=True, disabled=True, key=f"odt_box_disabled_view_{formal_course}")
+                    st.checkbox(formal_course, value=True, disabled=True, key=f"odt_box_frozen_view_{formal_course}")
                     chosen_odts.append(formal_course)
                 else:
-                    was_checked = st.session_state.get(f"odt_box_state_{formal_course}", True)
-                    if st.checkbox(formal_course, key=f"odt_box_state_{formal_course}"):
+                    # Pre-check option activates if slider drops or if recommended window drops back into place
+                    was_checked = formal_course in current_selections_set or is_pre_checked_only
+                    
+                    if st.checkbox(formal_course, value=was_checked, key=f"odt_box_active_view_{formal_course}"):
                         chosen_odts.append(formal_course)
-            st.session_state["selected_odts"] = chosen_odts
+            
+            # Save actual screen checkmarks down unless forced override blocks it
+            if not is_force_locked:
+                st.session_state["selected_odts"] = chosen_odts
+            else:
+                st.session_state["selected_odts"] = list(set(chosen_odts).union(current_selections_set))
 
         st.divider()
         b_back_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
