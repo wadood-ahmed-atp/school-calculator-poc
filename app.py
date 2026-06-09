@@ -96,6 +96,11 @@ def sync_entrance_radio_callback():
     if "entrance_radio_live_key" in st.session_state:
         st.session_state["val_exam_passed_status"] = st.session_state["entrance_radio_live_key"]
 
+def sync_entrance_score_callback():
+    """Saves revised test scores instantly to dynamic storage preventing fallback desyncs"""
+    if "step6_score_live_key" in st.session_state:
+        st.session_state["modal_score_logged"] = str(st.session_state["step6_score_live_key"]).strip()
+
 # ==============================================================================
 # 2. HIGH-SPEED MEMORY CACHE LOADING PIPELINE
 # ==============================================================================
@@ -540,7 +545,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (100% Dynamic Alert Matrix Fixed)
+    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (100% Dynamic Memory Sync Optimized)
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
@@ -575,7 +580,6 @@ with col_input_flow:
             user_has_passed = st.session_state["val_exam_passed_status"]
             
             if user_has_passed == "No":
-                # 🧪 DYNAMIC NOTICE RENDER ENGINE: Only triggers alert box text if checkbox is ACTIVELY checked in state vault
                 if st.session_state["modal_include_exam_prep"]:
                     st.warning(f"⚠️ Note: A required **{school_exam_type} Prep Course** has been added to your preparation bundle.")
                 
@@ -590,11 +594,21 @@ with col_input_flow:
                 )
             else:
                 st.session_state["modal_include_exam_prep"] = False
-                raw_input_score = st.text_input("Enter your official score:", value=user_score_logged, placeholder="Enter score here", key="step6_score")
-                user_score_logged = raw_input_score
                 
-                if raw_input_score:
-                    clean_score_str = re.sub(r'[^\d.]', '', raw_input_score)
+                # 🎯 BI-DIRECTIONAL MEMORY ACCELERATOR FIXED: Feeds value natively and locks revised entries using callback hooks
+                st.text_input(
+                    "Enter your official score:", 
+                    value=st.session_state["modal_score_logged"], 
+                    placeholder="Enter score here", 
+                    key="step6_score_live_key",
+                    on_change=sync_entrance_score_callback
+                )
+                
+                # Instantly extract and sanitize current score string metrics
+                current_live_score_str = st.session_state["modal_score_logged"]
+                
+                if current_live_score_str:
+                    clean_score_str = re.sub(r'[^\d.]', '', current_live_score_str)
                     score_num = float(clean_score_str) if clean_score_str else 0.0
                     
                     if score_num >= 75.0:
@@ -662,6 +676,7 @@ with col_input_flow:
                 st.rerun()
         with b_continue_col:
             if st.button("Continue to Summary ➡️", use_container_width=True, type="primary"):
+                st.session_state["modal_classes_waived"] = classes_waived
                 st.session_state["wizard_step"] = 7
                 st.rerun()
 
@@ -684,7 +699,13 @@ with col_input_flow:
             with col_right_path:
                 st.markdown("### 🏫 Institutional Placement")
                 st.markdown(f"**Target Institution Path:** `{card['name']}`")
-                exam_status_txt = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
+                
+                # Dynamic scoring verification metric indicator line
+                if card['exam'] != "--" and st.session_state["modal_score_logged"]:
+                    exam_status_txt = f"✓ Passed Score Verified: {st.session_state['modal_score_logged']}%" if not st.session_state["modal_include_exam_prep"] else f"⚠️ Retest / Reprep Added ({st.session_state['modal_score_logged']}%)"
+                else:
+                    exam_status_txt = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
+                    
                 st.markdown(f"**Entrance Benchmark Requirement:** `{exam_status_txt if card['exam'] != '--' else 'Exempt / None'}`")
 
         st.markdown("<br>", unsafe_allow_html=True)
