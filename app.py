@@ -167,6 +167,9 @@ course_mapping_bridge = {
     "Pathophysiology": "Pathophysiology"
 }
 
+# Optimized quick reference set for runtime intersection checks
+SCIENCE_COURSES_SET = {"Biology", "Chemistry", "Microbiology", "AP1", "AP2", "Pathophysiology"}
+
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
 
@@ -201,6 +204,7 @@ with col_input_flow:
     if current_step == 1:
         st.subheader("Step 1: Contact & Residency Details")
         st.markdown("Let's start with where you live so we can find the right online nursing options available in your area.")
+        st.sidebar.markdown(f"Current Year: {st.session_state.get('year_context', 2026)}")
         st.divider()
         
         i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name", disabled=is_finalized)
@@ -459,7 +463,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (SCIENCE VERIFICATION OPTIMIZED)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -479,9 +483,14 @@ with col_input_flow:
         if card["blanket"] and str(card["blanket"]).lower() not in ["", "nan", "--"]:
             st.info(f"📋 **Institutional Policy Notice:**\n\n{card['blanket']}")
             
+        # 🚀 HIGH-VELOCITY OPTIMIZATION SCANNER: Checks if the user actually has a science product selected
+        student_selections_set = set(needed_courses)
+        user_possesses_sciences = not student_selections_set.isdisjoint(SCIENCE_COURSES_SET)
+        
         is_force_locked, is_pre_checked_only, rule_threshold_years, rule_display_message = False, False, 99, ""
         
-        if odt_notes_string and ":" in odt_notes_string:
+        # 🧠 CONDITIONAL SLIDER DISCOVERY BARRIER: Only triggers slider rules if sciences are actively needed!
+        if user_possesses_sciences and odt_notes_string and ":" in odt_notes_string:
             try:
                 parts = odt_notes_string.split(":")
                 rule_threshold_years = int(parts[0].strip())
@@ -503,7 +512,7 @@ with col_input_flow:
                     st.success(f"✅ Verified: Your science credits fall within the acceptable {rule_threshold_years}-year window.")
             except Exception:
                 if odt_notes_string: st.info(odt_notes_string)
-        elif odt_notes_string:
+        elif odt_notes_string and user_possesses_sciences:
             st.info(odt_notes_string)
 
         triggered_odt_options = [c.strip() for c in odt_rules_string.split(",")] if odt_rules_string and str(odt_rules_string).lower() not in ["", "nan", "--"] else []
@@ -545,7 +554,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (100% Dynamic Memory Sync Optimized)
+    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
@@ -595,7 +604,6 @@ with col_input_flow:
             else:
                 st.session_state["modal_include_exam_prep"] = False
                 
-                # 🎯 BI-DIRECTIONAL MEMORY ACCELERATOR FIXED: Feeds value natively and locks revised entries using callback hooks
                 st.text_input(
                     "Enter your official score:", 
                     value=st.session_state["modal_score_logged"], 
@@ -604,7 +612,6 @@ with col_input_flow:
                     on_change=sync_entrance_score_callback
                 )
                 
-                # Instantly extract and sanitize current score string metrics
                 current_live_score_str = st.session_state["modal_score_logged"]
                 
                 if current_live_score_str:
@@ -700,7 +707,6 @@ with col_input_flow:
                 st.markdown("### 🏫 Institutional Placement")
                 st.markdown(f"**Target Institution Path:** `{card['name']}`")
                 
-                # Dynamic scoring verification metric indicator line
                 if card['exam'] != "--" and st.session_state["modal_score_logged"]:
                     exam_status_txt = f"✓ Passed Score Verified: {st.session_state['modal_score_logged']}%" if not st.session_state["modal_include_exam_prep"] else f"⚠️ Retest / Reprep Added ({st.session_state['modal_score_logged']}%)"
                 else:
