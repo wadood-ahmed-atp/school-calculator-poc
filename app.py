@@ -181,7 +181,6 @@ SCIENCE_COURSES_SET = {"Biology", "Chemistry", "Microbiology", "AP1", "AP2", "Pa
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
 
-# 🚀 HARDENS AND RE-ANCHORS THE MISSING TITLE Header layout firmly above body grid frames
 st.markdown("<h1 style='padding-top: 0px; margin-top: -10px; font-family: sans-serif; font-size: 32px; font-weight: 700; color: #1E3A8A;'>🧮 Bridge Plan Generator</h1>", unsafe_allow_html=True)
 
 s_cols = ["#10B981" if current_step > i else ("#1E3A8A" if current_step == i else "#2563EB") for i in range(1, 9)]
@@ -362,7 +361,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL SCHOOL MATCHES
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES 
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
@@ -480,7 +479,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (ODT FILTER RESOLVED)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -488,7 +487,9 @@ with col_input_flow:
         school_id = card["id"]
         odt_rules_string = card["odt_rules"]
         odt_notes_string = card.get("odt_notes", "")
-        needed_courses = card["accepted_courses"]
+        
+        # 🚀 FIX: Pull parameters directly from master session memory cache instead of the isolated accepted_courses array
+        needed_courses = st.session_state["val_courses"]
         
         if str(odt_notes_string).strip().lower() in ["", "nan", "--", "none"]:
             odt_notes_string = ""
@@ -730,9 +731,9 @@ with col_input_flow:
             st.session_state["wizard_step"] = 7
             st.rerun()
 
-# ==============================================================================
+# --------------------------------------------------------------------------
 # 🛒 STEP 8 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL
-# ==============================================================================
+# --------------------------------================================----------
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Final Checkout Receipt")
@@ -742,7 +743,7 @@ if col_ledger_flow is not None:
         school_name = active_school["name"]
         
         triggered_odt_options = [c.strip() for c in str(active_school.get("odt_rules", "")).split(",")] if active_school.get("odt_rules") else []
-        triggered_odt_options = [c for c in triggered_odt_options if c in needed_courses]
+        triggered_odt_options = [c for c in triggered_odt_options if c in st.session_state["val_courses"]]
         
         if st.session_state.get("science_credits_expired") and triggered_odt_options:
             active_odts = list(set(triggered_odt_options))
