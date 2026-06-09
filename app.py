@@ -37,7 +37,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 1. PERMANENT STATE MEMORY INITIALIZATION (8-STEP ADAPTED)
+# 1. PERMANENT STATE MEMORY INITIALIZATION
 # ==============================================================================
 def initialize_base_states(force_reset=False):
     """Safely handles pristine initialization of memory vaults without race conditions"""
@@ -72,8 +72,9 @@ def initialize_base_states(force_reset=False):
         "science_years_elapsed": 1,
         "exam_prep_manually_toggled": False,
         "val_exam_passed_status": "No",
-        "modal_include_nclex_prep": True,          # NCLEX engine baseline state
-        "nclex_prep_manually_toggled": False        # Override protection mirror state
+        "modal_include_nclex_prep": True,          
+        "nclex_prep_manually_toggled": False,
+        "science_credits_expired": False          # 🔒 Core global tracking flag for Clint's policy enforcement
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -86,7 +87,7 @@ def execute_safe_restart():
     initialize_base_states(force_reset=True)
     st.rerun()
 
-# 🧠 INTERACTIVE STATE CALLBACK REPLICATORS (OPTIMIZED FOR PERFORMANCE)
+# 🧠 INTERACTIVE STATE CALLBACK REPLICATORS
 def sync_exam_prep_state_callback():
     """Bypasses garbage collection by archiving widget clicks directly to the session pool"""
     if "ex_prep_live_widget_key" in st.session_state:
@@ -180,7 +181,6 @@ SCIENCE_COURSES_SET = {"Biology", "Chemistry", "Microbiology", "AP1", "AP2", "Pa
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
 
-# Dashboard Master Progress Matrix (Refactored for 8-step map constraints)
 s_cols = ["#10B981" if current_step > i else ("#1E3A8A" if current_step == i else "#2563EB") for i in range(1, 9)]
 s_whts = ["bold" if current_step == i else "normal" for i in range(1, 9)]
 
@@ -471,7 +471,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (SCIENCE EXPIRATION HARDENED)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -510,16 +510,21 @@ with col_input_flow:
                 if user_age_input > rule_threshold_years:
                     if policy_type == "mandatory":
                         is_force_locked = True
-                        st.error(f"🛑 **Strict Policy Cutoff Met:** {rule_display_message} Guided Course Support locked into plan.")
+                        st.session_state["science_credits_expired"] = True  # 🔒 Permanently bind expiration flag into memory pool
+                        st.error(f"🛑 **Strict Policy Cutoff Met:** {rule_display_message} Guided Course Support has been locked into your plan as a mandatory requirement.")
                     elif policy_type == "recommended":
                         is_pre_checked_only = True
+                        st.session_state["science_credits_expired"] = False
                         st.warning(f"⚠️ **Regional Window Recommendation:** {rule_display_message} Support highly recommended.")
                 else:
+                    st.session_state["science_credits_expired"] = False
                     st.success(f"✅ Verified: Your science credits fall within the acceptable {rule_threshold_years}-year window.")
             except Exception:
                 if odt_notes_string: st.info(odt_notes_string)
-        elif odt_notes_string and user_possesses_sciences:
-            st.info(odt_notes_string)
+        else:
+            st.session_state["science_credits_expired"] = False
+            if odt_notes_string and user_possesses_sciences:
+                st.info(odt_notes_string)
 
         triggered_odt_options = [c.strip() for c in odt_rules_string.split(",")] if odt_rules_string and str(odt_rules_string).lower() not in ["", "nan", "--"] else []
         triggered_odt_options = [c for c in triggered_odt_options if c in needed_courses]
@@ -560,21 +565,16 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE
+    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (CLINT SIMPLIFIED COMPLIANCE METRICS)
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
         school_name = card["name"]
         school_exam_type = card["exam"]
-        school_exam_notes = card["notes"]
         
         st.subheader(f"Step 6: Reviewing Entrance Testing Requirements")
         st.markdown(f"Configuring standard entrance benchmarks for targeted program path: **{school_name}**")
         st.divider()
-        
-        classes_waived = 0
-        waived_course_name = ""
-        user_score_logged = st.session_state.get("modal_score_logged", "")
         
         if school_exam_type in ["--", "", "nan"] or pd.isna(school_exam_type):
             st.info("ℹ️ There are no entrance testing requirements for this specific nursing school.")
@@ -610,76 +610,17 @@ with col_input_flow:
             else:
                 st.session_state["modal_include_exam_prep"] = False
                 
+                # 📈 CLINT ANALYTICAL SIMPLIFIED ENGINE: Bypasses complex rules and logs historical track metrics for competitive ranking
                 st.text_input(
-                    "Enter your official score:", 
+                    f"Enter your official **{school_exam_type}** score (Higher score tracks indicate accelerated admission priority thresholds):", 
                     value=st.session_state["modal_score_logged"], 
-                    placeholder="Enter score here", 
+                    placeholder="Enter official percentage score", 
                     key="step6_score_live_key",
                     on_change=sync_entrance_score_callback
                 )
                 
-                current_live_score_str = st.session_state["modal_score_logged"]
-                
-                if current_live_score_str:
-                    clean_score_str = re.sub(r'[^\d.]', '', current_live_score_str)
-                    score_num = float(clean_score_str) if clean_score_str else 0.0
-                    
-                    if score_num >= 75.0:
-                        matched_rule_type, custom_message, age_limit_years = "pass", "", None
-                    else:
-                        rules = str(school_exam_notes).strip().split('|')
-                        matched_rule_type, custom_message, age_limit_years, age_question_text = "fail", "", None, ""
-                        
-                        for rule in rules:
-                            parts = rule.split(':')
-                            if not parts or parts[0] == "": continue
-                            condition = parts[0].strip()
-                            
-                            if '-' in condition:
-                                try:
-                                    low, high = map(float, condition.split('-'))
-                                    if low <= score_num <= high:
-                                        matched_rule_type = parts[1].strip()
-                                        custom_message = parts[2].strip() if len(parts) > 2 else ""
-                                except ValueError: pass
-                            elif '+' in condition:
-                                try:
-                                    floor_val = float(condition.replace('+', ''))
-                                    if score_num >= floor_val:
-                                        matched_rule_type = parts[1].strip()
-                                        if matched_rule_type == "exempt":
-                                            classes_waived = int(parts[2].strip())
-                                            waived_course_name = parts[3].strip()
-                                        elif matched_rule_type == "pass" and len(parts) > 2:
-                                            custom_message = parts[2].strip()
-                                except ValueError: pass
-                            elif condition == "age":
-                                age_limit_years = int(parts[1].strip())
-                                age_question_text = parts[2].strip()
-
-                    if score_num > 0:
-                        if matched_rule_type == "fail":
-                            if st.session_state["modal_include_exam_prep"]:
-                                st.error(f"🛑 This score is below the automatic waiver threshold. We've added a **{school_exam_type} Prep Course**.")
-                            if not st.session_state["exam_prep_manually_toggled"]:
-                                st.session_state["modal_include_exam_prep"] = True
-                            st.checkbox(f"Keep **{school_exam_type} Prep Course** included?", value=st.session_state["modal_include_exam_prep"], key="ex_prep_live_widget_key", on_change=sync_exam_prep_state_callback)
-                        elif matched_rule_type in ["pass", "exempt"]:
-                            if age_limit_years:
-                                st.markdown("##### ⏳ Verification Check:")
-                                exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1, key="exam_age_slider")
-                                st.session_state["modal_include_exam_prep"] = (exam_age > age_limit_years)
-                                if exam_age > age_limit_years: st.error("🛑 Your test score has expired. Adding a refresher course.")
-                                else: st.success("✅ Verified: Your score is active and valid!")
-                            else:
-                                if matched_rule_type == "exempt": st.success(f"🎉 Exemption unlocked! Waived out of **{waived_course_name}**.")
-                                else: st.success("✅ Verified: Entrance testing requirements met!")
-                                st.session_state["modal_include_exam_prep"] = False
-                        elif matched_rule_type == "retest":
-                            st.warning(f"⚠️ {custom_message}")
-                            if not st.session_state["exam_prep_manually_toggled"]:
-                                st.session_state["modal_include_exam_prep"] = True
-                            st.checkbox(f"Add **{school_exam_type} Advanced Retest Prep**?", value=st.session_state["modal_include_exam_prep"], key="ex_prep_live_widget_key", on_change=sync_exam_prep_state_callback)
+                if st.session_state["modal_score_logged"]:
+                    st.success("✅ Analytical score logged successfully to applicant tracking profile matrix.")
 
         st.divider()
         b_back_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
@@ -689,12 +630,11 @@ with col_input_flow:
                 st.rerun()
         with b_continue_col:
             if st.button("Configure Exit Exams ➡️", use_container_width=True, type="primary"):
-                st.session_state["modal_classes_waived"] = classes_waived
                 st.session_state["wizard_step"] = 7
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 7: STANDALONE EXIT EXAM WORKSPACE (NCLEX ENGINE INCLUDED)
+    # STEP 7: STANDALONE EXIT EXAM WORKSPACE
     # --------------------------------------------------------------------------
     elif current_step == 7:
         card = st.session_state["active_school_view"]
@@ -705,7 +645,6 @@ with col_input_flow:
         st.markdown("#### 🎓 Licensing Board Test Readiness")
         st.info("💡 **Academic Recommendation:** Attaching an advanced NCLEX-RN Prep Course ensures comprehensive review metrics before graduation and safeguards first-attempt passing percentages.")
         
-        # Force Checked (True) by default on initial arrival to safeguard baseline parameters
         if not st.session_state["nclex_prep_manually_toggled"]:
             st.session_state["modal_include_nclex_prep"] = True
             
@@ -748,7 +687,7 @@ with col_input_flow:
                 st.markdown(f"**Target Institution Path:** `{card['name']}`")
                 
                 if card['exam'] != "--" and st.session_state["modal_score_logged"]:
-                    exam_status_txt = f"✓ Passed Score Verified: {st.session_state['modal_score_logged']}%" if not st.session_state["modal_include_exam_prep"] else f"⚠️ Retest / Reprep Added ({st.session_state['modal_score_logged']}%)"
+                    exam_status_txt = f"✓ Analytics Score Logged: {st.session_state['modal_score_logged']}% (Accelerated Admissions Entry Track)"
                 else:
                     exam_status_txt = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
                     
@@ -760,6 +699,8 @@ with col_input_flow:
 
         with st.container(border=True):
             st.markdown("### 🧬 Academic Parameter Configurations")
+            if st.session_state.get("science_credits_expired"):
+                st.error("🛑 **Policy Expiration Enforced:** Science prerequisites fall outside the school-approved recency window. Guided Science ODT support tracks have been locked into this bill.")
             st.markdown("<br>", unsafe_allow_html=True)
             col_cbe, col_odt = st.columns(2, gap="large")
             
@@ -782,8 +723,8 @@ with col_input_flow:
             st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 STEP 8 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL (INTEGRATED)
-# --------------------------------==========================================
+# 🛒 STEP 8 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL
+# --------------------------------================================----------
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Final Checkout Receipt")
@@ -792,11 +733,18 @@ if col_ledger_flow is not None:
         needed_courses = active_school["accepted_courses"]
         school_name = active_school["name"]
         
+        # Determine active biological science courses that will get targeted if expired
+        triggered_odt_options = [c.strip() for c in str(active_school.get("odt_rules", "")).split(",")] if active_school.get("odt_rules") else []
+        triggered_odt_options = [c for c in triggered_odt_options if c in needed_courses]
+        
+        # 🔒 CLINT POLICY INTEGRATOR MATRIX: If the science expiration flag is locked to True, force-load ALL available science ODT modules
+        if st.session_state.get("science_credits_expired") and triggered_odt_options:
+            active_odts = list(set(triggered_odt_options))
+            st.session_state["selected_odts"] = active_odts
+            
         extra_exam_count = 1 if st.session_state["modal_include_exam_prep"] else 0
         extra_nclex_count = 1 if st.session_state["modal_include_nclex_prep"] else 0
-        active_odts = st.session_state.get("selected_odts", [])
         
-        # 📊 MODEL 8 EXPANDED MATRIX AGGREGATOR (Includes Gen-Eds, Entrance, and Exit Prep)
         total_products = len(needed_courses) + extra_exam_count + extra_nclex_count + len(active_odts)
         
         if total_products >= 10:
@@ -806,13 +754,11 @@ if col_ledger_flow is not None:
         else:
             prep_rate, odt_rate = 1289.0, 859.0
             
-        # Classifications: Gen-Eds, Entrance Exam, and NCLEX Exit Exam map to Prep Rates
         gened_subtotal = len(needed_courses) * prep_rate
         entrance_subtotal = extra_exam_count * prep_rate
         nclex_subtotal = extra_nclex_count * prep_rate
         base_total = int(gened_subtotal + entrance_subtotal + nclex_subtotal)
         
-        # Classifications: ODTs map to ODT Rates
         total_odt_fees = int(len(active_odts) * odt_rate)
         
         st.markdown("#### Adjustments & Savings")
