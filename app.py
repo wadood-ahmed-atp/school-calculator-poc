@@ -69,7 +69,8 @@ def initialize_base_states(force_reset=False):
         "val_mil": "No",
         "selected_odts": [],
         "odt_hydrated_for_school": None,
-        "science_years_elapsed": 1 
+        "science_years_elapsed": 1,
+        "exam_prep_manually_toggled": False  # Tracks if user actively changed the default state
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -81,6 +82,13 @@ def execute_safe_restart():
     """Wipes session memory clean and instantly hits the breaker switch to prevent execution bleed crashes"""
     initialize_base_states(force_reset=True)
     st.rerun()
+
+# 🧠 INTERACTIVE STATE CALLBACK REPLICATORS (OPTIMIZED FOR SPEED)
+def sync_exam_prep_state_callback():
+    """Bypasses garbage collection by archiving widget clicks directly to the session pool"""
+    if "ex_prep_live_widget_key" in st.session_state:
+        st.session_state["modal_include_exam_prep"] = st.session_state["ex_prep_live_widget_key"]
+        st.session_state["exam_prep_manually_toggled"] = True
 
 # ==============================================================================
 # 2. HIGH-SPEED MEMORY CACHE LOADING PIPELINE
@@ -130,7 +138,6 @@ DISMISSAL_OPTIONS = ["No", "Yes"]
 LICENSE_OPTIONS = ["None / Other", "LPN", "CNA/CMA"]
 TRACK_OPTIONS = ["BSN", "ASN"]
 
-# Exact Chronological Layout Specification Match Order
 course_list = [
     "Eng Comp 1", "College Algebra", "Statistics", "Humanities 1", "Humanities 2", 
     "Humanities 3", "Human Growth & Development", "Psychology", "Sociology", "Speech",
@@ -152,7 +159,6 @@ course_mapping_bridge = {
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
 
-# Dashboard Master Progress Matrix
 s_cols = ["#10B981" if current_step > i else ("#1E3A8A" if current_step == i else "#2563EB") for i in range(1, 8)]
 s_whts = ["bold" if current_step == i else "normal" for i in range(1, 8)]
 
@@ -198,12 +204,11 @@ with col_input_flow:
         
         if str(i_state).strip().upper() == "AZ":
             st.error("I apologize, but based on the current program availability and state restrictions, there are unfortunately no online nursing school options available in your state at this time, so let's look at a local opportunity to earn your degree.")
-            if st.button("🔄 Restart Process", type="secondary", key="az_step1_reset_btn"):
-                execute_safe_restart()
+            if st.button("🔄 Restart Process", type="secondary", key="az_step1_reset_btn"): execute_safe_restart()
         else:
             b_reset_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
             with b_reset_col:
-                if st.button("🔄 Restart Process", use_container_width=True, type="secondary"): execute_safe_restart()
+                if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step1_reset_btn"): execute_safe_restart()
             with b_continue_col:
                 if st.button("Continue ➡️", use_container_width=True, type="primary", disabled=is_finalized):
                     if i_state == "Select state":
@@ -275,7 +280,7 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: PREREQUISITE BUTTON SELECTION MATRIX PANEL
+    # STEP 3: PREREQUISITE BUTTON SELECTION GRID
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Prerequisite Review")
@@ -423,7 +428,12 @@ with col_input_flow:
                     
                     btn_lbl = "✓ Active Selection Unlocked" if is_selected else "Select School & Fulfill Prerequisites"
                     if st.button(btn_lbl, key=f"bc_{card['id']}", use_container_width=True, type="secondary" if is_selected else "primary"):
-                        st.session_state.update({"active_school_view": card, "selected_school_id": card["id"], "wizard_step": 5})
+                        st.session_state.update({
+                            "active_school_view": card, 
+                            "selected_school_id": card["id"], 
+                            "wizard_step": 5,
+                            "exam_prep_manually_toggled": False # Reset override tracking switch for the newly selected row
+                        })
                         st.rerun()
         else:
             st.warning("No online options match your filters at this time.")
@@ -524,7 +534,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (STATE MACHINE IMMUNITY ENFORCED)
+    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (Live Conditional Memory Lock Fix)
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
@@ -550,9 +560,16 @@ with col_input_flow:
             if user_has_passed == "No":
                 st.warning(f"⚠️ Note: A required **{school_exam_type} Prep Course** has been added to your preparation bundle.")
                 
-                # 🔒 MEMORY COUPLING SHIELD: Forces widget to bind directly to true historical background state value
-                keep_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", value=st.session_state["modal_include_exam_prep"], key="ex_prep_persistent_widget")
-                st.session_state["modal_include_exam_prep"] = keep_prep
+                # 🎯 PRECISION ARCHITECTURE FIX: If the switch states they haven't manually changed it yet, force it to 'True' by default
+                if not st.session_state["exam_prep_manually_toggled"]:
+                    st.session_state["modal_include_exam_prep"] = True
+                
+                st.checkbox(
+                    f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", 
+                    value=st.session_state["modal_include_exam_prep"], 
+                    key="ex_prep_live_widget_key",
+                    on_change=sync_exam_prep_state_callback
+                )
             else:
                 st.session_state["modal_include_exam_prep"] = False
                 raw_input_score = st.text_input("Enter your official score:", value=user_score_logged, placeholder="Enter score here", key="step6_score")
@@ -597,8 +614,9 @@ with col_input_flow:
                     if score_num > 0:
                         if matched_rule_type == "fail":
                             st.error(f"🛑 This score is below the automatic waiver threshold. We've added a **{school_exam_type} Prep Course**.")
-                            keep_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included?", value=st.session_state["modal_include_exam_prep"], key="ex_fail_persistent_widget")
-                            st.session_state["modal_include_exam_prep"] = keep_prep
+                            if not st.session_state["exam_prep_manually_toggled"]:
+                                st.session_state["modal_include_exam_prep"] = True
+                            st.checkbox(f"Keep **{school_exam_type} Prep Course** included?", value=st.session_state["modal_include_exam_prep"], key="ex_prep_live_widget_key", on_change=sync_exam_prep_state_callback)
                         elif matched_rule_type in ["pass", "exempt"]:
                             if age_limit_years:
                                 st.markdown("##### ⏳ Verification Check:")
@@ -612,8 +630,9 @@ with col_input_flow:
                                 st.session_state["modal_include_exam_prep"] = False
                         elif matched_rule_type == "retest":
                             st.warning(f"⚠️ {custom_message}")
-                            keep_prep = st.checkbox(f"Add **{school_exam_type} Advanced Retest Prep**?", value=st.session_state["modal_include_exam_prep"], key="ex_retest_persistent_widget")
-                            st.session_state["modal_include_exam_prep"] = keep_prep
+                            if not st.session_state["exam_prep_manually_toggled"]:
+                                st.session_state["modal_include_exam_prep"] = True
+                            st.checkbox(f"Add **{school_exam_type} Advanced Retest Prep**?", value=st.session_state["modal_include_exam_prep"], key="ex_prep_live_widget_key", on_change=sync_exam_prep_state_callback)
 
         st.divider()
         b_back_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
@@ -623,7 +642,7 @@ with col_input_flow:
                 st.rerun()
         with b_continue_col:
             if st.button("Continue to Summary ➡️", use_container_width=True, type="primary"):
-                st.session_state.update({"modal_score_logged": user_score_logged, "modal_classes_waived": classes_waived, "wizard_step": 7})
+                st.session_state["wizard_step"] = 7
                 st.rerun()
 
     # --------------------------------------------------------------------------
@@ -675,7 +694,7 @@ with col_input_flow:
 
 # --------------------------------------------------------------------------
 # 🛒 STEP 7 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL
-# --------------------------------==========================================
+# --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Final Checkout Receipt")
@@ -687,7 +706,6 @@ if col_ledger_flow is not None:
         extra_exam_count = 1 if st.session_state["modal_include_exam_prep"] else 0
         active_odts = st.session_state.get("selected_odts", [])
         
-        # ⚡ UNIFIED VOLUME AGGREGATOR MATRIX
         total_products = len(needed_courses) + extra_exam_count + len(active_odts)
         
         if total_products >= 10:
@@ -697,12 +715,9 @@ if col_ledger_flow is not None:
         else:
             prep_rate, odt_rate = 1289.0, 859.0
             
-        # Classifications: Gen-Eds & Entrance Prep map to Prep Rates
         gened_subtotal = len(needed_courses) * prep_rate
         entrance_subtotal = extra_exam_count * prep_rate
         base_total = int(gened_subtotal + entrance_subtotal)
-        
-        # Classifications: ODTs map to ODT Rates
         total_odt_fees = int(len(active_odts) * odt_rate)
         
         st.markdown("#### Adjustments & Savings")
