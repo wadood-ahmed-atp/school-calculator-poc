@@ -175,6 +175,7 @@ if is_finalized: s7_col, s7_w = "#10B981", "normal"
 elif current_step == 7: s7_col, s7_w = "#1E3A8A", "bold"
 else: s7_col, s7_w = "#2563EB", "normal"
 
+# 🛠️ FIXED EXPRESSION CELL: Surgical clean alignment fixed down perfectly
 st.markdown(
     f"""
     <div style="font-family: sans-serif; font-size: 13px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 5px;">
@@ -186,7 +187,7 @@ st.markdown(
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
         <span style="color: {s4_col}; font-weight: {s4_w};">{'✅ ' if current_step>4 else ''}4. Schools</span>
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
-        <span style="color: {s5_col}; font-weight: {s5_w};">{'✅ ' if current_step shape >5 else ''}5. Guided Support</span>
+        <span style="color: {s5_col}; font-weight: {s5_w};">{'✅ ' if current_step>5 else ''}5. Guided Support</span>
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
         <span style="color: {s6_col}; font-weight: {s6_w};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span>
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
@@ -765,7 +766,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 7: REVIEW SUMMARY CHECKOUT TERMINAL (CLEAN EMBEDDED SHIELD COLUMNS)
+    # STEP 7: REVIEW SUMMARY CHECKOUT TERMINAL
     # --------------------------------------------------------------------------
     elif current_step == 7:
         card = st.session_state["active_school_view"]
@@ -793,7 +794,6 @@ with col_input_flow:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # 🚀 DETAILED MATRIX GRIDS: Replaces comma text strings with neat, separate bullet markers
         with st.container(border=True):
             st.markdown("### 🧬 Academic Parameter Configurations")
             st.markdown("<br>", unsafe_allow_html=True)
@@ -824,7 +824,7 @@ with col_input_flow:
 
 # --------------------------------------------------------------------------
 # 🛒 STEP 7 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL
-# --------------------------------==========================================
+# --------------------------------================================----------
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Final Checkout Receipt")
