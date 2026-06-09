@@ -37,7 +37,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 1. PERMANENT STATE MEMORY INITIALIZATION
+# 1. PERMANENT STATE MEMORY INITIALIZATION (8-STEP ADAPTED)
 # ==============================================================================
 def initialize_base_states(force_reset=False):
     """Safely handles pristine initialization of memory vaults without race conditions"""
@@ -71,7 +71,9 @@ def initialize_base_states(force_reset=False):
         "odt_hydrated_for_school": None,
         "science_years_elapsed": 1,
         "exam_prep_manually_toggled": False,
-        "val_exam_passed_status": "No"  
+        "val_exam_passed_status": "No",
+        "modal_include_nclex_prep": True,          # NCLEX engine baseline state
+        "nclex_prep_manually_toggled": False        # Override protection mirror state
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -90,6 +92,12 @@ def sync_exam_prep_state_callback():
     if "ex_prep_live_widget_key" in st.session_state:
         st.session_state["modal_include_exam_prep"] = st.session_state["ex_prep_live_widget_key"]
         st.session_state["exam_prep_manually_toggled"] = True
+
+def sync_nclex_prep_state_callback():
+    """Archives Step 7 NCLEX selections cleanly to protect state against navigation redraw wipes"""
+    if "nclex_prep_live_widget_key" in st.session_state:
+        st.session_state["modal_include_nclex_prep"] = st.session_state["nclex_prep_live_widget_key"]
+        st.session_state["nclex_prep_manually_toggled"] = True
 
 def sync_entrance_radio_callback():
     """Locks the entrance exam passed state radio selection firmly into memory cache"""
@@ -167,31 +175,32 @@ course_mapping_bridge = {
     "Pathophysiology": "Pathophysiology"
 }
 
-# Optimized quick reference set for runtime intersection checks
 SCIENCE_COURSES_SET = {"Biology", "Chemistry", "Microbiology", "AP1", "AP2", "Pathophysiology"}
 
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
 
-s_cols = ["#10B981" if current_step > i else ("#1E3A8A" if current_step == i else "#2563EB") for i in range(1, 8)]
-s_whts = ["bold" if current_step == i else "normal" for i in range(1, 8)]
+# Dashboard Master Progress Matrix (Refactored for 8-step map constraints)
+s_cols = ["#10B981" if current_step > i else ("#1E3A8A" if current_step == i else "#2563EB") for i in range(1, 9)]
+s_whts = ["bold" if current_step == i else "normal" for i in range(1, 9)]
 
 st.markdown(
     f"""
-    <div style="font-family: sans-serif; font-size: 13px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 5px;">
+    <div style="font-family: sans-serif; font-size: 12px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 5px;">
         <span style="color: {s_cols[0]}; font-weight: {s_whts[0]};">{'✅ ' if current_step>1 else ''}1. Profile</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[1]}; font-weight: {s_whts[1]};">{'✅ ' if current_step>2 else ''}2. Licensing</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[2]}; font-weight: {s_whts[2]};">{'✅ ' if current_step>3 else ''}3. Transcript</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[3]}; font-weight: {s_whts[3]};">{'✅ ' if current_step>4 else ''}4. Schools</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: {s_cols[4]}; font-weight: {s_whts[4]};">{'✅ ' if current_step>5 else ''}5. Guided Support</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: {s_cols[4]}; font-weight: {s_whts[4]};">{'✅ ' if current_step>5 else ''}5. Support</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[5]}; font-weight: {s_whts[5]};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: {s_cols[6]}; font-weight: {s_whts[6]};">{'✅ ' if is_finalized else ''}7. Summary Receipt</span>
+        <span style="color: {s_cols[6]}; font-weight: {s_whts[6]};">{'✅ ' if current_step>7 else ''}7. Exit Exam</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: {s_cols[7]}; font-weight: {s_whts[7]};">{'✅ ' if is_finalized else ''}8. Summary Receipt</span>
     </div>
     """, 
     unsafe_allow_html=True
 )
 
-if current_step == 7:
+if current_step == 8:
     col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
 else:
     col_input_flow, col_ledger_flow = st.container(), None
@@ -204,7 +213,6 @@ with col_input_flow:
     if current_step == 1:
         st.subheader("Step 1: Contact & Residency Details")
         st.markdown("Let's start with where you live so we can find the right online nursing options available in your area.")
-        st.sidebar.markdown(f"Current Year: {st.session_state.get('year_context', 2026)}")
         st.divider()
         
         i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name", disabled=is_finalized)
@@ -463,7 +471,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (SCIENCE VERIFICATION OPTIMIZED)
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -483,13 +491,11 @@ with col_input_flow:
         if card["blanket"] and str(card["blanket"]).lower() not in ["", "nan", "--"]:
             st.info(f"📋 **Institutional Policy Notice:**\n\n{card['blanket']}")
             
-        # 🚀 HIGH-VELOCITY OPTIMIZATION SCANNER: Checks if the user actually has a science product selected
         student_selections_set = set(needed_courses)
         user_possesses_sciences = not student_selections_set.isdisjoint(SCIENCE_COURSES_SET)
         
         is_force_locked, is_pre_checked_only, rule_threshold_years, rule_display_message = False, False, 99, ""
         
-        # 🧠 CONDITIONAL SLIDER DISCOVERY BARRIER: Only triggers slider rules if sciences are actively needed!
         if user_possesses_sciences and odt_notes_string and ":" in odt_notes_string:
             try:
                 parts = odt_notes_string.split(":")
@@ -562,7 +568,7 @@ with col_input_flow:
         school_exam_type = card["exam"]
         school_exam_notes = card["notes"]
         
-        st.subheader(f"Step 6: Reviewing Exam Requirements & Waivers")
+        st.subheader(f"Step 6: Reviewing Entrance Testing Requirements")
         st.markdown(f"Configuring standard entrance benchmarks for targeted program path: **{school_name}**")
         st.divider()
         
@@ -682,17 +688,51 @@ with col_input_flow:
                 st.session_state["wizard_step"] = 5
                 st.rerun()
         with b_continue_col:
-            if st.button("Continue to Summary ➡️", use_container_width=True, type="primary"):
+            if st.button("Configure Exit Exams ➡️", use_container_width=True, type="primary"):
                 st.session_state["modal_classes_waived"] = classes_waived
                 st.session_state["wizard_step"] = 7
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 7: REVIEW SUMMARY SUMMARY RECEIPT TERMINAL
+    # STEP 7: STANDALONE EXIT EXAM WORKSPACE (NCLEX ENGINE INCLUDED)
     # --------------------------------------------------------------------------
     elif current_step == 7:
         card = st.session_state["active_school_view"]
-        st.subheader("Step 7: Final Package Summary Review")
+        st.subheader("Step 7: Exit Exam Preparation (NCLEX-RN Layout)")
+        st.markdown("Ensure state licensing board compliance by attaching an advanced Exit Exam preparation structure.")
+        st.divider()
+        
+        st.markdown("#### 🎓 Licensing Board Test Readiness")
+        st.info("💡 **Academic Recommendation:** Attaching an advanced NCLEX-RN Prep Course ensures comprehensive review metrics before graduation and safeguards first-attempt passing percentages.")
+        
+        # Force Checked (True) by default on initial arrival to safeguard baseline parameters
+        if not st.session_state["nclex_prep_manually_toggled"]:
+            st.session_state["modal_include_nclex_prep"] = True
+            
+        st.checkbox(
+            "Include NCLEX-RN Board Review Preparation Course inside my cost summary layout?",
+            value=st.session_state["modal_include_nclex_prep"],
+            key="nclex_prep_live_widget_key",
+            on_change=sync_nclex_prep_state_callback
+        )
+        
+        st.divider()
+        b_back_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
+        with b_back_col:
+            if st.button("⬅   Back to Entrance Exams", use_container_width=True):
+                st.session_state["wizard_step"] = 6
+                st.rerun()
+        with b_continue_col:
+            if st.button("Continue to Summary ➡️", use_container_width=True, type="primary"):
+                st.session_state["wizard_step"] = 8
+                st.rerun()
+
+    # --------------------------------------------------------------------------
+    # STEP 8: REVIEW SUMMARY SUMMARY RECEIPT TERMINAL
+    # --------------------------------------------------------------------------
+    elif current_step == 8:
+        card = st.session_state["active_school_view"]
+        st.subheader("Step 8: Final Package Summary Review")
         st.markdown("Please review your synchronized registration overview parameters below:")
         st.divider()
         
@@ -713,6 +753,8 @@ with col_input_flow:
                     exam_status_txt = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
                     
                 st.markdown(f"**Entrance Benchmark Requirement:** `{exam_status_txt if card['exam'] != '--' else 'Exempt / None'}`")
+                nclex_status_txt = "⚠️ NCLEX Prep Course Included" if st.session_state["modal_include_nclex_prep"] else "❌ Excluded from Plan"
+                st.markdown(f"**Board Exit Requirement:** `{nclex_status_txt}`")
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -736,12 +778,12 @@ with col_input_flow:
 
         st.divider()
         if st.button("⬅   Adjust Parameters", use_container_width=True, disabled=is_finalized):
-            st.session_state["wizard_step"] = 6
+            st.session_state["wizard_step"] = 7
             st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 STEP 7 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL
-# --------------------------------------------------------------------------
+# 🛒 STEP 8 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL (INTEGRATED)
+# --------------------------------==========================================
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Final Checkout Receipt")
@@ -751,9 +793,11 @@ if col_ledger_flow is not None:
         school_name = active_school["name"]
         
         extra_exam_count = 1 if st.session_state["modal_include_exam_prep"] else 0
+        extra_nclex_count = 1 if st.session_state["modal_include_nclex_prep"] else 0
         active_odts = st.session_state.get("selected_odts", [])
         
-        total_products = len(needed_courses) + extra_exam_count + len(active_odts)
+        # 📊 MODEL 8 EXPANDED MATRIX AGGREGATOR (Includes Gen-Eds, Entrance, and Exit Prep)
+        total_products = len(needed_courses) + extra_exam_count + extra_nclex_count + len(active_odts)
         
         if total_products >= 10:
             prep_rate, odt_rate = 1179.0, 749.0
@@ -762,9 +806,13 @@ if col_ledger_flow is not None:
         else:
             prep_rate, odt_rate = 1289.0, 859.0
             
+        # Classifications: Gen-Eds, Entrance Exam, and NCLEX Exit Exam map to Prep Rates
         gened_subtotal = len(needed_courses) * prep_rate
         entrance_subtotal = extra_exam_count * prep_rate
-        base_total = int(gened_subtotal + entrance_subtotal)
+        nclex_subtotal = extra_nclex_count * prep_rate
+        base_total = int(gened_subtotal + entrance_subtotal + nclex_subtotal)
+        
+        # Classifications: ODTs map to ODT Rates
         total_odt_fees = int(len(active_odts) * odt_rate)
         
         st.markdown("#### Adjustments & Savings")
@@ -795,7 +843,7 @@ if col_ledger_flow is not None:
 
         st.divider()
         st.markdown(f"**Gross Base Tuition:** `${base_total:,}`")
-        st.caption(f"({len(needed_courses)} Gen-Eds & {extra_exam_count} Entrance Prep at ${int(prep_rate):,} each)")
+        st.caption(f"({len(needed_courses)} Gen-Eds, {extra_exam_count} Entrance Prep, & {extra_nclex_count} Exit Prep at ${int(prep_rate):,} each)")
         
         if total_odt_fees > 0:
             st.markdown(f"➕ **Guided Course Support ({len(active_odts)}):** `${total_odt_fees:,}`")
@@ -815,9 +863,9 @@ if col_ledger_flow is not None:
             st.session_state["confirmed_package"] = {
                 "school_name": school_name, "student_name": st.session_state["val_name"],
                 "base_total": int(base_total), "odt_fees_added": int(total_odt_fees), "odt_courses_selected": active_odts,
-                "final_total": int(final_total), "courses_included": needed_courses, "entrance_exam_prep_added": st.session_state["modal_include_exam_prep"],
-                "entrance_exam_score_logged": st.session_state["modal_score_logged"], "classes_waived_count": st.session_state["modal_classes_waived"],
-                "promo_tier_applied": promo_tier_name, "addons_active": bool(total_odt_fees > 0)
+                "final_total": int(final_total), "courses_included": needed_courses, "entrance_exam_prep_added": bool(extra_exam_count),
+                "exit_exam_prep_added": bool(extra_nclex_count), "entrance_exam_score_logged": st.session_state["modal_score_logged"], 
+                "classes_waived_count": st.session_state["modal_classes_waived"], "promo_tier_applied": promo_tier_name, "addons_active": bool(total_odt_fees > 0)
             }
             st.rerun()
 
