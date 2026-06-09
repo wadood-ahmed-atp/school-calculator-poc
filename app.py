@@ -186,7 +186,7 @@ st.markdown(
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
         <span style="color: {s4_col}; font-weight: {s4_w};">{'✅ ' if current_step>4 else ''}4. Schools</span>
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
-        <span style="color: {s5_col}; font-weight: {s5_w};">{'✅ ' if current_step>5 else ''}5. Guided Support</span>
+        <span style="color: {s5_col}; font-weight: {s5_w};">{'✅ ' if current_step shape >5 else ''}5. Guided Support</span>
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
         <span style="color: {s6_col}; font-weight: {s6_w};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span>
         <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
@@ -335,7 +335,6 @@ with col_input_flow:
                     st.session_state["val_dismiss"] = i_dismiss
                     st.session_state["val_dismiss_mos"] = int(i_dismiss_mos) if i_dismiss_mos is not None else 0
                     st.session_state["val_travel"] = i_travel
-                    st.session_state["val_track"] = i_track
                     st.session_state["wizard_step"] = 3
                     st.rerun()
 
@@ -766,7 +765,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 7: REVIEW SUMMARY CHECKOUT TERMINAL (SPECTACULAR GRID REDESIGN)
+    # STEP 7: REVIEW SUMMARY CHECKOUT TERMINAL (CLEAN EMBEDDED SHIELD COLUMNS)
     # --------------------------------------------------------------------------
     elif current_step == 7:
         card = st.session_state["active_school_view"]
@@ -774,7 +773,6 @@ with col_input_flow:
         st.markdown("Please review your synchronized registration overview parameters below. If you need to make corrections, click **Adjust Parameters**.")
         st.divider()
         
-        # 💎 PREMIUM MATRIX LAYOUT: Groups messy lists into structured card block grids
         with st.container(border=True):
             col_left_profile, col_right_path = st.columns(2, gap="medium")
             
@@ -795,20 +793,29 @@ with col_input_flow:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
+        # 🚀 DETAILED MATRIX GRIDS: Replaces comma text strings with neat, separate bullet markers
         with st.container(border=True):
             st.markdown("### 🧬 Academic Parameter Configurations")
+            st.markdown("<br>", unsafe_allow_html=True)
             
-            courses_txt = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None selected or required"
-            st.markdown(f"🔹 **Prerequisites Fulfilling via Credit-by-Exam ({len(card['accepted_courses'])}):**")
-            st.info(courses_txt)
+            col_cbe, col_odt = st.columns(2, gap="large")
             
-            active_odts = st.session_state.get("selected_odts", [])
-            if active_odts:
-                st.markdown(f"🔹 **Guided Course Support Enhancements Added ({len(active_odts)}):**")
-                st.success(", ".join(active_odts))
-            else:
-                st.markdown("🔹 **Guided Course Support Enhancements Added:**")
-                st.info("No tutoring support tracks are selected or required for this path layout configuration.")
+            with col_cbe:
+                st.markdown(f"##### 🔹 Prerequisites via Credit-by-Exam ({len(card['accepted_courses'])})")
+                if card["accepted_courses"]:
+                    for course_item in card["accepted_courses"]:
+                        st.markdown(f"✅ &nbsp; {course_item}")
+                else:
+                    st.markdown("*No prerequisites selected for testing out.*")
+                    
+            with col_odt:
+                active_odts = st.session_state.get("selected_odts", [])
+                st.markdown(f"##### 🎓 Guided Course Support Added ({len(active_odts)})")
+                if active_odts:
+                    for odt_item in active_odts:
+                        st.markdown(f"🚀 &nbsp; {odt_item}")
+                else:
+                    st.markdown("*No custom tutoring support tracks selected or required.*")
 
         st.divider()
         if st.button("⬅   Adjust Parameters", use_container_width=True, key="step7_back_btn", disabled=is_finalized):
