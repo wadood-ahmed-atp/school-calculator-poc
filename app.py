@@ -37,7 +37,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 1. FAULTLESS STATE INITIALIZATION STORAGE VAULT
+# 1. PERMANENT STATE MEMORY INITIALIZATION
 # ==============================================================================
 def initialize_base_states(force_reset=False):
     """Safely handles pristine initialization of memory vaults without race conditions"""
@@ -75,7 +75,6 @@ def initialize_base_states(force_reset=False):
         if force_reset or key not in st.session_state:
             st.session_state[key] = value
 
-# Run baseline memory hydration safely
 initialize_base_states()
 
 def execute_safe_restart():
@@ -84,32 +83,41 @@ def execute_safe_restart():
     st.rerun()
 
 # ==============================================================================
-# 2. DATA SOURCE IMPORT PIPELINE LOADER
+# 2. HIGH-SPEED MEMORY CACHE LOADING PIPELINE (OPTIMIZED)
 # ==============================================================================
-SCHOOLS_CSV = "schools.csv"
-TRANSCRIPT_CSV = "transcript_rules.csv"
+@st.cache_data(ttl=600)
+def load_and_sanitize_source_data(schools_path, rules_path):
+    """Loads CSV files into rapid RAM memory cache and auto-trims string column whitespace boundaries"""
+    if not os.path.exists(schools_path) or not os.path.exists(rules_path):
+        return None, None
+        
+    try:
+        schools_df = pd.read_csv(schools_path, encoding='utf-8')
+    except Exception:
+        schools_df = pd.read_csv(schools_path, encoding='latin1', errors='replace')
+        
+    for col in schools_df.select_dtypes(include=['object']).columns:
+        schools_df[col] = schools_df[col].astype(str).str.strip()
+        
+    try:
+        rules_df = pd.read_csv(rules_path, encoding='utf-8')
+    except Exception:
+        rules_df = pd.read_csv(rules_path, encoding='latin1', errors='replace')
+        
+    for col in rules_df.select_dtypes(include=['object']).columns:
+        rules_df[col] = rules_df[col].astype(str).str.strip()
+    rules_df.columns = rules_df.columns.str.strip()
+    
+    return schools_df, rules_df
 
-if os.path.exists(SCHOOLS_CSV):
-    try: master_schools_df = pd.read_csv(SCHOOLS_CSV, encoding='utf-8')
-    except Exception: master_schools_df = pd.read_csv(SCHOOLS_CSV, encoding='latin1', errors='replace')
-    for col in master_schools_df.select_dtypes(include=['object']).columns:
-        master_schools_df[col] = master_schools_df[col].astype(str).str.strip()
-else:
-    st.error("⚠️ Master database file schools.csv not found.")
+master_schools_df, transcript_rules_df = load_and_sanitize_source_data("schools.csv", "transcript_rules.csv")
+
+if master_schools_df is None or transcript_rules_df is None:
+    st.error("⚠️ Master CSV data files could not be successfully loaded into RAM.")
     st.stop()
 
-if os.path.exists(TRANSCRIPT_CSV):
-    try: transcript_rules_df = pd.read_csv(TRANSCRIPT_CSV, encoding='utf-8')
-    except Exception: transcript_rules_df = pd.read_csv(TRANSCRIPT_CSV, encoding='latin1', errors='replace')
-    for col in transcript_rules_df.select_dtypes(include=['object']).columns:
-        transcript_rules_df[col] = transcript_rules_df[col].astype(str).str.strip()
-    transcript_rules_df.columns = transcript_rules_df.columns.str.strip()
-else:
-    st.error("⚠️ Transcript validation file transcript_rules.csv not found.")
-    st.stop()
-
 # ==============================================================================
-# 3. GLOBAL LOOKUP PARAMETERS & DATA MAPPING BRIDGE
+# 3. GLOBAL MATRIX REPOSITORIES & DEFINITIONS
 # ==============================================================================
 STATE_OPTIONS = [
     "Select state", "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -122,7 +130,7 @@ DISMISSAL_OPTIONS = ["No", "Yes"]
 LICENSE_OPTIONS = ["None / Other", "LPN", "CNA/CMA"]
 TRACK_OPTIONS = ["BSN", "ASN"]
 
-# 🚀 TARGET ALIGNED PRECISION SEQUENCE MATRIX 
+# Exact Chronological Layout Specification Match Order
 course_list = [
     "Eng Comp 1", "College Algebra", "Statistics", "Humanities 1", "Humanities 2", 
     "Humanities 3", "Human Growth & Development", "Psychology", "Sociology", "Speech",
@@ -144,53 +152,20 @@ course_mapping_bridge = {
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
 
-# Dashboard Master Title Header
-st.markdown("## 🗺️ Bridge Plan Generator")
-
-# Compute 7-Step Progress States Natively
-if current_step == 1: s1_col, s1_w = "#1E3A8A", "bold"
-else: s1_col, s1_w = "#10B981", "normal"
-
-if current_step == 2: s2_col, s2_w = "#1E3A8A", "bold"
-elif current_step > 2: s2_col, s2_w = "#10B981", "normal"
-else: s2_col, s2_w = "#2563EB", "normal"
-
-if current_step == 3: s3_col, s3_w = "#1E3A8A", "bold"
-elif current_step > 3: s3_col, s3_w = "#10B981", "normal"
-else: s3_col, s3_w = "#2563EB", "normal"
-
-if current_step == 4: s4_col, s4_w = "#1E3A8A", "bold"
-elif current_step > 4: s4_col, s4_w = "#10B981", "normal"
-else: s4_col, s4_w = "#2563EB", "normal"
-
-if current_step == 5: s5_col, s5_w = "#1E3A8A", "bold"
-elif current_step > 5: s5_col, s5_w = "#10B981", "normal"
-else: s5_col, s5_w = "#2563EB", "normal"
-
-if current_step == 6: s6_col, s6_w = "#1E3A8A", "bold"
-elif current_step > 6: s6_col, s6_w = "#10B981", "normal"
-else: s6_col, s6_w = "#2563EB", "normal"
-
-if is_finalized: s7_col, s7_w = "#10B981", "normal"
-elif current_step == 7: s7_col, s7_w = "#1E3A8A", "bold"
-else: s7_col, s7_w = "#2563EB", "normal"
+# Dashboard Master Progress Matrix
+s_cols = ["#10B981" if current_step > i else ("#1E3A8A" if current_step == i else "#2563EB") for i in range(1, 8)]
+s_whts = ["bold" if current_step == i else "normal" for i in range(1, 8)]
 
 st.markdown(
     f"""
     <div style="font-family: sans-serif; font-size: 13px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 5px;">
-        <span style="color: {s1_col}; font-weight: {s1_w};">{'✅ ' if current_step>1 else ''}1. Profile</span> 
-        <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
-        <span style="color: {s2_col}; font-weight: {s2_w};">{'✅ ' if current_step>2 else ''}2. Licensing</span> 
-        <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
-        <span style="color: {s3_col}; font-weight: {s3_w};">{'✅ ' if current_step>3 else ''}3. Transcript</span> 
-        <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
-        <span style="color: {s4_col}; font-weight: {s4_w};">{'✅ ' if current_step>4 else ''}4. Schools</span>
-        <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
-        <span style="color: {s5_col}; font-weight: {s5_w};">{'✅ ' if current_step>5 else ''}5. Guided Support</span>
-        <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
-        <span style="color: {s6_col}; font-weight: {s6_w};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span>
-        <span style="color: #cbd5e1;">&nbsp;➔&nbsp;</span>
-        <span style="color: {s7_col}; font-weight: {s7_w};">{'✅ ' if is_finalized else ''}7. Summary Receipt</span>
+        <span style="color: {s_cols[0]}; font-weight: {s_whts[0]};">{'✅ ' if current_step>1 else ''}1. Profile</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: {s_cols[1]}; font-weight: {s_whts[1]};">{'✅ ' if current_step>2 else ''}2. Licensing</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: {s_cols[2]}; font-weight: {s_whts[2]};">{'✅ ' if current_step>3 else ''}3. Transcript</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: {s_cols[3]}; font-weight: {s_whts[3]};">{'✅ ' if current_step>4 else ''}4. Schools</span> <span style="color: #cbd5e1;">➔ platform</span>
+        <span style="color: {s_cols[4]}; font-weight: {s_whts[4]};">{'✅ ' if current_step>5 else ''}5. Guided Support</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: {s_cols[5]}; font-weight: {s_whts[5]};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: {s_cols[6]}; font-weight: {s_whts[6]};">{'✅ ' if is_finalized else ''}7. Summary Receipt</span>
     </div>
     """, 
     unsafe_allow_html=True
@@ -199,8 +174,7 @@ st.markdown(
 if current_step == 7:
     col_input_flow, col_ledger_flow = st.columns([1.5, 1.0], gap="large")
 else:
-    col_input_flow = st.container()
-    col_ledger_flow = None
+    col_input_flow, col_ledger_flow = st.container(), None
 
 with col_input_flow:
 
@@ -218,12 +192,7 @@ with col_input_flow:
         i_adult = st.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_adult"]), disabled=is_finalized)
         
         i_gpa_unknown = st.checkbox("I don't know my cumulative GPA", value=st.session_state["val_gpa_unknown"], disabled=is_finalized)
-        if i_gpa_unknown:
-            st.session_state["val_gpa"] = 4.0
-            st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=4.0, step=0.1, format="%.1f", disabled=True)
-            i_gpa = 4.0
-        else:
-            i_gpa = st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=float(st.session_state["val_gpa"]), step=0.1, format="%.1f", disabled=is_finalized)
+        i_gpa = 4.0 if i_gpa_unknown else st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=float(st.session_state["val_gpa"]), step=0.1, format="%.1f", disabled=is_finalized or i_gpa_unknown)
         
         st.divider()
         
@@ -241,19 +210,13 @@ with col_input_flow:
                     if i_state == "Select state":
                         st.warning("⚠️ Please select your home state before continuing.")
                     elif i_adult == "No":
-                        st.error("🛑 Registration Blocked: Applicants under 18 require manual admissions review.")
+                        st.error("🛑 Registration Blocked: Applicants under 18 require admissions review.")
                     else:
-                        st.session_state["val_name"] = i_name
-                        st.session_state["val_state"] = i_state
-                        st.session_state["val_zip"] = i_zip
-                        st.session_state["val_adult"] = i_adult
-                        st.session_state["val_gpa"] = i_gpa
-                        st.session_state["val_gpa_unknown"] = i_gpa_unknown
-                        st.session_state["wizard_step"] = 2
+                        st.session_state.update({"val_name": i_name, "val_state": i_state, "val_zip": i_zip, "val_adult": i_adult, "val_gpa": i_gpa, "val_gpa_unknown": i_gpa_unknown, "wizard_step": 2})
                         st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 2: PROFESSIONAL HEALTHCARE BACKGROUND & TRACK ALIGNMENT CHECK
+    # STEP 2: PROFESSIONAL BACKGROUND & TRACK CHECK
     # --------------------------------------------------------------------------
     elif current_step == 2:
         st.subheader("Step 2: Professional Licensing & History")
@@ -263,83 +226,57 @@ with col_input_flow:
         i_lic = st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=LICENSE_OPTIONS.index(st.session_state["val_lic"]), disabled=is_finalized)
         i_exp = st.session_state["val_exp"]
         if i_lic == "LPN":
-            i_exp = st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=i_exp, step=1, placeholder="0", disabled=is_finalized)
+            i_exp = st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=i_exp if i_exp is not None else 0, step=1, disabled=is_finalized)
             
         i_dismiss = st.selectbox("Have you ever been dismissed from a nursing program in the past?", options=DISMISSAL_OPTIONS, index=DISMISSAL_OPTIONS.index(st.session_state["val_dismiss"]), disabled=is_finalized)
         i_dismiss_mos = st.session_state["val_dismiss_mos"]
         if i_dismiss == "Yes":
-            i_dismiss_mos = st.number_input("Months elapsed since that dismissal date:", min_value=0, max_value=300, value=i_dismiss_mos, step=1, placeholder="0", disabled=is_finalized)
+            i_dismiss_mos = st.number_input("Months elapsed since that dismissal date:", min_value=0, max_value=300, value=i_dismiss_mos if i_dismiss_mos is not None else 0, step=1, disabled=is_finalized)
             
         i_travel = st.selectbox("Are you willing to travel regionally for clinical rotations?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]), disabled=is_finalized)
         i_track = st.selectbox("Which degree program track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]), disabled=is_finalized)
 
         cust_state = str(st.session_state["val_state"]).strip().lower()
         state_schools = master_schools_df[master_schools_df["States Accepted"].str.lower().str.contains(cust_state, na=False)]
-        
-        has_state_bsn = not state_schools[state_schools["ASN/BSN"].str.upper().str.strip() == "BSN"].empty
-        has_state_asn = not state_schools[state_schools["ASN/BSN"].str.upper().str.strip() == "ASN"].empty
+        has_state_bsn = not state_schools[state_schools["ASN/BSN"].str.upper() == "BSN"].empty
+        has_state_asn = not state_schools[state_schools["ASN/BSN"].str.upper() == "ASN"].empty
 
         st.divider()
         
         if i_track == "ASN" and has_state_bsn and not has_state_asn:
-            st.info("💡 **Important Regional Notice:**\n\nThere is no online ADN bridge option available in your state. However, there are online BSN options. Going straight for the BSN can help maximize your career potential, especially if your goal is to work in a hospital, since many hospitals prefer or require BSN-prepared RNs. It also allows you to work toward becoming a BSN, RN through one school. Would you like to review the online Bachelor's option?")
-            
+            st.info("💡 **Important Regional Notice:** There is no online ADN bridge option available in your state. However, there are online BSN choices available. Would you like to review the Bachelor's route?")
             y_col, n_col = st.columns(2)
             with y_col:
-                if st.button("Yes, review the BSN option", use_container_width=True, type="primary", key="inter_yes_bsn"):
-                    st.session_state["val_lic"] = i_lic
-                    st.session_state["val_exp"] = int(i_exp) if i_exp is not None else 0
-                    st.session_state["val_dismiss"] = i_dismiss
-                    st.session_state["val_dismiss_mos"] = int(i_dismiss_mos) if i_dismiss_mos is not None else 0
-                    st.session_state["val_travel"] = i_travel
-                    st.session_state["val_track"] = "BSN" 
-                    st.success("🎉 Great choice! Switching your target option over to BSN...")
-                    st.session_state["wizard_step"] = 3
+                if st.button("Yes, review the BSN option", use_container_width=True, type="primary"):
+                    st.session_state.update({"val_lic": i_lic, "val_exp": int(i_exp) if i_exp else 0, "val_dismiss": i_dismiss, "val_dismiss_mos": int(i_dismiss_mos) if i_dismiss_mos else 0, "val_travel": i_travel, "val_track": "BSN", "wizard_step": 3})
                     st.rerun()
             with n_col:
-                if st.button("No, thank you", use_container_width=True, key="inter_no_bsn"):
-                    st.warning("Let's look at a local degree option.")
+                if st.button("No, thank you", use_container_width=True): st.warning("Reviewing local options...")
 
         elif i_track == "BSN" and has_state_asn and not has_state_bsn:
-            st.info("💡 **Important Regional Notice:**\n\nI think earning your BSN is very important. However, in your state there is not a direct BSN bridge available. What I recommend most of my nurses do is get their RN by earning the Associate degree first, then bridge from RN to BSN, and we can make this feel like one seamless program. This way, you will be able to sit for your boards much sooner, start working as an RN, earn RN pay, and gain RN experience much sooner. That extra income could be helpful to then pursue your BSN. Knowing what you know now, would you like to start with the ADN first?")
-            
+            st.info("💡 **Important Regional Notice:** Direct online BSN paths are unavailable in your jurisdiction. We recommend starting with an online ASN first to sit for boards faster. Would you like to switch to ASN?")
             y_col, n_col = st.columns(2)
             with y_col:
-                if st.button("Yes, start with the ADN first", use_container_width=True, type="primary", key="inter_yes_asn"):
-                    st.session_state["val_lic"] = i_lic
-                    st.session_state["val_exp"] = int(i_exp) if i_exp is not None else 0
-                    st.session_state["val_dismiss"] = i_dismiss
-                    st.session_state["val_dismiss_mos"] = int(i_dismiss_mos) if i_dismiss_mos is not None else 0
-                    st.session_state["val_travel"] = i_travel
-                    st.session_state["val_track"] = "ASN" 
-                    st.success("🎉 Great choice! Switching your target option over to ASN...")
-                    st.session_state["wizard_step"] = 3
+                if st.button("Yes, start with the ADN first", use_container_width=True, type="primary"):
+                    st.session_state.update({"val_lic": i_lic, "val_exp": int(i_exp) if i_exp else 0, "val_dismiss": i_dismiss, "val_dismiss_mos": int(i_dismiss_mos) if i_dismiss_mos else 0, "val_travel": i_travel, "val_track": "ASN", "wizard_step": 3})
                     st.rerun()
             with n_col:
-                if st.button("No, thank you", use_container_width=True, key="inter_no_asn"):
-                    st.warning("Let's look at a local degree option.")
-
+                if st.button("No, thank you", use_container_width=True): st.warning("Reviewing local options...")
         else:
             b_reset_col, b_spacer, b_back_col, b_continue_col = st.columns([1.0, 0.5, 1.0, 1.0])
             with b_reset_col:
-                if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step2_reset_btn"):
-                    execute_safe_restart()
+                if st.button("🔄 Restart Process", use_container_width=True, type="secondary"): execute_safe_restart()
             with b_back_col:
-                if st.button("⬅️ Back", use_container_width=True, key="step2_back_action", disabled=is_finalized):
+                if st.button("⬅️ Back", use_container_width=True):
                     st.session_state["wizard_step"] = 1
                     st.rerun()
             with b_continue_col:
-                if st.button("Continue ➡️", use_container_width=True, type="primary", key="step2_continue_action", disabled=is_finalized):
-                    st.session_state["val_lic"] = i_lic
-                    st.session_state["val_exp"] = int(i_exp) if i_exp is not None else 0
-                    st.session_state["val_dismiss"] = i_dismiss
-                    st.session_state["val_dismiss_mos"] = int(i_dismiss_mos) if i_dismiss_mos is not None else 0
-                    st.session_state["val_travel"] = i_travel
-                    st.session_state["wizard_step"] = 3
+                if st.button("Continue ➡️", use_container_width=True, type="primary"):
+                    st.session_state.update({"val_lic": i_lic, "val_exp": int(i_exp) if i_exp else 0, "val_dismiss": i_dismiss, "val_dismiss_mos": int(i_dismiss_mos) if i_dismiss_mos else 0, "val_travel": i_travel, "val_track": i_track, "wizard_step": 3})
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: PREREQUISITE BUTTON MATRIX SELECTION GRID
+    # STEP 3: PREREQUISITE BUTTON SELECTION MATRIX PANEL
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Prerequisite Review")
@@ -348,16 +285,15 @@ with col_input_flow:
         
         btn_all_col, btn_clear_col, btn_spacer = st.columns([1.2, 1.2, 3.0])
         with btn_all_col:
-            if st.button("Select All Prerequisites", key="action_select_all_courses", use_container_width=True):
+            if st.button("Select All Prerequisites", use_container_width=True):
                 st.session_state["val_courses"] = list(course_list)
                 st.rerun()
         with btn_clear_col:
-            if st.button("Clear All Selections", key="action_clear_all_courses", use_container_width=True):
+            if st.button("Clear All Selections", use_container_width=True):
                 st.session_state["val_courses"] = []
                 st.rerun()
                 
         st.markdown("<br>", unsafe_allow_html=True)
-        
         current_selections = set(st.session_state["val_courses"])
         cols_per_row = 4
         
@@ -370,33 +306,28 @@ with col_input_flow:
                     btn_type = "primary" if is_toggled else "secondary"
                     btn_prefix = "✓ " if is_toggled else "+ "
                     
-                    if st.button(f"{btn_prefix}{course}", key=f"gen_badge_{course.replace(' ', '_')}", use_container_width=True, type=btn_type, disabled=is_finalized):
-                        if is_toggled:
-                            current_selections.remove(course)
-                        else:
-                            current_selections.add(course)
+                    if st.button(f"{btn_prefix}{course}", key=f"gb_{course.replace(' ', '_')}", use_container_width=True, type=btn_type, disabled=is_finalized):
+                        if is_toggled: current_selections.remove(course)
+                        else: current_selections.add(course)
                         st.session_state["val_courses"] = list(current_selections)
                         st.rerun()
                         
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("#### **Savings & Promotional Codes**")
         w_ref = st.radio("Were you referred by a student?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_ref"]), horizontal=True, disabled=is_finalized)
-        w_mil = st.radio("Are you affiliated with the Military (Veteran/Active/Spouse)?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True, disabled=is_finalized)
-        
-        st.session_state["val_ref"] = w_ref
-        st.session_state["val_mil"] = w_mil
+        w_mil = st.radio("Are you affiliated with the Military?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_mil"]), horizontal=True, disabled=is_finalized)
+        st.session_state.update({"val_ref": w_ref, "val_mil": w_mil})
 
         st.divider()
         b_reset_col, b_spacer, b_back_col, b_continue_col = st.columns([1.0, 0.5, 1.0, 1.0])
         with b_reset_col:
-            if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step3_reset_btn"):
-                execute_safe_restart()
+            if st.button("🔄 Restart Process", use_container_width=True, type="secondary"): execute_safe_restart()
         with b_back_col:
-            if st.button("⬅️ Back", use_container_width=True, key="step3_back_action", disabled=is_finalized):
+            if st.button("⬅️ Back", use_container_width=True):
                 st.session_state["wizard_step"] = 2
                 st.rerun()
         with b_continue_col:
-            if st.button("Find Matches ➡️", use_container_width=True, type="primary", key="step3_continue_action", disabled=is_finalized):
+            if st.button("Find Matches ➡️", use_container_width=True, type="primary"):
                 st.session_state["wizard_step"] = 4
                 st.rerun()
 
@@ -405,17 +336,16 @@ with col_input_flow:
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
-        st.info(f"🎯 Current Selected Track: **{st.session_state['val_track']}** program options (To change this, go back to Step 2)")
+        st.info(f"🎯 Current Selected Track: **{st.session_state['val_track']}** program options")
         st.divider()
         
-        student_state = st.session_state["val_state"]
-        selected_state = str(student_state).strip().lower()
+        selected_state = str(st.session_state["val_state"]).strip().lower()
         selected_track = str(st.session_state["val_track"]).strip().lower()
         license_type = st.session_state["val_lic"]
         lpn_exp = int(st.session_state["val_exp"]) if st.session_state["val_exp"] is not None else 0
         gpa_val = round(float(st.session_state["val_gpa"]), 1)
         travel_ok = st.session_state["val_travel"]
-        dismissal_y = True if st.session_state["val_dismiss"] == "Yes" else False
+        dismissal_y = (st.session_state["val_dismiss"] == "Yes")
         dismissal_months = int(st.session_state["val_dismiss_mos"]) if st.session_state["val_dismiss_mos"] is not None else 0
         needed_courses = st.session_state["val_courses"]
 
@@ -440,26 +370,23 @@ with col_input_flow:
             if dismissal_months <= 60:
                 working_schools_df = working_schools_df[working_schools_df["Prior Nursing Dismissal Policy"].astype(str).str.lower().str.strip() != "does not accept"]
 
-        filtered_df = working_schools_df.copy()
-
-        if not filtered_df.empty:
+        if not working_schools_df.empty:
             card_rows = []
-            for idx, school_row in filtered_df.iterrows():
+            for idx, school_row in working_schools_df.iterrows():
                 raw_name = str(school_row["School Name"]).strip()
-                if raw_name in ["", "nan"] or pd.isna(school_row["School Name"]):
-                    raw_name = f"Partner Institution Platform Ref #{idx}"
-                    
                 s_exam = str(school_row.get("Entrance Exam", "--")).strip()
                 s_notes = str(school_row.get("Entrance Exam Notes", "")).strip()
                 s_blanket = str(school_row.get("Blanket Statement", "")).strip()
                 s_odt_rules = str(school_row.get("Science/Math ODTs", "")).strip()
                 s_odt_notes = str(school_row.get("Science/Math ODT Notes", "")).strip()
                 
+                # Optimized partial string token scanner rules
                 if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
                     rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains("HERZ|HERI", na=False)]
                 elif "EXCEL" in raw_name.upper():
                     rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains("EXCEL", na=False)]
-                else: rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
+                else: 
+                    rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper() == raw_name.upper()]
                 
                 school_accepted_list = []
                 has_all_courses = True
@@ -467,78 +394,48 @@ with col_input_flow:
                 if not rule_row.empty:
                     for required_course in needed_courses:
                         if required_course == "Government History":
-                            gov_acc = str(rule_row['Government'].values[0]).strip().upper() == "Y"
-                            hist_acc = str(rule_row['History'].values[0]).strip().upper() == "Y"
-                            if gov_acc or hist_acc:
+                            if str(rule_row['Government'].values[0]).strip().upper() == "Y" or str(rule_row['History'].values[0]).strip().upper() == "Y":
                                 school_accepted_list.append(required_course)
                             else: has_all_courses = False
                         else:
                             check_course = course_mapping_bridge.get(required_course, required_course)
-                            if check_course in rule_row.columns:
-                                if str(rule_row[check_course].values[0]).strip().upper() == "Y":
-                                    school_accepted_list.append(required_course)
-                                else: has_all_courses = False
+                            if check_course in rule_row.columns and str(rule_row[check_course].values[0]).strip().upper() == "Y":
+                                school_accepted_list.append(required_course)
                             else: has_all_courses = False
-                    s_status = "Perfect Match" if (len(needed_courses) == 0 or has_all_courses) else "Missing Needed CBE Courses"
+                    s_status = "Perfect Match" if (not needed_courses or has_all_courses) else "Missing Needed CBE Courses"
                 else:
                     s_status = "Perfect Match"
                     school_accepted_list = list(needed_courses)
                 
-                c_count = len(school_accepted_list)
-                c_base_classes = c_count if c_count > 0 else 1
-                c_main_price = 1179 if c_base_classes >= 10 else (1229 if c_base_classes >= 4 else 1289)
-                
-                school_revenue_potential = c_count * float(c_main_price)
-                tuition_cost_raw = str(school_row.get("In-StateTuition", "0")).replace("$", "").replace(",", "").strip()
-                tuition_cost = pd.to_numeric(tuition_cost_raw, errors='coerce') if pd.isna(pd.to_numeric(tuition_cost_raw, errors='coerce')) == False else 0.0
-                est_profit = max(0.0, school_revenue_potential - float(tuition_cost))
-                
                 unique_hash_id = f"sch_{idx}_{re.sub(r'[^a-zA-Z0-9]', '_', raw_name)}"
-                
                 card_rows.append({
-                    "id": unique_hash_id,
-                    "idx": idx,
-                    "name": raw_name,
-                    "exam": s_exam,
-                    "notes": s_notes,
-                    "blanket": s_blanket,
-                    "odt_rules": s_odt_rules,
-                    "odt_notes": s_odt_notes,
-                    "track": school_row["ASN/BSN"],
-                    "status": s_status,
-                    "accepted_courses": school_accepted_list,
-                    "profit": int(est_profit) 
+                    "id": unique_hash_id, "idx": idx, "name": raw_name, "exam": s_exam, "notes": s_notes,
+                    "blanket": s_blanket, "odt_rules": s_odt_rules, "odt_notes": s_odt_notes,
+                    "track": school_row["ASN/BSN"], "status": s_status, "accepted_courses": school_accepted_list
                 })
             
-            card_rows = sorted(card_rows, key=lambda x: x["profit"], reverse=True)
-
             for card in card_rows:
-                is_this_card_selected = (st.session_state["selected_school_id"] == card["id"])
-                courses_text_string = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
+                is_selected = (st.session_state["selected_school_id"] == card["id"])
+                courses_str = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
                 
                 with st.container(border=True):
                     st.markdown(f"### 🏫 {card['name']}")
                     st.markdown(f"**Degree Track Program:** `{card['track']}`")
-                    st.markdown(f"🧬 *Prerequisites Fulfilled ({len(card['accepted_courses'])}):* **{courses_text_string}**")
+                    st.markdown(f"🧬 *Prerequisites Fulfilled ({len(card['accepted_courses'])}):* **{courses_str}**")
                     
-                    btn_label = "✓ Active Selection Unlocked" if is_this_card_selected else "Select School & Fulfill Prerequisites"
-                    if st.button(btn_label, key=f"btn_card_sel_{card['id']}", use_container_width=True, type="secondary" if is_this_card_selected else "primary", disabled=is_finalized):
-                        st.session_state["active_school_view"] = card
-                        st.session_state["selected_school_id"] = card["id"]
-                        st.session_state["wizard_step"] = 5
+                    btn_lbl = "✓ Active Selection Unlocked" if is_selected else "Select School & Fulfill Prerequisites"
+                    if st.button(btn_lbl, key=f"bc_{card['id']}", use_container_width=True, type="secondary" if is_selected else "primary"):
+                        st.session_state.update({"active_school_view": card, "selected_school_id": card["id"], "wizard_step": 5})
                         st.rerun()
-                    
-                st.markdown("<br>", unsafe_allow_html=True)
         else:
             st.warning("No online options match your filters at this time.")
         
         st.divider()
         b_reset_col, b_spacer, b_back_col = st.columns([1.0, 1.5, 1.0])
         with b_reset_col:
-            if st.button("🔄 Restart Process", use_container_width=True, type="secondary", key="step4_reset_btn"):
-                execute_safe_restart()
+            if st.button("🔄 Restart Process", use_container_width=True, type="secondary"): execute_safe_restart()
         with b_back_col:
-            if st.button("⬅️ Back to Review", use_container_width=True, key="step4_reverse_button_action", disabled=is_finalized):
+            if st.button("⬅️ Back to Review", use_container_width=True):
                 st.session_state["wizard_step"] = 3
                 st.rerun()
 
@@ -549,7 +446,6 @@ with col_input_flow:
         card = st.session_state["active_school_view"]
         school_name = card["name"]
         school_id = card["id"]
-        blanket_statement = card["blanket"]
         odt_rules_string = card["odt_rules"]
         odt_notes_string = card.get("odt_notes", "")
         needed_courses = st.session_state["val_courses"]
@@ -561,13 +457,10 @@ with col_input_flow:
         st.markdown(f"Reviewing academic support enhancements for target program path: **{school_name}**")
         st.divider()
         
-        if blanket_statement and blanket_statement.lower() not in ["", "nan", "--"]:
-            st.info(f"📋 **Institutional Policy Notice:**\n\n{blanket_statement}")
+        if card["blanket"] and str(card["blanket"]).lower() not in ["", "nan", "--"]:
+            st.info(f"📋 **Institutional Policy Notice:**\n\n{card['blanket']}")
             
-        is_force_locked = False
-        is_pre_checked_only = False
-        rule_threshold_years = 99
-        rule_display_message = ""
+        is_force_locked, is_pre_checked_only, rule_threshold_years, rule_display_message = False, False, 99, ""
         
         if odt_notes_string and ":" in odt_notes_string:
             try:
@@ -577,67 +470,58 @@ with col_input_flow:
                 rule_display_message = parts[2].strip()
                 
                 st.markdown("##### ⏳ Credit Recency Verification")
-                user_age_input = st.slider("How many years ago did you complete your core science credits?", min_value=0, max_value=25, value=st.session_state["science_years_elapsed"], key="science_age_slider_widget")
+                user_age_input = st.slider("How many years ago did you complete your core science credits?", min_value=0, max_value=25, value=st.session_state["science_years_elapsed"], key="science_slider")
                 st.session_state["science_years_elapsed"] = user_age_input
                 
                 if user_age_input > rule_threshold_years:
                     if policy_type == "mandatory":
                         is_force_locked = True
-                        st.error(f"🛑 **Strict Policy Cutoff Met:** {rule_display_message} Guided Course Support has been locked into your plan as a mandatory requirement.")
+                        st.error(f"🛑 **Strict Policy Cutoff Met:** {rule_display_message} Guided Course Support locked into plan.")
                     elif policy_type == "recommended":
                         is_pre_checked_only = True
-                        st.warning(f"⚠️ **Regional Window Recommendation:** {rule_display_message} Adding Guided Course Support is highly recommended to safeguard transferability.")
+                        st.warning(f"⚠️ **Regional Window Recommendation:** {rule_display_message} Support highly recommended.")
                 else:
-                    st.success(f"✅ Verified: Your science credits fall safely within **{school_name}**'s preferred {rule_threshold_years}-year window.")
+                    st.success(f"✅ Verified: Your science credits fall within the acceptable {rule_threshold_years}-year window.")
             except Exception:
                 if odt_notes_string: st.info(odt_notes_string)
         elif odt_notes_string:
             st.info(odt_notes_string)
 
-        triggered_odt_options = []
-        if odt_rules_string and odt_rules_string.lower() not in ["", "nan", "--"]:
-            school_odt_list = [c.strip() for c in odt_rules_string.split(",")]
-            for raw_csv_item in school_odt_list:
-                if raw_csv_item in needed_courses:
-                    triggered_odt_options.append(raw_csv_item)
+        triggered_odt_options = [c.strip() for c in odt_rules_string.split(",")] if odt_rules_string and str(odt_rules_string).lower() not in ["", "nan", "--"] else []
+        triggered_odt_options = [c for c in triggered_odt_options if c in needed_courses]
 
         if not triggered_odt_options:
-            st.success("✅ Clean Path: No mandatory Guided Course Support tracks are required for your selected path configuration.")
-            st.session_state["selected_odts"] = []
-            st.session_state["odt_hydrated_for_school"] = school_id
+            st.success("✅ Clean Path: No mandatory Guided Course Support tracks are required for this configuration.")
+            st.session_state.update({"selected_odts": [], "odt_hydrated_for_school": school_id})
         else:
             if st.session_state.get("odt_hydrated_for_school") != school_id:
-                st.session_state["selected_odts"] = list(triggered_odt_options)
-                st.session_state["odt_hydrated_for_school"] = school_id
+                st.session_state.update({"selected_odts": list(triggered_odt_options), "odt_hydrated_for_school": school_id})
                 
             st.markdown("#### 🎓 Recommended Support Bundles")
-            st.markdown(f"The following courses cannot be bypassed via exam at **{school_name}**. Please select the items you want to include Guided Course Support for:")
+            st.markdown("The following courses cannot be bypassed via exam. Please choose support options to include:")
             
             chosen_odts = []
             current_selections_set = set(st.session_state["selected_odts"])
             
             for formal_course in triggered_odt_options:
                 if is_force_locked:
-                    st.checkbox(formal_course, value=True, disabled=True, key=f"odt_box_frozen_view_{formal_course}")
+                    st.checkbox(formal_course, value=True, disabled=True, key=f"odt_fz_{formal_course}")
                     chosen_odts.append(formal_course)
                 else:
                     was_checked = formal_course in current_selections_set or is_pre_checked_only
-                    if st.checkbox(formal_course, value=was_checked, key=f"odt_box_active_view_{formal_course}"):
+                    if st.checkbox(formal_course, value=was_checked, key=f"odt_act_{formal_course}"):
                         chosen_odts.append(formal_course)
             
-            if not is_force_locked:
-                st.session_state["selected_odts"] = chosen_odts
-            else:
-                st.session_state["selected_odts"] = list(set(chosen_odts).union(current_selections_set))
+            st.session_state["selected_odts"] = chosen_odts if not is_force_locked else list(set(chosen_odts).union(current_selections_set))
 
         st.divider()
         b_back_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
         with b_back_col:
-            if st.button("⬅   Back to Schools", use_container_width=True, key="step5_back_btn"):
+            if st.button("⬅   Back to Schools", use_container_width=True):
                 st.session_state["wizard_step"] = 4
                 st.rerun()
         with b_continue_col:
-            if st.button("Verify Entrance Exams ➡️", use_container_width=True, type="primary", key="step5_continue_btn"):
+            if st.button("Verify Entrance Exams ➡️", use_container_width=True, type="primary"):
                 st.session_state["wizard_step"] = 6
                 st.rerun()
 
@@ -649,7 +533,6 @@ with col_input_flow:
         school_name = card["name"]
         school_exam_type = card["exam"]
         school_exam_notes = card["notes"]
-        valid_courses_list = card["accepted_courses"]
         
         st.subheader(f"Step 6: Reviewing Exam Requirements & Waivers")
         st.markdown(f"Configuring standard entrance benchmarks for targeted program path: **{school_name}**")
@@ -664,36 +547,24 @@ with col_input_flow:
             st.session_state["modal_include_exam_prep"] = False
         else:
             st.markdown("#### 🔒 Entrance Exam Verification")
-            user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], index=1 if user_score_logged else 0, horizontal=True, key="step6_has_passed_radio")
+            user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], index=1 if user_score_logged else 0, horizontal=True, key="step6_passed_radio")
             
             if user_has_passed == "No":
                 st.warning(f"⚠️ Note: A required **{school_exam_type} Prep Course** has been added to your preparation bundle.")
-                
-                if "exam_prep_checkbox_widget_key" not in st.session_state:
-                    st.session_state["exam_prep_checkbox_widget_key"] = True
-                    
-                keep_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", key="exam_prep_checkbox_widget_key")
-                st.session_state["modal_include_exam_prep"] = keep_prep
+                st.session_state["modal_include_exam_prep"] = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", key="ex_prep_check")
             else:
                 st.session_state["modal_include_exam_prep"] = False
-                raw_input_score = st.text_input("Enter your official score:", value=user_score_logged, placeholder="Enter score here", key="step6_score_input")
-                user_score_logged = raw_input_score
+                raw_input_score = st.text_input("Enter your official score:", value=user_score_logged, placeholder="Enter score here", key="step6_score")
                 
                 if raw_input_score:
                     clean_score_str = re.sub(r'[^\d.]', '', raw_input_score)
                     score_num = float(clean_score_str) if clean_score_str else 0.0
                     
                     if score_num >= 75.0:
-                        matched_rule_type = "pass"
-                        custom_message = ""
-                        age_limit_years = None
+                        matched_rule_type, custom_message, age_limit_years = "pass", "", None
                     else:
-                        notes_str = str(school_exam_notes).strip()
-                        rules = notes_str.split('|')
-                        matched_rule_type = "fail" 
-                        custom_message = ""
-                        age_limit_years = None
-                        age_question_text = ""
+                        rules = str(school_exam_notes).strip().split('|')
+                        matched_rule_type, custom_message, age_limit_years, age_question_text = "fail", "", None, ""
                         
                         for rule in rules:
                             parts = rule.split(':')
@@ -724,105 +595,83 @@ with col_input_flow:
 
                     if score_num > 0:
                         if matched_rule_type == "fail":
-                            st.error(f"🛑 This score is below the automatic waiver threshold. We've added a **{school_exam_type} Prep Course** to help you prepare.")
-                            
-                            if "exam_prep_checkbox_widget_key_fail" not in st.session_state:
-                                st.session_state["exam_prep_checkbox_widget_key_fail"] = True
-                            keep_prep = st.checkbox(f"Keep **{school_exam_type} Prep Course** included in my cost estimate?", key="exam_prep_checkbox_widget_key_fail")
-                            st.session_state["modal_include_exam_prep"] = keep_prep
+                            st.error(f"🛑 This score is below the automatic waiver threshold. We've added a **{school_exam_type} Prep Course**.")
+                            st.session_state["modal_include_exam_prep"] = st.checkbox(f"Keep **{school_exam_type} Prep Course** included?", key="ex_fail_check")
                         elif matched_rule_type in ["pass", "exempt"]:
                             if age_limit_years:
                                 st.markdown("##### ⏳ Verification Check:")
-                                exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1, key="step6_age_slider")
-                                if exam_age > age_limit_years:
-                                    st.error(f"🛑 Your test score has expired. Adding a refresher preparation course to your plan.")
-                                    st.session_state["modal_include_exam_prep"] = True
-                                else:
-                                    st.success(f"✅ Verified: Your score is active and valid!")
-                                    st.session_state["modal_include_exam_prep"] = False
+                                exam_age = st.slider(age_question_text, min_value=0, max_value=10, value=1, key="exam_age_slider")
+                                st.session_state["modal_include_exam_prep"] = (exam_age > age_limit_years)
+                                if exam_age > age_limit_years: st.error("🛑 Your test score has expired. Adding a refresher course.")
+                                else: st.success("✅ Verified: Your score is active and valid!")
                             else:
-                                if matched_rule_type == "exempt":
-                                    st.success(f"🎉 Exemption unlocked! You have successfully waived out of **{waived_course_name}**.")
-                                else:
-                                    st.success(f"✅ Verified: Entrance testing requirements successfully met!")
+                                if matched_rule_type == "exempt": st.success(f"🎉 Exemption unlocked! Waived out of **{waived_course_name}**.")
+                                else: st.success("✅ Verified: Entrance testing requirements met!")
                                 st.session_state["modal_include_exam_prep"] = False
                         elif matched_rule_type == "retest":
                             st.warning(f"⚠️ {custom_message}")
-                            if "exam_prep_checkbox_widget_key_retest" not in st.session_state:
-                                st.session_state["exam_prep_checkbox_widget_key_retest"] = True
-                            keep_prep = st.checkbox(f"Add **{school_exam_type} Advanced Retest Preparation** to your layout?", key="exam_prep_checkbox_widget_key_retest")
-                            st.session_state["modal_include_exam_prep"] = keep_prep
+                            st.session_state["modal_include_exam_prep"] = st.checkbox(f"Add **{school_exam_type} Advanced Retest Prep**?", key="ex_retest_check")
 
         st.divider()
         b_back_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
         with b_back_col:
-            if st.button("⬅   Back to Guided Support", use_container_width=True, key="step6_back_btn"):
+            if st.button("⬅   Back to Guided Support", use_container_width=True):
                 st.session_state["wizard_step"] = 5
                 st.rerun()
         with b_continue_col:
-            if st.button("Continue to Summary ➡️", use_container_width=True, type="primary", key="step6_continue_btn"):
-                st.session_state["wizard_step"] = 7
+            if st.button("Continue to Summary ➡️", use_container_width=True, type="primary"):
+                st.session_state.update({"modal_score_logged": user_score_logged, "modal_classes_waived": classes_waived, "wizard_step": 7})
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 7: REVIEW SUMMARY CHECKOUT TERMINAL
+    # STEP 7: REVIEW SUMMARY SUMMARY RECEIPT TERMINAL
     # --------------------------------------------------------------------------
     elif current_step == 7:
         card = st.session_state["active_school_view"]
         st.subheader("Step 7: Final Package Summary Review")
-        st.markdown("Please review your synchronized registration overview parameters below. If you need to make corrections, click **Adjust Parameters**.")
+        st.markdown("Please review your synchronized registration overview parameters below:")
         st.divider()
         
         with st.container(border=True):
             col_left_profile, col_right_path = st.columns(2, gap="medium")
-            
             with col_left_profile:
                 st.markdown("### 👤 Student Profile Overview")
                 st.markdown(f"**Full Applicant Name:** `{st.session_state['val_name'] or 'Prospective Student'}`")
                 st.markdown(f"**Targeted Degree Track:** `{card['track']}`")
-                st.markdown(f"**Residency Location Jurisdiction:** `{st.session_state['val_state']}`")
-                
+                st.markdown(f"**Residency Jurisdiction:** `{st.session_state['val_state']}`")
             with col_right_path:
                 st.markdown("### 🏫 Institutional Placement")
-                st.markdown(f"**Target Institution Path: `{card['name']}`")
-                if card['exam'] != "--":
-                    exam_status_txt = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
-                    st.markdown(f" Benchmark Requirement:** `{exam_status_txt}`")
-                else:
-                    st.markdown("**Entrance Benchmark Requirement:** `Exempt / None`")
+                st.markdown(f"**Target Institution Path:** `{card['name']}`")
+                exam_status_txt = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
+                st.markdown(f"**Entrance Benchmark Requirement:** `{exam_status_txt if card['exam'] != '--' else 'Exempt / None'}`")
 
         st.markdown("<br>", unsafe_allow_html=True)
 
         with st.container(border=True):
             st.markdown("### 🧬 Academic Parameter Configurations")
             st.markdown("<br>", unsafe_allow_html=True)
-            
             col_cbe, col_odt = st.columns(2, gap="large")
             
             with col_cbe:
                 st.markdown(f"##### 🔹 Prerequisites via Credit-by-Exam ({len(card['accepted_courses'])})")
                 if card["accepted_courses"]:
-                    for course_item in card["accepted_courses"]:
-                        st.markdown(f"✅ &nbsp; {course_item}")
-                else:
-                    st.markdown("*No prerequisites selected for testing out.*")
+                    for course_item in card["accepted_courses"]: st.markdown(f"✅ &nbsp; {course_item}")
+                else: st.markdown("*No prerequisites selected for testing out.*")
                     
             with col_odt:
                 active_odts = st.session_state.get("selected_odts", [])
                 st.markdown(f"##### 🎓 Guided Course Support Added ({len(active_odts)})")
                 if active_odts:
-                    for odt_item in active_odts:
-                        st.markdown(f"🚀 &nbsp; {odt_item}")
-                else:
-                    st.markdown("*No custom tutoring support tracks selected or required.*")
+                    for odt_item in active_odts: st.markdown(f"🚀 &nbsp; {odt_item}")
+                else: st.markdown("*No custom tutoring support tracks selected.*")
 
         st.divider()
-        if st.button("⬅   Adjust Parameters", use_container_width=True, key="step7_back_btn", disabled=is_finalized):
+        if st.button("⬅   Adjust Parameters", use_container_width=True, disabled=is_finalized):
             st.session_state["wizard_step"] = 6
             st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 STEP 7 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL (UNIFIED MODEL 8 MATRIX)
+# 🛒 STEP 7 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL (OPTIMIZED PRICING 8)
 # --------------------------------==========================================
 if col_ledger_flow is not None:
     with col_ledger_flow:
@@ -835,65 +684,47 @@ if col_ledger_flow is not None:
         extra_exam_count = 1 if st.session_state["modal_include_exam_prep"] else 0
         active_odts = st.session_state.get("selected_odts", [])
         
-        # ⚡ UNIFIED VOLUME AGGREGATOR MATRIX: Collect total products count to define the Pricing Model 8 bracket row
+        # 🔑 PRICING MODEL 8 CORE LEDGER MATRIX ENGINE
         total_products = len(needed_courses) + extra_exam_count + len(active_odts)
         
-        # 🚀 MODEL 8 TIER CONFIGURATOR: Map bracket prices directly from your unified specification matrix
         if total_products >= 10:
-            prep_rate = 1179.0
-            odt_rate = 749.0
+            prep_rate, odt_rate = 1179.0, 749.0
         elif total_products >= 4:
-            prep_rate = 1229.0
-            odt_rate = 799.0
+            prep_rate, odt_rate = 1229.0, 799.0
         else:
-            prep_rate = 1289.0
-            odt_rate = 859.0
+            prep_rate, odt_rate = 1289.0, 859.0
             
-        # 🧮 PRODUCT TIER ENFORCEMENT ENGINE
-        # Gen-Eds & Entrance Exams map to Prep Course Rates
+        # Classifications: Gen-Eds & Entrance Prep map to Prep Rates
         gened_subtotal = len(needed_courses) * prep_rate
         entrance_subtotal = extra_exam_count * prep_rate
         base_total = int(gened_subtotal + entrance_subtotal)
         
-        # ODTs & Fundamentals map to ODT Rates
+        # Classifications: ODTs map to ODT Rates
         total_odt_fees = int(len(active_odts) * odt_rate)
         
         st.markdown("#### Adjustments & Savings")
         st.session_state["val_deposit"] = 0
-
-        q_ref = st.session_state["val_ref"]
-        q_mil = st.session_state["val_mil"]
-        
-        calc_free_course = 0
-        promo_tier_name = ""
+        q_ref, q_mil = st.session_state["val_ref"], st.session_state["val_mil"]
+        calc_free_course, promo_tier_name = 0, ""
         
         if len(needed_courses) >= 3:
-            q_promo = st.radio("Do you possess a promotional code for a complimentary course?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, key="ledger_promo_radio", disabled=is_finalized)
+            q_promo = st.radio("Do you possess a promotional code?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, disabled=is_finalized)
             st.session_state["val_promo"] = q_promo
             
             if q_promo == "Yes":
                 promo_input = st.text_input("Enter promotional code:", value=st.session_state["val_promo_code_input"], placeholder="Enter code here", disabled=is_finalized)
                 st.session_state["val_promo_code_input"] = promo_input
-                
-                clean_promo = str(promo_input).strip().upper()
-                
-                if clean_promo == "":
-                    st.info("ℹ️ Please type your promotional code above to activate your discount.")
-                elif clean_promo in ["FREECOURSE", "FREE COURSE"]:
-                    # Free course credit maps perfectly to the corresponding prep rate value
+                if str(promo_input).strip().upper() in ["FREECOURSE", "FREE COURSE"]:
                     calc_free_course = int(prep_rate)
                     promo_tier_name = f"FreeCourse_Model8_Tier_{total_products}"
-                            
-                    st.success(f"🎉 Code Approved! Unlocked Discount (-${calc_free_course:,})")
-                else:
-                    st.error("❌ Invalid promotional code. Please check your spelling and try again.")
+                    st.success(f"🎉 Code Approved! Discount (-${calc_free_course:,})")
+                elif str(promo_input).strip() != "":
+                    st.error("❌ Invalid promotional code.")
         else:
-            st.session_state["val_promo"] = "No"
-            st.session_state["val_promo_code_input"] = ""
+            st.session_state.update({"val_promo": "No", "val_promo_code_input": ""})
 
         calc_referral = 50 if q_ref == "Yes" else 0
         calc_military = 200 if q_mil == "Yes" else 0
-        
         credits_sum = calc_referral + calc_military + calc_free_course
         final_total = max(0, (base_total + total_odt_fees) - credits_sum)
 
@@ -905,34 +736,23 @@ if col_ledger_flow is not None:
             st.markdown(f"➕ **Guided Course Support ({len(active_odts)}):** `${total_odt_fees:,}`")
             st.caption(f"({len(active_odts)} ODT Bundles at ${int(odt_rate):,} each)")
         
-        st.markdown("##### 🎖 Levant Discounts & Savings Applied:")
-        if calc_referral > 0:
-            st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,}`")
-        if calc_military > 0:
-            st.markdown(f"🏷️ *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
-        if calc_free_course > 0:
-            st.markdown(f"🏷️ *Complimentary Course Code:* `-${calc_free_course:,}`")
-        if credits_sum == 0:
-            st.markdown("🏷️ *No additional discounts applied to this estimate.*")
+        st.markdown("##### 🎖️ Levant Discounts Applied:")
+        if calc_referral: st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,}`")
+        if calc_military: st.markdown(f"🏷️ *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
+        if calc_free_course: st.markdown(f"🏷️ *Complimentary Course Code:* `-${calc_free_course:,}`")
+        if not credits_sum: st.markdown("🏷️ *No additional discounts applied.*")
             
         st.markdown(f"**Total Savings:** `-${credits_sum:,}`")
         st.markdown(f"## **Balance Due: ${0 if (base_total==0 and total_odt_fees==0) else final_total:,}**")
         
         st.divider()
-        if st.button("🔒 Lock in Enrollment Package", key="ledger_final_lock_action_btn", use_container_width=True, type="primary", disabled=is_finalized):
+        if st.button("🔒 Lock in Enrollment Package", key="lock_package_btn", use_container_width=True, type="primary", disabled=is_finalized):
             st.session_state["confirmed_package"] = {
-                "school_name": school_name,
-                "student_name": st.session_state["val_name"],
-                "base_total": int(base_total),
-                "odt_fees_added": int(total_odt_fees),
-                "odt_courses_selected": active_odts,
-                "final_total": int(final_total),
-                "courses_included": needed_courses,
-                "entrance_exam_prep_added": st.session_state["modal_include_exam_prep"],
-                "entrance_exam_score_logged": st.session_state["modal_score_logged"],
-                "classes_waived_count": st.session_state["modal_classes_waived"],
-                "promo_tier_applied": promo_tier_name,
-                "addons_active": True if total_odt_fees > 0 else False
+                "school_name": school_name, "student_name": st.session_state["val_name"],
+                "base_total": int(base_total), "odt_fees_added": int(total_odt_fees), "odt_courses_selected": active_odts,
+                "final_total": int(final_total), "courses_included": needed_courses, "entrance_exam_prep_added": st.session_state["modal_include_exam_prep"],
+                "entrance_exam_score_logged": st.session_state["modal_score_logged"], "classes_waived_count": st.session_state["modal_classes_waived"],
+                "promo_tier_applied": promo_tier_name, "addons_active": bool(total_odt_fees > 0)
             }
             st.rerun()
 
@@ -942,5 +762,4 @@ if is_finalized:
     st.success(f"🎉 **Your Bridge Plan has been successfully finalized, {pkg['student_name']}!**")
     st.markdown(f"### School Selection Locked: **{pkg['school_name']}**")
     st.metric("Final Balance Due", f"${int(pkg['final_total']):,}")
-    with st.expander("📄 View Your Signed Enrollment Summary Manifest"):
-        st.json(pkg)
+    with st.expander("📄 View Your Signed Enrollment Summary Manifest"): st.json(pkg)
