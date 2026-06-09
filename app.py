@@ -471,7 +471,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (SLIDER DIALOGUE OPTIMIZED)
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (CONTRADICTION SOLVED)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -507,6 +507,7 @@ with col_input_flow:
                 user_age_input = st.slider("How many years ago did you complete your core science credits?", min_value=0, max_value=25, value=st.session_state["science_years_elapsed"], key="science_slider")
                 st.session_state["science_years_elapsed"] = user_age_input
                 
+                # 🔒 INTEGRATED CLINT RULE GATEWAY: Warning blocks ONLY trigger if the slider actively exceeds thresholds
                 if user_age_input > rule_threshold_years:
                     if policy_type == "mandatory":
                         is_force_locked = True
@@ -517,9 +518,8 @@ with col_input_flow:
                         st.session_state["science_credits_expired"] = False
                         st.warning(f"⚠️ **Regional Window Recommendation:** {rule_display_message} Support highly recommended.")
                 else:
+                    # Clear warning data cleanly if they live within the acceptable window matrix
                     st.session_state["science_credits_expired"] = False
-                    
-                    # 🛠️ DYNAMIC FIX: References both parameters properly to show an accurate, non-confusing validation statement
                     st.success(f"✅ Verified: Your science credits are active ({user_age_input} years old), which safely falls within the school's approved {rule_threshold_years}-year recency window.")
             except Exception:
                 if odt_notes_string: st.info(odt_notes_string)
