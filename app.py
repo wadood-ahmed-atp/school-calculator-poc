@@ -359,7 +359,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL SCHOOL MATCHES
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (MULTI-LEVEL MATRIX SORT ARCHITECTURE)
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
@@ -433,12 +433,20 @@ with col_input_flow:
                     s_status = "Perfect Match"
                     school_accepted_list = list(needed_courses)
                 
+                # Pre-calculate active tutoring rules to execute pricing rank tie-breakers
+                raw_odt_options = [c.strip() for c in s_odt_rules.split(",")] if s_odt_rules and str(s_odt_rules).lower() not in ["", "nan", "--"] else []
+                raw_odt_options = [c for c in raw_odt_options if c in school_accepted_list]
+                
                 unique_hash_id = f"sch_{idx}_{re.sub(r'[^a-zA-Z0-9]', '_', raw_name)}"
                 card_rows.append({
                     "id": unique_hash_id, "idx": idx, "name": raw_name, "exam": s_exam, "notes": s_notes,
                     "blanket": s_blanket, "odt_rules": s_odt_rules, "odt_notes": s_odt_notes,
-                    "track": school_row["ASN/BSN"], "status": s_status, "accepted_courses": school_accepted_list
+                    "track": school_row["ASN/BSN"], "status": s_status, "accepted_courses": school_accepted_list,
+                    "odt_count_weight": len(raw_odt_options)
                 })
+            
+            # 🎯 PRECISION SORT CORE TIE-BREAKER ENGINE: Primary rank Descending on CBE count, Secondary tie-breaker ascending on ODT requirements (yielding cleaner premium pricing)
+            card_rows = sorted(card_rows, key=lambda x: (len(x["accepted_courses"]), -x["odt_count_weight"]), reverse=True)
             
             for card in card_rows:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
@@ -447,7 +455,7 @@ with col_input_flow:
                 with st.container(border=True):
                     st.markdown(f"### 🏫 {card['name']}")
                     st.markdown(f"**Degree Track Program:** `{card['track']}`")
-                    st.markdown(f"🧬 *Prerequisites Fulfilled ({len(card['accepted_courses'])}):* **{courses_str}**")
+                    st.markdown(f"🧬 *Prerequisites Fulfilled via Credit-by-Exam ({len(card['accepted_courses'])}):* **{courses_str}**")
                     
                     btn_lbl = "✓ Active Selection Unlocked" if is_selected else "Select School & Fulfill Prerequisites"
                     if st.button(btn_lbl, key=f"bc_{card['id']}", use_container_width=True, type="secondary" if is_selected else "primary"):
@@ -471,7 +479,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (CONTRADICTION SOLVED)
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL 
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -479,7 +487,7 @@ with col_input_flow:
         school_id = card["id"]
         odt_rules_string = card["odt_rules"]
         odt_notes_string = card.get("odt_notes", "")
-        needed_courses = st.session_state["val_courses"]
+        needed_courses = card["accepted_courses"]
         
         if str(odt_notes_string).strip().lower() in ["", "nan", "--", "none"]:
             odt_notes_string = ""
@@ -507,7 +515,6 @@ with col_input_flow:
                 user_age_input = st.slider("How many years ago did you complete your core science credits?", min_value=0, max_value=25, value=st.session_state["science_years_elapsed"], key="science_slider")
                 st.session_state["science_years_elapsed"] = user_age_input
                 
-                # 🔒 INTEGRATED CLINT RULE GATEWAY: Warning blocks ONLY trigger if the slider actively exceeds thresholds
                 if user_age_input > rule_threshold_years:
                     if policy_type == "mandatory":
                         is_force_locked = True
@@ -518,7 +525,6 @@ with col_input_flow:
                         st.session_state["science_credits_expired"] = False
                         st.warning(f"⚠️ **Regional Window Recommendation:** {rule_display_message} Support highly recommended.")
                 else:
-                    # Clear warning data cleanly if they live within the acceptable window matrix
                     st.session_state["science_credits_expired"] = False
                     st.success(f"✅ Verified: Your science credits are active ({user_age_input} years old), which safely falls within the school's approved {rule_threshold_years}-year recency window.")
             except Exception:
@@ -725,7 +731,7 @@ with col_input_flow:
 
 # --------------------------------------------------------------------------
 # 🛒 STEP 8 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL
-# --------------------------------================================----------
+# --------------------------------------------------------------------------
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Final Checkout Receipt")
