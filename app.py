@@ -71,7 +71,7 @@ def initialize_base_states(force_reset=False):
         "odt_hydrated_for_school": None,
         "science_years_elapsed": 1,
         "exam_prep_manually_toggled": False,
-        "val_exam_passed_status": "No"  # 🔒 Persistent state tracker for the step 6 radio question
+        "val_exam_passed_status": "No"  
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -540,7 +540,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (radio + checkbox memory completely stabilized)
+    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (100% Dynamic Alert Matrix Fixed)
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
@@ -562,7 +562,6 @@ with col_input_flow:
         else:
             st.markdown("#### 🔒 Entrance Exam Verification")
             
-            # 🔒 SYNC MATRIX SHIELD FOR RADIO BUTTON: Reads and binds explicitly from persistent vault key via callback hook
             radio_default_index = ["No", "Yes"].index(st.session_state["val_exam_passed_status"])
             st.radio(
                 f"Have you already taken and passed the required **{school_exam_type}** exam?", 
@@ -576,7 +575,9 @@ with col_input_flow:
             user_has_passed = st.session_state["val_exam_passed_status"]
             
             if user_has_passed == "No":
-                st.warning(f"⚠️ Note: A required **{school_exam_type} Prep Course** has been added to your preparation bundle.")
+                # 🧪 DYNAMIC NOTICE RENDER ENGINE: Only triggers alert box text if checkbox is ACTIVELY checked in state vault
+                if st.session_state["modal_include_exam_prep"]:
+                    st.warning(f"⚠️ Note: A required **{school_exam_type} Prep Course** has been added to your preparation bundle.")
                 
                 if not st.session_state["exam_prep_manually_toggled"]:
                     st.session_state["modal_include_exam_prep"] = True
@@ -631,7 +632,8 @@ with col_input_flow:
 
                     if score_num > 0:
                         if matched_rule_type == "fail":
-                            st.error(f"🛑 This score is below the automatic waiver threshold. We've added a **{school_exam_type} Prep Course**.")
+                            if st.session_state["modal_include_exam_prep"]:
+                                st.error(f"🛑 This score is below the automatic waiver threshold. We've added a **{school_exam_type} Prep Course**.")
                             if not st.session_state["exam_prep_manually_toggled"]:
                                 st.session_state["modal_include_exam_prep"] = True
                             st.checkbox(f"Keep **{school_exam_type} Prep Course** included?", value=st.session_state["modal_include_exam_prep"], key="ex_prep_live_widget_key", on_change=sync_exam_prep_state_callback)
@@ -660,8 +662,6 @@ with col_input_flow:
                 st.rerun()
         with b_continue_col:
             if st.button("Continue to Summary ➡️", use_container_width=True, type="primary"):
-                st.session_state["modal_score_logged"] = user_score_logged
-                st.session_state["modal_classes_waived"] = classes_waived
                 st.session_state["wizard_step"] = 7
                 st.rerun()
 
