@@ -70,7 +70,8 @@ def initialize_base_states(force_reset=False):
         "selected_odts": [],
         "odt_hydrated_for_school": None,
         "science_years_elapsed": 1,
-        "exam_prep_manually_toggled": False  # Tracks if user actively changed the default state
+        "exam_prep_manually_toggled": False,
+        "val_exam_passed_status": "No"  # 🔒 Persistent state tracker for the step 6 radio question
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -83,12 +84,17 @@ def execute_safe_restart():
     initialize_base_states(force_reset=True)
     st.rerun()
 
-# 🧠 INTERACTIVE STATE CALLBACK REPLICATORS (OPTIMIZED FOR SPEED)
+# 🧠 INTERACTIVE STATE CALLBACK REPLICATORS (OPTIMIZED FOR PERFORMANCE)
 def sync_exam_prep_state_callback():
     """Bypasses garbage collection by archiving widget clicks directly to the session pool"""
     if "ex_prep_live_widget_key" in st.session_state:
         st.session_state["modal_include_exam_prep"] = st.session_state["ex_prep_live_widget_key"]
         st.session_state["exam_prep_manually_toggled"] = True
+
+def sync_entrance_radio_callback():
+    """Locks the entrance exam passed state radio selection firmly into memory cache"""
+    if "entrance_radio_live_key" in st.session_state:
+        st.session_state["val_exam_passed_status"] = st.session_state["entrance_radio_live_key"]
 
 # ==============================================================================
 # 2. HIGH-SPEED MEMORY CACHE LOADING PIPELINE
@@ -432,7 +438,7 @@ with col_input_flow:
                             "active_school_view": card, 
                             "selected_school_id": card["id"], 
                             "wizard_step": 5,
-                            "exam_prep_manually_toggled": False # Reset override tracking switch for the newly selected row
+                            "exam_prep_manually_toggled": False 
                         })
                         st.rerun()
         else:
@@ -534,7 +540,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (Live Conditional Memory Lock Fix)
+    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (radio + checkbox memory completely stabilized)
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
@@ -555,12 +561,23 @@ with col_input_flow:
             st.session_state["modal_include_exam_prep"] = False
         else:
             st.markdown("#### 🔒 Entrance Exam Verification")
-            user_has_passed = st.radio(f"Have you already taken and passed the required **{school_exam_type}** exam?", ["No", "Yes"], index=1 if user_score_logged else 0, horizontal=True, key="step6_passed_radio")
+            
+            # 🔒 SYNC MATRIX SHIELD FOR RADIO BUTTON: Reads and binds explicitly from persistent vault key via callback hook
+            radio_default_index = ["No", "Yes"].index(st.session_state["val_exam_passed_status"])
+            st.radio(
+                f"Have you already taken and passed the required **{school_exam_type}** exam?", 
+                ["No", "Yes"], 
+                index=radio_default_index, 
+                horizontal=True, 
+                key="entrance_radio_live_key",
+                on_change=sync_entrance_radio_callback
+            )
+            
+            user_has_passed = st.session_state["val_exam_passed_status"]
             
             if user_has_passed == "No":
                 st.warning(f"⚠️ Note: A required **{school_exam_type} Prep Course** has been added to your preparation bundle.")
                 
-                # 🎯 PRECISION ARCHITECTURE FIX: If the switch states they haven't manually changed it yet, force it to 'True' by default
                 if not st.session_state["exam_prep_manually_toggled"]:
                     st.session_state["modal_include_exam_prep"] = True
                 
@@ -573,6 +590,7 @@ with col_input_flow:
             else:
                 st.session_state["modal_include_exam_prep"] = False
                 raw_input_score = st.text_input("Enter your official score:", value=user_score_logged, placeholder="Enter score here", key="step6_score")
+                user_score_logged = raw_input_score
                 
                 if raw_input_score:
                     clean_score_str = re.sub(r'[^\d.]', '', raw_input_score)
@@ -642,6 +660,8 @@ with col_input_flow:
                 st.rerun()
         with b_continue_col:
             if st.button("Continue to Summary ➡️", use_container_width=True, type="primary"):
+                st.session_state["modal_score_logged"] = user_score_logged
+                st.session_state["modal_classes_waived"] = classes_waived
                 st.session_state["wizard_step"] = 7
                 st.rerun()
 
