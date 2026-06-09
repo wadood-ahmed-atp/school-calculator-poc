@@ -544,7 +544,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (STABLE SYNC RE-ENGINEERED)
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -555,7 +555,6 @@ with col_input_flow:
         odt_notes_string = card.get("odt_notes", "")
         needed_courses = st.session_state["val_courses"]
         
-        # 🩹 THE SANITIZATION LAYER: Instantly neutralizes and wipes empty cell NaN/nan representations
         if str(odt_notes_string).strip().lower() in ["", "nan", "--", "none"]:
             odt_notes_string = ""
             
@@ -608,7 +607,6 @@ with col_input_flow:
             st.session_state["selected_odts"] = []
             st.session_state["odt_hydrated_for_school"] = school_id
         else:
-            # First-time user layout instantiation setup
             if st.session_state.get("odt_hydrated_for_school") != school_id:
                 st.session_state["selected_odts"] = list(triggered_odt_options)
                 st.session_state["odt_hydrated_for_school"] = school_id
@@ -621,17 +619,13 @@ with col_input_flow:
             
             for formal_course in triggered_odt_options:
                 if is_force_locked:
-                    # Render locked visual indicator
                     st.checkbox(formal_course, value=True, disabled=True, key=f"odt_box_frozen_view_{formal_course}")
                     chosen_odts.append(formal_course)
                 else:
-                    # 🛠️ FIXED ISOLATED SYNC ENGINE: Listens to the current selections array or enforces an override check
                     was_checked = formal_course in current_selections_set or is_pre_checked_only
-                    
                     if st.checkbox(formal_course, value=was_checked, key=f"odt_box_active_view_{formal_course}"):
                         chosen_odts.append(formal_course)
             
-            # Commit the updated screen states to background memory vaults safely
             if not is_force_locked:
                 st.session_state["selected_odts"] = chosen_odts
             else:
@@ -772,28 +766,49 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 7: REVIEW SUMMARY CHECKOUT TERMINAL
+    # STEP 7: REVIEW SUMMARY CHECKOUT TERMINAL (SPECTACULAR GRID REDESIGN)
     # --------------------------------------------------------------------------
     elif current_step == 7:
         card = st.session_state["active_school_view"]
-        st.subheader("Step 7: Review Your Enrollment Parameters")
-        st.markdown("Please verify your registration parameters. If you need to make corrections, click 'Adjust Parameters' below.")
+        st.subheader("Step 7: Final Package Summary Review")
+        st.markdown("Please review your synchronized registration overview parameters below. If you need to make corrections, click **Adjust Parameters**.")
         st.divider()
         
-        st.markdown(f"👤 **Student Name:** `{st.session_state['val_name'] or 'Prospective Student'}`")
-        st.markdown(f"🏫 **Target Institution Path:** `{card['name']}`")
-        st.markdown(f"🎯 **Program Track:** `{card['track']}`")
-        
-        courses_txt = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None selected / required"
-        st.markdown(f"🧬 **Prerequisites Fulfilled ({len(card['accepted_courses'])}):** {courses_txt}")
-        
-        active_odts = st.session_state.get("selected_odts", [])
-        if active_odts:
-            st.markdown(f"🎓 **Guided Course Support Added: {', '.join(active_odts)}")
-        
-        if card['exam'] != "--":
-            exam_status_txt = "Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "Prep Course Bundle Attached"
-            st.markdown(f"🔒  Requirement:** {exam_status_txt}")
+        # 💎 PREMIUM MATRIX LAYOUT: Groups messy lists into structured card block grids
+        with st.container(border=True):
+            col_left_profile, col_right_path = st.columns(2, gap="medium")
+            
+            with col_left_profile:
+                st.markdown("### 👤 Student Profile Overview")
+                st.markdown(f"**Full Applicant Name:** `{st.session_state['val_name'] or 'Prospective Student'}`")
+                st.markdown(f"**Targeted Degree Track:** `{card['track']}`")
+                st.markdown(f"**Residency Location Jurisdiction:** `{st.session_state['val_state']}`")
+                
+            with col_right_path:
+                st.markdown("### 🏫 Institutional Placement")
+                st.markdown(f"**Target Institution Path: `{card['name']}`")
+                if card['exam'] != "--":
+                    exam_status_txt = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
+                    st.markdown(f" Benchmark Requirement:** `{exam_status_txt}`")
+                else:
+                    st.markdown("**Entrance Benchmark Requirement:** `Exempt / None`")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        with st.container(border=True):
+            st.markdown("### 🧬 Academic Parameter Configurations")
+            
+            courses_txt = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None selected or required"
+            st.markdown(f"🔹 **Prerequisites Fulfilling via Credit-by-Exam ({len(card['accepted_courses'])}):**")
+            st.info(courses_txt)
+            
+            active_odts = st.session_state.get("selected_odts", [])
+            if active_odts:
+                st.markdown(f"🔹 **Guided Course Support Enhancements Added ({len(active_odts)}):**")
+                st.success(", ".join(active_odts))
+            else:
+                st.markdown("🔹 **Guided Course Support Enhancements Added:**")
+                st.info("No tutoring support tracks are selected or required for this path layout configuration.")
 
         st.divider()
         if st.button("⬅   Adjust Parameters", use_container_width=True, key="step7_back_btn", disabled=is_finalized):
