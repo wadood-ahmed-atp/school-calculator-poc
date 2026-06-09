@@ -175,7 +175,6 @@ if is_finalized: s7_col, s7_w = "#10B981", "normal"
 elif current_step == 7: s7_col, s7_w = "#1E3A8A", "bold"
 else: s7_col, s7_w = "#2563EB", "normal"
 
-# 🛠️ FIXED EXPRESSION CELL: Surgical clean alignment fixed down perfectly
 st.markdown(
     f"""
     <div style="font-family: sans-serif; font-size: 13px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 5px;">
@@ -210,7 +209,7 @@ with col_input_flow:
     # --------------------------------------------------------------------------
     if current_step == 1:
         st.subheader("Step 1: Contact & Residency Details")
-        st.markdown("Let's start with where you live so we can find the right nursing programs available in your area.")
+        st.markdown("Let's start with where you live so we can find the right online nursing options available in your area.")
         st.divider()
         
         i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name", disabled=is_finalized)
@@ -531,7 +530,7 @@ with col_input_flow:
                     
                 st.markdown("<br>", unsafe_allow_html=True)
         else:
-            st.warning("No institutions currently match your background profile selection filters.")
+            st.warning("No online options match your filters at this time.")
         
         st.divider()
         b_reset_col, b_spacer, b_back_col = st.columns([1.0, 1.5, 1.0])
@@ -823,8 +822,8 @@ with col_input_flow:
             st.rerun()
 
 # --------------------------------------------------------------------------
-# 🛒 STEP 7 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL
-# --------------------------------================================----------
+# 🛒 STEP 7 ONLY: RIGHT-SIDE ITEMIZIED CHECKOUT LEDGER TERMINAL (UNIFIED MODEL 8 MATRIX)
+# --------------------------------==========================================
 if col_ledger_flow is not None:
     with col_ledger_flow:
         st.subheader("🛒 Final Checkout Receipt")
@@ -834,23 +833,30 @@ if col_ledger_flow is not None:
         school_name = active_school["name"]
         
         extra_exam_count = 1 if st.session_state["modal_include_exam_prep"] else 0
-        base_classes = len(needed_courses) + extra_exam_count
-        is_completely_empty = (base_classes == 0)
-        
-        m_classes_tier = base_classes if base_classes > 0 else 1
-        main_price = 1179 if m_classes_tier >= 10 else (1229 if m_classes_tier >= 4 else 1289)
-        base_total = int(base_classes * main_price)
-        
         active_odts = st.session_state.get("selected_odts", [])
-        odt_price_raw = str(active_school.get("Science/Math ODT Price", "350")).replace("$", "").replace(",", "").strip()
-        if odt_price_raw == "" or odt_price_raw.lower() == "nan" or odt_price_raw == "0":
-            odt_unit_price = 350.0
+        
+        # ⚡ UNIFIED VOLUME AGGREGATOR MATRIX: Collect total products count to define the Pricing Model 8 bracket row
+        total_products = len(needed_courses) + extra_exam_count + len(active_odts)
+        
+        # 🚀 MODEL 8 TIER CONFIGURATOR: Map bracket prices directly from your unified specification matrix
+        if total_products >= 10:
+            prep_rate = 1179.0
+            odt_rate = 749.0
+        elif total_products >= 4:
+            prep_rate = 1229.0
+            odt_rate = 799.0
         else:
-            odt_unit_price = float(pd.to_numeric(odt_price_raw, errors='coerce'))
-            if pd.isna(odt_unit_price) or odt_unit_price == 0:
-                odt_unit_price = 350.0
-                
-        total_odt_fees = int(len(active_odts) * odt_unit_price)
+            prep_rate = 1289.0
+            odt_rate = 859.0
+            
+        # 🧮 PRODUCT TIER ENFORCEMENT ENGINE
+        # Gen-Eds & Entrance Exams map to Prep Course Rates
+        gened_subtotal = len(needed_courses) * prep_rate
+        entrance_subtotal = extra_exam_count * prep_rate
+        base_total = int(gened_subtotal + entrance_subtotal)
+        
+        # ODTs & Fundamentals map to ODT Rates
+        total_odt_fees = int(len(active_odts) * odt_rate)
         
         st.markdown("#### Adjustments & Savings")
         st.session_state["val_deposit"] = 0
@@ -874,17 +880,11 @@ if col_ledger_flow is not None:
                 if clean_promo == "":
                     st.info("ℹ️ Please type your promotional code above to activate your discount.")
                 elif clean_promo in ["FREECOURSE", "FREE COURSE"]:
-                    if base_classes >= 10:
-                        calc_free_course = 1179
-                        promo_tier_name = "FreeCourse9"
-                    elif base_classes >= 4:
-                        calc_free_course = 1229
-                        promo_tier_name = "FreeCourse8"
-                    else:
-                        calc_free_course = 1289
-                        promo_tier_name = "FreeCourse7"
+                    # Free course credit maps perfectly to the corresponding prep rate value
+                    calc_free_course = int(prep_rate)
+                    promo_tier_name = f"FreeCourse_Model8_Tier_{total_products}"
                             
-                    st.success(f"🎉 Code Approved! Unlocked Tier: **{promo_tier_name}** (-${calc_free_course:,})")
+                    st.success(f"🎉 Code Approved! Unlocked Discount (-${calc_free_course:,})")
                 else:
                     st.error("❌ Invalid promotional code. Please check your spelling and try again.")
         else:
@@ -898,23 +898,25 @@ if col_ledger_flow is not None:
         final_total = max(0, (base_total + total_odt_fees) - credits_sum)
 
         st.divider()
-        st.markdown(f"**Gross Base Tuition:** `${0 if is_completely_empty else base_total:,}`")
+        st.markdown(f"**Gross Base Tuition:** `${base_total:,}`")
+        st.caption(f"({len(needed_courses)} Gen-Eds & {extra_exam_count} Entrance Prep at ${int(prep_rate):,} each)")
         
         if total_odt_fees > 0:
             st.markdown(f"➕ **Guided Course Support ({len(active_odts)}):** `${total_odt_fees:,}`")
+            st.caption(f"({len(active_odts)} ODT Bundles at ${int(odt_rate):,} each)")
         
-        st.markdown("##### 🎖️ Discounts & Savings Applied:")
+        st.markdown("##### 🎖 Levant Discounts & Savings Applied:")
         if calc_referral > 0:
             st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,}`")
         if calc_military > 0:
             st.markdown(f"🏷️ *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
         if calc_free_course > 0:
-            st.markdown(f"🏷️ *Complimentary Course ({promo_tier_name}):* `-${calc_free_course:,}`")
+            st.markdown(f"🏷️ *Complimentary Course Code:* `-${calc_free_course:,}`")
         if credits_sum == 0:
             st.markdown("🏷️ *No additional discounts applied to this estimate.*")
             
         st.markdown(f"**Total Savings:** `-${credits_sum:,}`")
-        st.markdown(f"## **Balance Due: ${0 if is_completely_empty and total_odt_fees==0 else final_total:,}**")
+        st.markdown(f"## **Balance Due: ${0 if (base_total==0 and total_odt_fees==0) else final_total:,}**")
         
         st.divider()
         if st.button("🔒 Lock in Enrollment Package", key="ledger_final_lock_action_btn", use_container_width=True, type="primary", disabled=is_finalized):
