@@ -69,7 +69,6 @@ def initialize_base_states(force_reset=False):
         "val_mil": "No",
         "selected_odts": [],
         "odt_hydrated_for_school": None,
-        "science_years_elapsed": 1,
         "exam_prep_manually_toggled": False,
         "val_exam_passed_status": "No",
         "modal_include_nclex_prep": True,          
@@ -176,7 +175,15 @@ course_mapping_bridge = {
     "Pathophysiology": "Pathophysiology"
 }
 
-SCIENCE_COURSES_SET = {"Biology", "Chemistry", "Microbiology", "AP1", "AP2", "Pathophysiology"}
+# 🧬 MASTER AUDIT TARGETS: Comprehensive index mapping to all possible core foundational sciences
+SCIENCE_COURSES_SET = {"Biology", "Chemistry", "Microbiology", "AP1", "AP2"}
+SCIENCE_COURSES_LABEL_MAPPING = {
+    "AP1": "Anatomy & Physiology I (A&P I)",
+    "AP2": "Anatomy & Physiology II (A&P II)",
+    "Microbiology": "Microbiology",
+    "Biology": "Biology",
+    "Chemistry": "Chemistry"
+}
 
 current_step = st.session_state["wizard_step"]
 is_finalized = st.session_state["confirmed_package"] is not None
@@ -305,12 +312,10 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: PREREQUISITE BUTTON SELECTION GRID (INVERTED WORKFLOW BASED ON COMPLETIONS)
+    # STEP 3: PREREQUISITE BUTTON SELECTION GRID (COMPLETED TRANSCRIPT TRACKING)
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Prerequisite Review")
-        
-        # 🔄 INVERTED INTERFACE WORKSPACE: Prompts for already taken items
         st.markdown("Select any general education or prerequisite courses you have already completed:")
         st.divider()
         
@@ -363,7 +368,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (INVERTED MATCHING & BASE TUITION MULTI-SORT ENGINE)
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (MAX CBE & TUITION SORT PIPELINE)
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
@@ -379,7 +384,7 @@ with col_input_flow:
         dismissal_y = (st.session_state["val_dismiss"] == "Yes")
         dismissal_months = int(st.session_state["val_dismiss_mos"]) if st.session_state["val_dismiss_mos"] is not None else 0
         
-        # 🔄 INVERTED Logic: Outstanding classes are those left UNSELECTED on Step 3
+        # Inverted processing resolves unselected button profiles as deficiencies to test out of
         completed_courses = set(st.session_state["val_courses"])
         needed_deficiencies = [c for c in course_list if c not in completed_courses]
 
@@ -427,7 +432,6 @@ with col_input_flow:
                 has_all_courses = True
                 
                 if not rule_row.empty:
-                    # Cross-reference outstanding definitions against allowed credit-by-exam tables
                     for required_course in needed_deficiencies:
                         if required_course == "Government History":
                             if str(rule_row['Government'].values[0]).strip().upper() == "Y" or str(rule_row['History'].values[0]).strip().upper() == "Y":
@@ -443,7 +447,6 @@ with col_input_flow:
                     s_status = "Perfect Match"
                     school_accepted_list = list(needed_deficiencies)
                 
-                # Dynamic pricing resolver maps to correct regional column headers
                 try:
                     inc_fee = int(school_row.get("In-County Tuition", 99999))
                     ins_fee = int(school_row.get("In-StateTuition", 99999))
@@ -451,7 +454,6 @@ with col_input_flow:
                 except ValueError:
                     inc_fee, ins_fee, out_fee = 99999, 99999, 99999
                 
-                # Check geographic filters to map the baseline cost metric
                 if s_county and s_county in str(st.session_state["val_zip"]).strip().lower():
                     base_cost_metric = inc_fee
                 elif s_state == user_state:
@@ -459,15 +461,18 @@ with col_input_flow:
                 else:
                     base_cost_metric = out_fee
                 
+                raw_odt_options = [c.strip() for c in s_odt_rules.split(",")] if s_odt_rules and str(s_odt_rules).lower() not in ["", "nan", "--"] else []
+                raw_odt_options = [c for c in raw_odt_options if c in school_accepted_list]
+                
                 unique_hash_id = f"sch_{idx}_{re.sub(r'[^a-zA-Z0-9]', '_', raw_name)}"
                 card_rows.append({
                     "id": unique_hash_id, "idx": idx, "name": raw_name, "exam": s_exam, "notes": s_notes,
                     "blanket": s_blanket, "odt_rules": s_odt_rules, "odt_notes": s_odt_notes,
                     "track": school_row["ASN/BSN"], "status": s_status, "accepted_courses": school_accepted_list,
-                    "cost_metric": base_cost_metric
+                    "cost_metric": base_cost_metric, "odt_count_weight": len(raw_odt_options)
                 })
             
-            # 🎯 COO REVERSED SORT ARCHITECTURE: Group primarily descending on Max CBEs, then secondary ascending on calculated baseline tuition cost
+            # Sorted descending on Max CBE list length, ascending on regional tuition parameters
             card_rows = sorted(card_rows, key=lambda x: (-len(x["accepted_courses"]), x["cost_metric"]))
             
             for card in card_rows:
@@ -501,7 +506,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL
+    # STEP 5: GUIDED COURSE SUPPORT & ITEMIZED SCIENCE TIMEFRAME VALIDATION (COO ENGINE)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -510,9 +515,8 @@ with col_input_flow:
         odt_rules_string = card["odt_rules"]
         odt_notes_string = card.get("odt_notes", "")
         
-        # Pull outstanding deficiency array directly from master configuration checklist
         completed_courses = set(st.session_state["val_courses"])
-        needed_courses = [c for c in course_list if c not in completed_courses]
+        needed_deficiencies = [c for c in course_list if c not in completed_courses]
         
         if str(odt_notes_string).strip().lower() in ["", "nan", "--", "none"]:
             odt_notes_string = ""
@@ -524,12 +528,13 @@ with col_input_flow:
         if card["blanket"] and str(card["blanket"]).lower() not in ["", "nan", "--"]:
             st.info(f"📋 **Institutional Policy Notice:**\n\n{card['blanket']}")
             
-        student_selections_set = set(needed_courses)
-        user_possesses_sciences = not student_selections_set.isdisjoint(SCIENCE_COURSES_SET)
+        # Identify any overlapping sciences that the user has marked as already COMPLETED on Step 3
+        user_completed_sciences = [c for c in course_list if c in completed_courses and c in SCIENCE_COURSES_SET]
         
         is_force_locked, is_pre_checked_only, rule_threshold_years, rule_display_message = False, False, 99, ""
+        any_course_expired = False
         
-        if user_possesses_sciences and odt_notes_string and ":" in odt_notes_string:
+        if user_completed_sciences and odt_notes_string and ":" in odt_notes_string:
             try:
                 parts = odt_notes_string.split(":")
                 rule_threshold_years = int(parts[0].strip())
@@ -537,30 +542,47 @@ with col_input_flow:
                 rule_display_message = parts[2].strip()
                 
                 st.markdown("##### ⏳ Credit Recency Verification")
-                user_age_input = st.slider("How many years ago did you complete your core science credits?", min_value=0, max_value=25, value=st.session_state["science_years_elapsed"], key="science_slider")
-                st.session_state["science_years_elapsed"] = user_age_input
+                st.caption("Please indicate the completion timeframe for each of your previously completed science courses below:")
                 
-                if user_age_input > rule_threshold_years:
-                    if policy_type == "mandatory":
-                        is_force_locked = True
-                        st.session_state["science_credits_expired"] = True  
-                        st.error(f"🛑 **Strict Policy Cutoff Met:** {rule_display_message} Guided Course Support has been locked into your plan as a mandatory requirement.")
-                    elif policy_type == "recommended":
-                        is_pre_checked_only = True
-                        st.session_state["science_credits_expired"] = False
-                        st.warning(f"⚠️ **Regional Window Recommendation:** {rule_display_message} Support highly recommended.")
-                else:
-                    st.session_state["science_credits_expired"] = False
-                    st.success(f"✅ Verified: Your science credits are active ({user_age_input} years old), which safely falls within the school's approved {rule_threshold_years}-year recency window.")
+                # 🔄 COO CRITICAL REQUIREMENT: Separate loop processing maps a unique timeline slider for every completed science independently
+                for science_key in user_completed_sciences:
+                    friendly_name = SCIENCE_COURSES_LABEL_MAPPING.get(science_key, science_key)
+                    state_lookup_key = f"science_years_elapsed_{science_key}"
+                    
+                    if state_lookup_key not in st.session_state:
+                        st.session_state[state_lookup_key] = 1
+                        
+                    course_age_input = st.slider(
+                        f"How many years ago did you complete {friendly_name}?", 
+                        min_value=0, max_value=25, 
+                        value=st.session_state[state_lookup_key], 
+                        key=f"slider_act_{science_key}"
+                    )
+                    st.session_state[state_lookup_key] = course_age_input
+                    
+                    # Audit age values individually against the target university baseline rules threshold
+                    if course_age_input > rule_threshold_years:
+                        any_course_expired = True
+                        if policy_type == "mandatory":
+                            is_force_locked = True
+                        elif policy_type == "recommended":
+                            is_pre_checked_only = True
+                            
+                        # Surfacing the mandatory notification layout mandated by the COO framework
+                        st.error(f"🛑 Your {friendly_name} course was completed more than {rule_threshold_years} years ago. This may not meet the prerequisite recency requirements for this school and may require review by admissions or completion of a newer course.")
+                    else:
+                        st.success(f"✅ Verified: Your {friendly_name} foundation safely falls within the approved window matrix bounds.")
+                        
+                st.session_state["science_credits_expired"] = any_course_expired
             except Exception:
                 if odt_notes_string: st.info(odt_notes_string)
         else:
             st.session_state["science_credits_expired"] = False
-            if odt_notes_string and user_possesses_sciences:
+            if odt_notes_string and user_completed_sciences:
                 st.info(odt_notes_string)
 
         triggered_odt_options = [c.strip() for c in odt_rules_string.split(",")] if odt_rules_string and str(odt_rules_string).lower() not in ["", "nan", "--"] else []
-        triggered_odt_options = [c for c in triggered_odt_options if c in needed_courses]
+        triggered_odt_options = [c for c in triggered_odt_options if c in needed_deficiencies]
 
         if not triggered_odt_options:
             st.success("✅ Clean Path: No mandatory Guided Course Support tracks are required for this configuration.")
