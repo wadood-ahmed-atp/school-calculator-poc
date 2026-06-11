@@ -56,7 +56,7 @@ def initialize_base_states(force_reset=False):
         "val_gpa": 3.5, 
         "val_gpa_unknown": False,
         "val_lic": "None / Other",
-        "val_exp": None, 
+        "val_exp": None,                 # Clear integer defaults to map native placeholders safely
         "val_dismiss": "No",
         "val_dismiss_mos": None, 
         "val_travel": "Yes",
@@ -77,12 +77,14 @@ def initialize_base_states(force_reset=False):
         "exam_age_input_cache": 0,
         "expired_sciences_set": [],
         
-        # 🛡️ NEW ATTRIBUTES REQUIRED BY THE ACCREDITATION & GRADE SCHEMAS
         "attended_college_before": "No",
         "selected_prior_institutions": [],
         "institutions_accreditation_map": {},
         "is_transfer_eligible": True,
-        "course_grades_map": {}
+        "course_grades_map": {},
+        
+        # 🛡️ UPDATED CORE ATTRIBUTES FOR CONDITIONAL FREE-TEXT ROUTING
+        "other_school_custom_name": ""
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -144,7 +146,6 @@ def load_and_sanitize_source_data(schools_path, rules_path, accreditation_path):
         rules_df[col] = rules_df[col].astype(str).str.strip()
     rules_df.columns = rules_df.columns.str.strip()
     
-    # Ingest Accreditation Dataset securely using optimized projections
     accred_df = None
     if os.path.exists(accreditation_path):
         try:
@@ -283,7 +284,7 @@ with col_input_flow:
                         st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 2: PROFESSIONAL BACKGROUND & TRACK CHECK
+    # STEP 2: PROFESSIONAL BACKGROUND & EXPERIENCE WORKSPACE
     # --------------------------------------------------------------------------
     elif current_step == 2:
         st.subheader("Step 2: Professional Licensing & History")
@@ -293,7 +294,15 @@ with col_input_flow:
         i_lic = st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=LICENSE_OPTIONS.index(st.session_state["val_lic"]), disabled=is_finalized)
         i_exp = st.session_state["val_exp"]
         if i_lic == "LPN":
-            i_exp = st.number_input("Total months of active LPN Work Experience:", min_value=0, max_value=120, value=i_exp if i_exp is not None else 0, step=1, disabled=is_finalized)
+            # 🛠️ FIXED UX BUG: Use native placeholder mapping with value=None to eliminate 0-padding cursors
+            i_exp = st.number_input(
+                "Total months of active LPN Work Experience:", 
+                min_value=0, max_value=120, 
+                value=st.session_state["val_exp"], 
+                step=1, 
+                placeholder="Enter experience in months",
+                disabled=is_finalized
+            )
             
         i_dismiss = st.selectbox("Have you ever been dismissed from a nursing program in the past?", options=DISMISSAL_OPTIONS, index=DISMISSAL_OPTIONS.index(st.session_state["val_dismiss"]), disabled=is_finalized)
         i_dismiss_mos = st.session_state["val_dismiss_mos"]
@@ -315,7 +324,7 @@ with col_input_flow:
             y_col, n_col = st.columns(2)
             with y_col:
                 if st.button("Yes, review the BSN option", use_container_width=True, type="primary"):
-                    st.session_state.update({"val_lic": i_lic, "val_exp": int(i_exp) if i_exp else 0, "val_dismiss": i_dismiss, "val_dismiss_mos": int(i_dismiss_mos) if i_dismiss_mos else 0, "val_travel": i_travel, "val_track": "BSN", "wizard_step": 3})
+                    st.session_state.update({"val_lic": i_lic, "val_exp": i_exp, "val_dismiss": i_dismiss, "val_dismiss_mos": int(i_dismiss_mos) if i_dismiss_mos else 0, "val_travel": i_travel, "val_track": "BSN", "wizard_step": 3})
                     st.rerun()
             with n_col:
                 if st.button("No, thank you", use_container_width=True): st.warning("Reviewing local options...")
@@ -325,7 +334,7 @@ with col_input_flow:
             y_col, n_col = st.columns(2)
             with y_col:
                 if st.button("Yes, start with the ADN first", use_container_width=True, type="primary"):
-                    st.session_state.update({"val_lic": i_lic, "val_exp": int(i_exp) if i_exp else 0, "val_dismiss": i_dismiss, "val_dismiss_mos": int(i_dismiss_mos) if i_dismiss_mos else 0, "val_travel": i_travel, "val_track": "ASN", "wizard_step": 3})
+                    st.session_state.update({"val_lic": i_lic, "val_exp": i_exp, "val_dismiss": i_dismiss, "val_dismiss_mos": int(i_dismiss_mos) if i_dismiss_mos else 0, "val_travel": i_travel, "val_track": "ASN", "wizard_step": 3})
                     st.rerun()
             with n_col:
                 if st.button("No, thank you", use_container_width=True): st.warning("Reviewing local options...")
@@ -339,18 +348,20 @@ with col_input_flow:
                     st.rerun()
             with b_continue_col:
                 if st.button("Continue ➡️", use_container_width=True, type="primary"):
-                    st.session_state.update({"val_lic": i_lic, "val_exp": int(i_exp) if i_exp else 0, "val_dismiss": i_dismiss, "val_dismiss_mos": int(i_dismiss_mos) if i_dismiss_mos else 0, "val_travel": i_travel, "val_track": i_track, "wizard_step": 3})
-                    st.rerun()
+                    if i_lic == "LPN" and i_exp is None:
+                        st.error("⚠️ Work experience is required. Please populate your active experience in months to confirm track configurations.")
+                    else:
+                        st.session_state.update({"val_lic": i_lic, "val_exp": i_exp, "val_dismiss": i_dismiss, "val_dismiss_mos": int(i_dismiss_mos) if i_dismiss_mos else 0, "val_travel": i_travel, "val_track": i_track, "wizard_step": 3})
+                        st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: REGIONAL ACCREDITATION & TRANSCRIPT INGESTION PIPELINE
+    # STEP 3: REGIONAL ACCREDITATION & CONDITIONAL FREE-TEXT INPUT WORKSPACE
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Academic History & Institutional Accreditation")
         st.markdown("Please input details regarding your prior college attendance so we can calculate transfer mapping logic.")
         st.divider()
         
-        # 1. College Attendance Question
         q_attend = st.radio(
             "Have you attended college before?", 
             ["No", "Yes"], 
@@ -363,7 +374,6 @@ with col_input_flow:
             st.markdown("#### 🏫 Prior Institution Registry")
             st.caption("Select all universities or community colleges attended. You can search by keywords or select 'Other'.")
             
-            # Extract schools from Column D
             institution_pool = ["Other"]
             if regional_accreditation_df is not None:
                 institution_pool = sorted(list(regional_accreditation_df['INSTNM'].unique())) + ["Other"]
@@ -375,14 +385,28 @@ with col_input_flow:
             )
             st.session_state["selected_prior_institutions"] = selected_schools
             
-            # Resolve accreditation routing flags live based on rule maps
+            # 🛠️ ENHANCEMENT 1: Free-text fallback router triggers when 'Other' entry field token is appended
+            custom_school_name = st.session_state["other_school_custom_name"]
+            if "Other" in selected_schools:
+                custom_school_name = st.text_input(
+                    "Please enter the school name", 
+                    value=st.session_state["other_school_custom_name"],
+                    placeholder="Type unlisted college or training facility name here..."
+                ).strip()
+                st.session_state["other_school_custom_name"] = custom_school_name
+            else:
+                st.session_state["other_school_custom_name"] = ""
+            
+            # Process institutional registry lines to filter out unaccredited records
             has_regional = False
             has_national = False
             accred_map = {}
+            regional_accredited_schools_found = []
             
             for school in selected_schools:
                 if school == "Other":
-                    accred_map[school] = {"agency": "Other Provider", "type": "Nationally Accredited / Not Regionally Accredited"}
+                    reported_display_key = custom_school_name if custom_school_name else "Other Unlisted School"
+                    accred_map[reported_display_key] = {"agency": "Other Provider", "type": "Nationally Accredited / Not Regionally Accredited"}
                     has_national = True
                 else:
                     match_row = regional_accreditation_df[regional_accreditation_df['INSTNM'] == school]
@@ -394,6 +418,7 @@ with col_input_flow:
                         elif agency in REGIONAL_AGENCIES:
                             accred_map[school] = {"agency": agency, "type": "Regionally Accredited"}
                             has_regional = True
+                            regional_accredited_schools_found.append(school)
                         else:
                             accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
                             has_national = True
@@ -403,23 +428,20 @@ with col_input_flow:
                         
             st.session_state["institutions_accreditation_map"] = accred_map
             
-            # Establish dynamic processing eligibility blocks
+            # Establish absolute binary baseline for course checklist exposure
             if selected_schools:
-                if has_regional and not has_national:
+                if has_regional:
                     st.session_state["is_transfer_eligible"] = True
-                    st.success("✅ Regional Accreditation Confirmed. Your coursework is fully eligible for transcript mapping review.")
-                elif has_regional and has_national:
-                    st.session_state["is_transfer_eligible"] = True
-                    st.warning("⚠️ Mixed Accreditation Detected. Transfer credit eligibility evaluation will skip national course records and apply only to regionally accredited coursework.")
                 else:
                     st.session_state["is_transfer_eligible"] = False
             else:
                 st.session_state["is_transfer_eligible"] = False
                 
-            # If eligible for transfer, capture course validations and score grade parameters
-            if st.session_state["is_transfer_eligible"]:
+            # 🛠️ ENHANCEMENT 2: Dynamic validation routing displays checkboxes ONLY if a regional provider is logged
+            if selected_schools and st.session_state["is_transfer_eligible"]:
                 st.divider()
                 st.markdown("#### 🧬 Completed Coursework & Grade Validation")
+                st.info(f"🎓 **Accreditation Filter Enabled:** Evaluation mapping grids are unlocked **only** for coursework completed at your Regionally Accredited selection(s): `{', '.join(regional_accredited_schools_found)}`.")
                 st.markdown("Select any general education or prerequisite courses you have already completed:")
                 
                 btn_all_col, btn_clear_col, btn_spacer = st.columns([1.2, 1.2, 3.0])
@@ -456,7 +478,6 @@ with col_input_flow:
                                 st.session_state["val_courses"] = list(current_selections)
                                 st.rerun()
                                 
-                # Capture itemized grade audits for all toggled credits
                 if st.session_state["val_courses"]:
                     st.markdown("<br>##### 🏅 Course Grade Assignments")
                     st.caption("A minimum grade of C is required for transfer credit consideration.")
@@ -468,9 +489,16 @@ with col_input_flow:
                         
                         if chosen_g in ["D", "F"]:
                             st.error(f"❌ To receive transfer credit consideration for this course, a minimum grade of C is required. Based on the information provided, {course} may not be eligible for transfer.")
+            
+            elif selected_schools and not st.session_state["is_transfer_eligible"]:
+                st.divider()
+                st.markdown("#### 🧬 Completed Coursework Evaluation Skipped")
+                st.warning("⚠️ **Transfer Warning:** Based on your inputs, you have selected only unaccredited or nationally certified entities. Course-level evaluations cannot be provided.")
+                st.session_state["val_courses"] = []
+                st.session_state["course_grades_map"] = {}
         else:
-            # If lead hasn't attended college, clear data records automatically
             st.session_state["selected_prior_institutions"] = []
+            st.session_state["other_school_custom_name"] = ""
             st.session_state["institutions_accreditation_map"] = {}
             st.session_state["val_courses"] = []
             st.session_state["course_grades_map"] = {}
@@ -494,6 +522,8 @@ with col_input_flow:
             if st.button("Find Matches ➡️", use_container_width=True, type="primary"):
                 if q_attend == "Yes" and not st.session_state["selected_prior_institutions"]:
                     st.warning("⚠️ Please select at least one institution or choose 'No' to prior attendance.")
+                elif q_attend == "Yes" and "Other" in st.session_state["selected_prior_institutions"] and not st.session_state["other_school_custom_name"]:
+                    st.error("🛑 **Validation Error:** Please enter the school name to save your 'Other' institution selection profile before continuing.")
                 else:
                     st.session_state["wizard_step"] = 4
                     st.rerun()
@@ -504,7 +534,6 @@ with col_input_flow:
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
         
-        # 6. Required User Disclosure for non-regionally accredited schools
         if st.session_state["attended_college_before"] == "Yes" and not st.session_state["is_transfer_eligible"]:
             st.error("The school(s) you attended are not regionally accredited. Based on current transfer policies, coursework from these institutions generally cannot be transferred toward the programs we evaluate. Because of this, we will not ask you additional questions about your completed coursework.")
             st.info("ℹ️ Proceeding with lead match profile layout using full base deficiencies parameters.")
@@ -515,13 +544,13 @@ with col_input_flow:
         user_state = str(st.session_state["val_state"]).strip().lower()
         selected_track = str(st.session_state["val_track"]).strip().lower()
         license_type = st.session_state["val_lic"]
-        lpn_exp = int(st.session_state["val_exp"]) if st.session_state["val_exp"] is not None else 0
+        lpn_exp = st.session_state["val_exp"]
+        lpn_exp_val = int(lpn_exp) if lpn_exp is not None else 0
         gpa_val = round(float(st.session_state["val_gpa"]), 1)
         travel_ok = st.session_state["val_travel"]
         dismissal_y = (st.session_state["val_dismiss"] == "Yes")
         dismissal_months = int(st.session_state["val_dismiss_mos"]) if st.session_state["val_dismiss_mos"] is not None else 0
         
-        # Build clean final deficiency lists applying regional grade cutoff logic
         completed_courses = set()
         if st.session_state["is_transfer_eligible"]:
             for course in st.session_state["val_courses"]:
@@ -541,7 +570,7 @@ with col_input_flow:
             working_schools_df = working_schools_df[working_schools_df["LPN Required?"].astype(str).str.lower().str.strip() != "y"]
         if "Min Work Experience Required (mos)" in working_schools_df.columns:
             working_schools_df["Min Work Experience Required (mos)"] = pd.to_numeric(working_schools_df["Min Work Experience Required (mos)"], errors='coerce').fillna(0)
-            working_schools_df = working_schools_df[working_schools_df["Min Work Experience Required (mos)"] <= lpn_exp]
+            working_schools_df = working_schools_df[working_schools_df["Min Work Experience Required (mos)"] <= lpn_exp_val]
         if "Min GPA" in working_schools_df.columns:
             working_schools_df["Min GPA"] = pd.to_numeric(working_schools_df["Min GPA"], errors='coerce').fillna(0.0)
             working_schools_df = working_schools_df[working_schools_df["Min GPA"] <= gpa_val]
@@ -657,7 +686,6 @@ with col_input_flow:
         odt_rules_string = card["odt_rules"]
         odt_notes_string = card.get("odt_notes", "")
         
-        # 5. Skip transfer evaluation rules entirely for Non-Regionally Accredited tracks
         is_skipping_evaluation = (st.session_state["attended_college_before"] == "Yes" and not st.session_state["is_transfer_eligible"])
         
         completed_courses = set()
@@ -684,7 +712,6 @@ with col_input_flow:
         any_course_expired = False
         expired_sciences_this_run = []
         
-        # Only evaluate timeline metrics if school accreditation parameters are unlocked
         if not is_skipping_evaluation and user_completed_sciences and odt_notes_string and ":" in odt_notes_string:
             try:
                 parts = odt_notes_string.split(":")
@@ -1014,7 +1041,6 @@ if col_ledger_flow is not None:
         active_school = st.session_state["active_school_view"]
         school_name = active_school["name"]
         
-        # 🚀 FIX RESOLVED: Re-evaluate deficiency vectors inside local ledger scope
         completed_courses = set()
         if st.session_state["is_transfer_eligible"]:
             for course in st.session_state["val_courses"]:
