@@ -305,16 +305,18 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: PREREQUISITE BUTTON SELECTION GRID
+    # STEP 3: PREREQUISITE BUTTON SELECTION GRID (INVERTED WORKFLOW BASED ON COMPLETIONS)
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Prerequisite Review")
-        st.markdown("Select any general education or prerequisite courses you still need to complete:")
+        
+        # 🔄 INVERTED INTERFACE WORKSPACE: Prompts for already taken items
+        st.markdown("Select any general education or prerequisite courses you have already completed:")
         st.divider()
         
         btn_all_col, btn_clear_col, btn_spacer = st.columns([1.2, 1.2, 3.0])
         with btn_all_col:
-            if st.button("Select All Prerequisites", use_container_width=True):
+            if st.button("Select All Completed", use_container_width=True):
                 st.session_state["val_courses"] = list(course_list)
                 st.rerun()
         with btn_clear_col:
@@ -361,14 +363,14 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL SCHOOL MATCHES 
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (INVERTED MATCHING & BASE TUITION MULTI-SORT ENGINE)
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
         st.info(f"🎯 Current Selected Track: **{st.session_state['val_track']}** program options")
         st.divider()
         
-        selected_state = str(st.session_state["val_state"]).strip().lower()
+        user_state = str(st.session_state["val_state"]).strip().lower()
         selected_track = str(st.session_state["val_track"]).strip().lower()
         license_type = st.session_state["val_lic"]
         lpn_exp = int(st.session_state["val_exp"]) if st.session_state["val_exp"] is not None else 0
@@ -376,14 +378,17 @@ with col_input_flow:
         travel_ok = st.session_state["val_travel"]
         dismissal_y = (st.session_state["val_dismiss"] == "Yes")
         dismissal_months = int(st.session_state["val_dismiss_mos"]) if st.session_state["val_dismiss_mos"] is not None else 0
-        needed_courses = st.session_state["val_courses"]
+        
+        # 🔄 INVERTED Logic: Outstanding classes are those left UNSELECTED on Step 3
+        completed_courses = set(st.session_state["val_courses"])
+        needed_deficiencies = [c for c in course_list if c not in completed_courses]
 
         working_schools_df = master_schools_df.copy()
         
         if "ASN/BSN" in working_schools_df.columns:
             working_schools_df = working_schools_df[working_schools_df["ASN/BSN"].str.lower().str.strip() == selected_track]
         if "States Accepted" in working_schools_df.columns:
-            working_schools_df = working_schools_df[working_schools_df["States Accepted"].str.lower().str.contains(selected_state, na=False)]
+            working_schools_df = working_schools_df[working_schools_df["States Accepted"].str.lower().str.contains(user_state, na=False)]
         if "LPN Required?" in working_schools_df.columns and license_type in ["None", "None / Other"]:
             working_schools_df = working_schools_df[working_schools_df["LPN Required?"].astype(str).str.lower().str.strip() != "y"]
         if "Min Work Experience Required (mos)" in working_schools_df.columns:
@@ -408,6 +413,8 @@ with col_input_flow:
                 s_blanket = str(school_row.get("Blanket Statement", "")).strip()
                 s_odt_rules = str(school_row.get("Science/Math ODTs", "")).strip()
                 s_odt_notes = str(school_row.get("Science/Math ODT Notes", "")).strip()
+                s_state = str(school_row.get("School State", "")).strip().lower()
+                s_county = str(school_row.get("County", "")).strip().lower()
                 
                 if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
                     rule_row = transcript_rules_df[transcript_rules_df["School Name"].str.upper().str.contains("HERZ|HERI", na=False)]
@@ -420,7 +427,8 @@ with col_input_flow:
                 has_all_courses = True
                 
                 if not rule_row.empty:
-                    for required_course in needed_courses:
+                    # Cross-reference outstanding definitions against allowed credit-by-exam tables
+                    for required_course in needed_deficiencies:
                         if required_course == "Government History":
                             if str(rule_row['Government'].values[0]).strip().upper() == "Y" or str(rule_row['History'].values[0]).strip().upper() == "Y":
                                 school_accepted_list.append(required_course)
@@ -430,23 +438,37 @@ with col_input_flow:
                             if check_course in rule_row.columns and str(rule_row[check_course].values[0]).strip().upper() == "Y":
                                 school_accepted_list.append(required_course)
                             else: has_all_courses = False
-                    s_status = "Perfect Match" if (not needed_courses or has_all_courses) else "Missing Needed CBE Courses"
+                    s_status = "Perfect Match" if (not needed_deficiencies or has_all_courses) else "Missing Needed CBE Courses"
                 else:
                     s_status = "Perfect Match"
-                    school_accepted_list = list(needed_courses)
+                    school_accepted_list = list(needed_deficiencies)
                 
-                raw_odt_options = [c.strip() for c in s_odt_rules.split(",")] if s_odt_rules and str(s_odt_rules).lower() not in ["", "nan", "--"] else []
-                raw_odt_options = [c for c in raw_odt_options if c in school_accepted_list]
+                # Dynamic pricing resolver maps to correct regional column headers
+                try:
+                    inc_fee = int(school_row.get("In-County Tuition", 99999))
+                    ins_fee = int(school_row.get("In-StateTuition", 99999))
+                    out_fee = int(school_row.get("Out-of-State Tuition", 99999))
+                except ValueError:
+                    inc_fee, ins_fee, out_fee = 99999, 99999, 99999
+                
+                # Check geographic filters to map the baseline cost metric
+                if s_county and s_county in str(st.session_state["val_zip"]).strip().lower():
+                    base_cost_metric = inc_fee
+                elif s_state == user_state:
+                    base_cost_metric = ins_fee
+                else:
+                    base_cost_metric = out_fee
                 
                 unique_hash_id = f"sch_{idx}_{re.sub(r'[^a-zA-Z0-9]', '_', raw_name)}"
                 card_rows.append({
                     "id": unique_hash_id, "idx": idx, "name": raw_name, "exam": s_exam, "notes": s_notes,
                     "blanket": s_blanket, "odt_rules": s_odt_rules, "odt_notes": s_odt_notes,
                     "track": school_row["ASN/BSN"], "status": s_status, "accepted_courses": school_accepted_list,
-                    "odt_count_weight": len(raw_odt_options)
+                    "cost_metric": base_cost_metric
                 })
             
-            card_rows = sorted(card_rows, key=lambda x: (len(x["accepted_courses"]), -x["odt_count_weight"]), reverse=True)
+            # 🎯 COO REVERSED SORT ARCHITECTURE: Group primarily descending on Max CBEs, then secondary ascending on calculated baseline tuition cost
+            card_rows = sorted(card_rows, key=lambda x: (-len(x["accepted_courses"]), x["cost_metric"]))
             
             for card in card_rows:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
@@ -479,7 +501,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL (ODT FILTER RESOLVED)
+    # STEP 5: DYNAMIC GUIDED COURSE SUPPORT TERMINAL
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -488,8 +510,9 @@ with col_input_flow:
         odt_rules_string = card["odt_rules"]
         odt_notes_string = card.get("odt_notes", "")
         
-        # 🚀 FIX: Pull parameters directly from master session memory cache instead of the isolated accepted_courses array
-        needed_courses = st.session_state["val_courses"]
+        # Pull outstanding deficiency array directly from master configuration checklist
+        completed_courses = set(st.session_state["val_courses"])
+        needed_courses = [c for c in course_list if c not in completed_courses]
         
         if str(odt_notes_string).strip().lower() in ["", "nan", "--", "none"]:
             odt_notes_string = ""
@@ -743,7 +766,7 @@ if col_ledger_flow is not None:
         school_name = active_school["name"]
         
         triggered_odt_options = [c.strip() for c in str(active_school.get("odt_rules", "")).split(",")] if active_school.get("odt_rules") else []
-        triggered_odt_options = [c for c in triggered_odt_options if c in st.session_state["val_courses"]]
+        triggered_odt_options = [c for c in triggered_odt_options if c in needed_courses]
         
         if st.session_state.get("science_credits_expired") and triggered_odt_options:
             active_odts = list(set(triggered_odt_options))
