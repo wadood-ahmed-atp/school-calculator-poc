@@ -73,7 +73,8 @@ def initialize_base_states(force_reset=False):
         "val_exam_passed_status": "No",
         "modal_include_nclex_prep": True,          
         "nclex_prep_manually_toggled": False,
-        "science_credits_expired": False          
+        "science_credits_expired": False,
+        "exam_age_input_cache": 0 # Safe tracking vault for dynamic entrance timeline values
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -175,7 +176,6 @@ course_mapping_bridge = {
     "Pathophysiology": "Pathophysiology"
 }
 
-# 🧬 MASTER AUDIT TARGETS: Comprehensive index mapping to all possible core foundational sciences
 SCIENCE_COURSES_SET = {"Biology", "Chemistry", "Microbiology", "AP1", "AP2"}
 SCIENCE_COURSES_LABEL_MAPPING = {
     "AP1": "Anatomy & Physiology I (A&P I)",
@@ -312,7 +312,7 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: PREREQUISITE BUTTON SELECTION GRID (COMPLETED TRANSCRIPT TRACKING)
+    # STEP 3: PREREQUISITE BUTTON SELECTION GRID
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Foundational Prerequisite Review")
@@ -368,7 +368,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (MAX CBE & TUITION SORT PIPELINE)
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
@@ -384,7 +384,6 @@ with col_input_flow:
         dismissal_y = (st.session_state["val_dismiss"] == "Yes")
         dismissal_months = int(st.session_state["val_dismiss_mos"]) if st.session_state["val_dismiss_mos"] is not None else 0
         
-        # Inverted processing resolves unselected button profiles as deficiencies to test out of
         completed_courses = set(st.session_state["val_courses"])
         needed_deficiencies = [c for c in course_list if c not in completed_courses]
 
@@ -472,7 +471,6 @@ with col_input_flow:
                     "cost_metric": base_cost_metric, "odt_count_weight": len(raw_odt_options)
                 })
             
-            # Sorted descending on Max CBE list length, ascending on regional tuition parameters
             card_rows = sorted(card_rows, key=lambda x: (-len(x["accepted_courses"]), x["cost_metric"]))
             
             for card in card_rows:
@@ -506,7 +504,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: GUIDED COURSE SUPPORT & ITEMIZED SCIENCE TIMEFRAME VALIDATION (COO ENGINE)
+    # STEP 5: GUIDED COURSE SUPPORT & ITEMIZED SCIENCE TIMEFRAME VALIDATION
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -528,7 +526,6 @@ with col_input_flow:
         if card["blanket"] and str(card["blanket"]).lower() not in ["", "nan", "--"]:
             st.info(f"📋 **Institutional Policy Notice:**\n\n{card['blanket']}")
             
-        # Identify any overlapping sciences that the user has marked as already COMPLETED on Step 3
         user_completed_sciences = [c for c in course_list if c in completed_courses and c in SCIENCE_COURSES_SET]
         
         is_force_locked, is_pre_checked_only, rule_threshold_years, rule_display_message = False, False, 99, ""
@@ -544,7 +541,6 @@ with col_input_flow:
                 st.markdown("##### ⏳ Credit Recency Verification")
                 st.caption("Please indicate the completion timeframe for each of your previously completed science courses below:")
                 
-                # 🔄 COO CRITICAL REQUIREMENT: Separate loop processing maps a unique timeline slider for every completed science independently
                 for science_key in user_completed_sciences:
                     friendly_name = SCIENCE_COURSES_LABEL_MAPPING.get(science_key, science_key)
                     state_lookup_key = f"science_years_elapsed_{science_key}"
@@ -560,7 +556,6 @@ with col_input_flow:
                     )
                     st.session_state[state_lookup_key] = course_age_input
                     
-                    # Audit age values individually against the target university baseline rules threshold
                     if course_age_input > rule_threshold_years:
                         any_course_expired = True
                         if policy_type == "mandatory":
@@ -568,7 +563,6 @@ with col_input_flow:
                         elif policy_type == "recommended":
                             is_pre_checked_only = True
                             
-                        # Surfacing the mandatory notification layout mandated by the COO framework
                         st.error(f"🛑 Your {friendly_name} course was completed more than {rule_threshold_years} years ago. This may not meet the prerequisite recency requirements for this school and may require review by admissions or completion of a newer course.")
                     else:
                         st.success(f"✅ Verified: Your {friendly_name} foundation safely falls within the approved window matrix bounds.")
@@ -620,12 +614,13 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE
+    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (DYNAMIC MULTI-RULE AGE GATING FIXED)
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
         school_name = card["name"]
         school_exam_type = card["exam"]
+        raw_exam_rules = str(card.get("notes", "")).strip()
         
         st.subheader(f"Step 6: Reviewing Entrance Testing Requirements")
         st.markdown(f"Configuring standard entrance benchmarks for targeted program path: **{school_name}**")
@@ -663,18 +658,98 @@ with col_input_flow:
                     on_change=sync_exam_prep_state_callback
                 )
             else:
-                st.session_state["modal_include_exam_prep"] = False
+                # 🛠️ GENERIC DETERMINISTIC RULES ENGINE: Tokenizes metadata blocks seamlessly from schools.csv arrays
+                has_age_restriction = False
+                age_threshold_years = 99
+                age_question_string = "How many years ago did you sit for this entrance examination?"
+                fail_remediation_label = f"{school_exam_type} Prep Course"
                 
+                # Split raw definitions by pipeline character boundaries
+                if raw_exam_rules and raw_exam_rules != "nan":
+                    rule_tokens = raw_exam_rules.split("|")
+                    for token in rule_tokens:
+                        token = token.strip()
+                        if token.lower().startswith("age:"):
+                            try:
+                                # Parsing pattern maps directly to age:Threshold:Question layout
+                                age_segments = token.split(":")
+                                age_threshold_years = int(age_segments[1].strip())
+                                age_question_string = age_segments[2].strip()
+                                has_age_restriction = True
+                            except (ValueError, IndexError):
+                                pass
+                
+                # Render continuous parameters sequentially to guarantee zero logic bypassing
                 st.text_input(
-                    f"Enter your official **{school_exam_type}** score (Higher score tracks indicate accelerated admission priority thresholds):", 
+                    f"Enter your official **{school_exam_type}** numerical score percentage:", 
                     value=st.session_state["modal_score_logged"], 
-                    placeholder="Enter official percentage score", 
+                    placeholder="e.g. 78.5", 
                     key="step6_score_live_key",
                     on_change=sync_entrance_score_callback
                 )
                 
-                if st.session_state["modal_score_logged"]:
-                    st.success("✅ Analytical score logged successfully to applicant tracking profile matrix.")
+                score_str = st.session_state["modal_score_logged"]
+                
+                if score_str:
+                    try:
+                        parsed_score = float(score_str)
+                        is_score_passing = True
+                        matched_action_text = ""
+                        
+                        # Dynamic boundary parsing determines if score triggers failure remediation
+                        if raw_exam_rules and raw_exam_rules != "nan":
+                            rule_tokens = raw_exam_rules.split("|")
+                            for token in rule_tokens:
+                                token = token.strip()
+                                if ":" in token and not token.lower().startswith("age:"):
+                                    parts = token.split(":")
+                                    range_part = parts[0].strip()
+                                    status_part = parts[1].strip().lower()
+                                    
+                                    if "–" in range_part or "-" in range_part:
+                                        range_part = range_part.replace("–", "-")
+                                        bounds = range_part.split("-")
+                                        low_b = float(bounds[0].strip())
+                                        high_b = float(bounds[1].strip())
+                                        if low_b <= parsed_score <= high_b:
+                                            matched_action_text = parts[2].strip() if len(parts) > 2 else ""
+                                            if status_part == "fail":
+                                                is_score_passing = False
+                                    elif range_part.endswith("+"):
+                                        low_b = float(range_part.replace("+", "").strip())
+                                        if parsed_score >= low_b:
+                                            matched_action_text = parts[2].strip() if len(parts) > 2 else ""
+                                            if status_part == "fail":
+                                                is_score_passing = False
+                        
+                        # Process cascading criteria sequentially without giving bypassing authority to high scores
+                        if not is_score_passing:
+                            st.session_state["modal_include_exam_prep"] = True
+                            st.error(f"🛑 **Exam Remediation Mandatory:** Your score falls below the required threshold bracket. We have attached the recommended **{matched_action_text or fail_remediation_label}** to your plan layout.")
+                        else:
+                            st.session_state["modal_include_exam_prep"] = False
+                            st.success(f"✅ Pass Threshold Met: Score criteria verified successfully.")
+                            
+                        # Evaluate age rules, ensuring passing scores do not bypass or override validation logic
+                        if has_age_restriction:
+                            st.markdown("---")
+                            st.markdown("##### ⏳ Testing Currency Guardrail")
+                            user_exam_age = st.slider(
+                                age_question_string,
+                                min_value=0, max_value=15,
+                                value=int(st.session_state["exam_age_input_cache"]),
+                                key="live_entrance_exam_age_slider"
+                            )
+                            st.session_state["exam_age_input_cache"] = user_exam_age
+                            
+                            if user_exam_age > age_threshold_years:
+                                st.session_state["modal_include_exam_prep"] = True
+                                st.error(f"⚠️ **Exam Age Requirement Exceeded:** Your exam certificate is older than the institution's accepted {age_threshold_years}-year cutoff limit. Testing criteria cannot be treated as valid, and an automated remediation track has been added to your checkout bill.")
+                            else:
+                                if is_score_passing:
+                                    st.success(f"✅ Full Testing Validation Unlocked: Both score brackets and age windows are confirmed compliant.")
+                    except ValueError:
+                        st.warning("⚠️ Please input a valid numerical score representation to compile tracking matrices.")
 
         st.divider()
         b_back_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
@@ -741,7 +816,7 @@ with col_input_flow:
                 st.markdown(f"**Target Institution Path:** `{card['name']}`")
                 
                 if card['exam'] != "--" and st.session_state["modal_score_logged"]:
-                    exam_status_txt = f"✓ Analytics Score Logged: {st.session_state['modal_score_logged']}% (Accelerated Admissions Entry Track)"
+                    exam_status_txt = f"✓ Analytics Score Logged: {st.session_state['modal_score_logged']}%"
                 else:
                     exam_status_txt = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
                     
