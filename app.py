@@ -354,7 +354,7 @@ with col_input_flow:
                         st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: REGIONAL ACCREDITATION & TRANSCRIPT INGESTION PIPELINE
+    # STEP 3: REGIONAL ACCREDITATION & PRIOR TRANSCRIPT INGESTION PIPELINE
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Academic History & Institutional Accreditation")
@@ -708,11 +708,13 @@ with col_input_flow:
         any_course_expired = False
         expired_sciences_this_run = []
         
-        # 🛠️ SELF-HEALING CONFIGURATION DECODER: Gracefully normalizes spacing thresholds directly into RAM
-        if odt_notes_string and ":" in odt_notes_string:
+        if "CHAMBERLAIN" in str(school_name).upper():
+            rule_threshold_years = 5
+            policy_type = "mandatory"
+            odt_notes_string = "5:mandatory:Enforced baseline"
+        elif odt_notes_string and ":" in odt_notes_string:
             try:
                 parts = odt_notes_string.split(":")
-                # Extract numeric fields safely while stripping away formatting leaks or text padding
                 rule_threshold_years = int(re.sub(r"[^\d]", "", parts[0].strip()))
                 policy_type = parts[1].strip().lower()
                 rule_display_message = parts[2].strip()
@@ -723,7 +725,6 @@ with col_input_flow:
             rule_threshold_years = 99
             policy_type = "none"
 
-        # Dynamically build a strict whitelist dictionary using sanitized upper-case string indices
         allowed_recency_sciences_whitelist = set()
         if odt_rules_string and str(odt_rules_string).lower() not in ["", "nan", "--"]:
             allowed_recency_sciences_whitelist = {c.strip().upper() for c in odt_rules_string.split(",")}
@@ -733,7 +734,6 @@ with col_input_flow:
             st.caption(f"University Registry Policy Cutoff Enforced: Core prerequisites cannot be older than {rule_threshold_years} years.")
             
             for science_key in user_completed_sciences:
-                # Validate course code alignment across registries securely
                 if science_key.upper() in allowed_recency_sciences_whitelist:
                     friendly_name = SCIENCE_COURSES_LABEL_MAPPING.get(science_key, science_key)
                     state_lookup_key = f"science_years_elapsed_{science_key}"
@@ -749,7 +749,6 @@ with col_input_flow:
                     )
                     st.session_state[state_lookup_key] = course_age_input
                     
-                    # 🎯 CORE FIX IMPLEMENTED: Read directly from user active runtime index slots to freeze cross-bleed state updates
                     if int(st.session_state[state_lookup_key]) > rule_threshold_years:
                         any_course_expired = True
                         expired_sciences_this_run.append(science_key)
@@ -1117,8 +1116,18 @@ if col_ledger_flow is not None:
         final_total = max(0, (base_total + total_odt_fees) - credits_sum)
 
         st.divider()
-        st.markdown(f"**Gross Base Tuition:** `${base_total:,}`")
-        st.caption(f"({len(final_cbe_clean_list)} Gen-Eds, {extra_exam_count} Entrance Prep, & {extra_nclex_count} Exit Prep at ${int(prep_rate):,} each)")
+        st.markdown(f"**Gross Base Tuition Breakdown:**")
+        
+        # 🎯 FIX IMPLEMENTED: Explicit receipt rendering loops print items natively on the bill text column
+        if final_cbe_clean_list:
+            st.markdown(f"📝 *Prerequisite Prep ({len(final_cbe_clean_list)}):* `${int(len(final_cbe_clean_list) * prep_rate):,}`")
+        if extra_exam_count > 0:
+            st.markdown(f"🔒 *{active_school['exam']} Entrance Prep (1):* `${int(prep_rate):,}`")
+        if extra_nclex_count > 0:
+            st.markdown(f"🎓 *NCLEX-RN Board Exit Review (1):* `${int(prep_rate):,}`")
+            
+        st.markdown(f"**Total Base Tuition:** `${base_total:,}`")
+        st.caption(f"(Calculated flat item tier rate of ${int(prep_rate):,} each across {total_products - len(active_odts)} core modules)")
         
         if total_odt_fees > 0:
             st.markdown(f"➕ **Guided Course Support ({len(active_odts)}):** `${total_odt_fees:,}`")
