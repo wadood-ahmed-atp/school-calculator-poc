@@ -75,7 +75,7 @@ def initialize_base_states(force_reset=False):
         "nclex_prep_manually_toggled": False,
         "science_credits_expired": False,
         "exam_age_input_cache": 0,
-        "expired_sciences_set": [] # Explicit register to store specific items failing timeline audits
+        "expired_sciences_set": [] 
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -505,7 +505,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: GUIDED COURSE SUPPORT & ALTERNATIVE ODT RECOMMENDATION GATING
+    # STEP 5: GUIDED COURSE SUPPORT & BIFURCATED MANDATORY REMEDIATION LAYOUT
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -550,7 +550,6 @@ with col_input_flow:
                     if state_lookup_key not in st.session_state:
                         st.session_state[state_lookup_key] = 1
                         
-                    # 🔄 COO CRITICAL REQUIREMENT B: Collect timeline utilizing exact specified layout statement
                     course_age_input = st.slider(
                         f"How many years ago did you complete your {friendly_name} course?", 
                         min_value=0, max_value=25, 
@@ -566,28 +565,20 @@ with col_input_flow:
                             is_force_locked = True
                         elif policy_type == "recommended":
                             is_pre_checked_only = True
-                            
-                        # 🛑 EXPLICIT COO CON-CURRENT REDIRECT INFRASTRUCTURE: Notifies that CBE is invalid and redirects toward ODT alternate channels
-                        st.error(f"🛑 Based on this school's requirements, your {friendly_name} course falls outside the accepted timeframe. This school does not accept a CBE for {friendly_name}, but you may be able to take an ODT instead.")
-                    else:
-                        st.success(f"✅ Verified: Your {friendly_name} foundation safely falls within the approved window matrix bounds.")
-                        
-                st.session_state["science_credits_expired"] = any_course_expired
-                st.session_state["expired_sciences_set"] = expired_sciences_this_run
             except Exception:
-                if odt_notes_string: st.info(odt_notes_string)
-        else:
-            st.session_state["science_credits_expired"] = False
-            st.session_state["expired_sciences_set"] = []
-            if odt_notes_string and user_completed_sciences:
-                st.info(odt_notes_string)
+                pass
 
-        # Re-build ODT collection options dynamically, mapping any expired test-out capabilities straight into the support bundles loop
+        st.session_state["science_credits_expired"] = any_course_expired
+        st.session_state["expired_sciences_set"] = expired_sciences_this_run
+
+        # Map complete global database records into active pools
         triggered_odt_options = [c.strip() for c in odt_rules_string.split(",")] if odt_rules_string and str(odt_rules_string).lower() not in ["", "nan", "--"] else []
-        
-        # Explicit loop compilation unions true deficiencies with newly invalidated expired structures
         active_odt_pool = set(needed_deficiencies).union(set(st.session_state["expired_sciences_set"]))
         triggered_odt_options = [c for c in triggered_odt_options if c in active_odt_pool]
+
+        # 🔮 BIFURCATION SPLIT ENGINE: Segregates true mandatory lock-ins from customizable electives
+        mandatory_remediation_items = [c for c in triggered_odt_options if c in st.session_state["expired_sciences_set"] or is_force_locked]
+        elective_support_items = [c for c in triggered_odt_options if c not in mandatory_remediation_items]
 
         if not triggered_odt_options:
             st.success("✅ Clean Path: No mandatory Guided Course Support tracks are required for this configuration.")
@@ -596,23 +587,33 @@ with col_input_flow:
             if st.session_state.get("odt_hydrated_for_school") != school_id:
                 st.session_state.update({"selected_odts": list(triggered_odt_options), "odt_hydrated_for_school": school_id})
                 
-            st.markdown("#### 🎓 Recommended Support Bundles")
-            st.markdown("The following courses cannot be bypassed via exam. Please choose support options to include:")
-            
-            chosen_odts = []
-            current_selections_set = set(st.session_state["selected_odts"])
-            
-            for formal_course in triggered_odt_options:
-                # Force lock the support selection into the checkout layout if policy cutoff thresholds are violated
-                if is_force_locked or formal_course in st.session_state["expired_sciences_set"]:
-                    st.checkbox(formal_course, value=True, disabled=True, key=f"odt_fz_{formal_course}")
-                    chosen_odts.append(formal_course)
-                else:
+            # 📌 BLOCK A: Rendering text-based institutional requirements with absolute clarity
+            if mandatory_remediation_items:
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("### 📌 Required Institutional Track Modalities")
+                st.caption("The following courses are locked requirements on your path based on university-enforced recency policy limits:")
+                
+                for formal_course in mandatory_remediation_items:
+                    friendly_name = SCIENCE_COURSES_LABEL_MAPPING.get(formal_course, formal_course)
+                    st.error(f"🛑 **{friendly_name}:** Based on this school's requirements, your course credit falls outside the accepted timeframe. This school does not accept a CBE for {friendly_name}, meaning an On-Demand Tutoring (ODT) semester support module is required and has been automatically attached to your enrollment balance ledger.")
+
+            # 🎓 BLOCK B: Rendering interactive checkboxes ONLY for true electives
+            if elective_support_items:
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("### 🎓 Optional Enrichment Support Bundles")
+                st.markdown("Please choose any remaining optional support options you would like to include in your preparation plan:")
+                
+                chosen_odts = list(mandatory_remediation_items)
+                current_selections_set = set(st.session_state["selected_odts"])
+                
+                for formal_course in elective_support_items:
                     was_checked = formal_course in current_selections_set or is_pre_checked_only
                     if st.checkbox(formal_course, value=was_checked, key=f"odt_act_{formal_course}"):
                         chosen_odts.append(formal_course)
-            
-            st.session_state["selected_odts"] = chosen_odts if not is_force_locked else list(set(chosen_odts).union(current_selections_set))
+                        
+                st.session_state["selected_odts"] = chosen_odts
+            else:
+                st.session_state["selected_odts"] = list(mandatory_remediation_items)
 
         st.divider()
         b_back_col, b_spacer, b_continue_col = st.columns([1.0, 1.5, 1.0])
@@ -839,7 +840,6 @@ with col_input_flow:
             col_cbe, col_odt = st.columns(2, gap="large")
             
             with col_cbe:
-                # Filter final list to remove items that expired on Step 5
                 final_cbe_clean_list = [c for c in card["accepted_courses"] if c not in st.session_state.get("expired_sciences_set", [])]
                 st.markdown(f"##### 🔹 Prerequisites via Credit-by-Exam ({len(final_cbe_clean_list)})")
                 if final_cbe_clean_list:
@@ -866,8 +866,6 @@ if col_ledger_flow is not None:
         st.subheader("🛒 Final Checkout Receipt")
         
         active_school = st.session_state["active_school_view"]
-        
-        # Pull clean final count minus newly invalidated items to generate accurate Model 8 prices
         final_cbe_clean_list = [c for c in active_school["accepted_courses"] if c not in st.session_state.get("expired_sciences_set", [])]
         school_name = active_school["name"]
         
