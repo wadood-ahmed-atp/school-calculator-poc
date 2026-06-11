@@ -207,13 +207,14 @@ course_mapping_bridge = {
     "Pathophysiology": "Pathophysiology"
 }
 
-SCIENCE_COURSES_SET = {"Biology", "Chemistry", "Microbiology", "AP1", "AP2"}
+SCIENCE_COURSES_SET = {"Biology", "Chemistry", "Microbiology", "AP1", "AP2", "Statistics"}
 SCIENCE_COURSES_LABEL_MAPPING = {
     "AP1": "Anatomy & Physiology I (A&P I)",
     "AP2": "Anatomy & Physiology II (A&P II)",
     "Microbiology": "Microbiology",
     "Biology": "Biology",
-    "Chemistry": "Chemistry"
+    "Chemistry": "Chemistry",
+    "Statistics": "Statistics"
 }
 
 current_step = st.session_state["wizard_step"]
@@ -353,7 +354,7 @@ with col_input_flow:
                         st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: REGIONAL ACCREDITATION & PRIOR TRANSCRIPT INGESTION PIPELINE
+    # STEP 3: REGIONAL ACCREDITATION & TRANSCRIPT INGESTION PIPELINE
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Academic History & Institutional Accreditation")
@@ -416,7 +417,7 @@ with col_input_flow:
                             has_regional = True
                             regional_accredited_schools_found.append(school)
                         else:
-                            accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
+                            accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
                             has_national = True
                     else:
                         accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
@@ -707,43 +708,55 @@ with col_input_flow:
         any_course_expired = False
         expired_sciences_this_run = []
         
-        if not is_skipping_evaluation and user_completed_sciences and odt_notes_string and ":" in odt_notes_string:
+        # 🛠️ SELF-HEALING CONFIGURATION DECODER: Gracefully normalizes spacing thresholds directly into RAM
+        if odt_notes_string and ":" in odt_notes_string:
             try:
                 parts = odt_notes_string.split(":")
-                rule_threshold_years = int(parts[0].strip())
+                # Extract numeric fields safely while stripping away formatting leaks or text padding
+                rule_threshold_years = int(re.sub(r"[^\d]", "", parts[0].strip()))
                 policy_type = parts[1].strip().lower()
                 rule_display_message = parts[2].strip()
-                
-                # 🛠️ FIXED RECENCY WINDOW GUARDRAIL BUG: Validate *only* if rule_threshold_years evaluates strictly as a non-zero positive integer bounds window
-                if rule_threshold_years > 0:
-                    st.markdown("##### ⏳ Credit Recency Verification")
-                    st.caption("Please indicate the completion timeframe for each of your previously completed science courses below:")
-                    
-                    for science_key in user_completed_sciences:
-                        friendly_name = SCIENCE_COURSES_LABEL_MAPPING.get(science_key, science_key)
-                        state_lookup_key = f"science_years_elapsed_{science_key}"
-                        
-                        if state_lookup_key not in st.session_state:
-                            st.session_state[state_lookup_key] = 1
-                            
-                        course_age_input = st.slider(
-                            f"How many years ago did you complete your {friendly_name} course?", 
-                            min_value=0, max_value=25, 
-                            value=int(st.session_state[state_lookup_key]), 
-                            key=f"slider_act_{science_key}"
-                        )
-                        st.session_state[state_lookup_key] = course_age_input
-                        
-                        # Compare directly from active user input keys to ensure untouched sliders don't cause false positives
-                        if int(st.session_state[state_lookup_key]) > rule_threshold_years:
-                            any_course_expired = True
-                            expired_sciences_this_run.append(science_key)
-                            if policy_type == "mandatory":
-                                is_force_locked = True
-                            elif policy_type == "recommended":
-                                is_pre_checked_only = True
             except Exception:
-                pass
+                rule_threshold_years = 99
+                policy_type = "none"
+        else:
+            rule_threshold_years = 99
+            policy_type = "none"
+
+        # Dynamically build a strict whitelist dictionary using sanitized upper-case string indices
+        allowed_recency_sciences_whitelist = set()
+        if odt_rules_string and str(odt_rules_string).lower() not in ["", "nan", "--"]:
+            allowed_recency_sciences_whitelist = {c.strip().upper() for c in odt_rules_string.split(",")}
+
+        if not is_skipping_evaluation and user_completed_sciences and rule_threshold_years < 99:
+            st.markdown("##### ⏳ Credit Recency Verification")
+            st.caption(f"University Registry Policy Cutoff Enforced: Core prerequisites cannot be older than {rule_threshold_years} years.")
+            
+            for science_key in user_completed_sciences:
+                # Validate course code alignment across registries securely
+                if science_key.upper() in allowed_recency_sciences_whitelist:
+                    friendly_name = SCIENCE_COURSES_LABEL_MAPPING.get(science_key, science_key)
+                    state_lookup_key = f"science_years_elapsed_{science_key}"
+                    
+                    if state_lookup_key not in st.session_state:
+                        st.session_state[state_lookup_key] = 1
+                        
+                    course_age_input = st.slider(
+                        f"How many years ago did you complete your {friendly_name} course?", 
+                        min_value=0, max_value=25, 
+                        value=int(st.session_state[state_lookup_key]), 
+                        key=f"slider_act_{science_key}"
+                    )
+                    st.session_state[state_lookup_key] = course_age_input
+                    
+                    # 🎯 CORE FIX IMPLEMENTED: Read directly from user active runtime index slots to freeze cross-bleed state updates
+                    if int(st.session_state[state_lookup_key]) > rule_threshold_years:
+                        any_course_expired = True
+                        expired_sciences_this_run.append(science_key)
+                        if policy_type == "mandatory":
+                            is_force_locked = True
+                        elif policy_type == "recommended":
+                            is_pre_checked_only = True
         else:
             if is_skipping_evaluation:
                 st.warning("⚠️ Prerequisite recency validation and course age validations are bypassed for this account profile due to regional accreditation restrictions.")
@@ -755,7 +768,7 @@ with col_input_flow:
         active_odt_pool = set(needed_deficiencies).union(set(st.session_state["expired_sciences_set"]))
         triggered_odt_options = [c for c in triggered_odt_options if c in active_odt_pool]
 
-        mandatory_remediation_items = [c for c in triggered_odt_options if c in st.session_state["expired_sciences_set"] or is_force_locked]
+        mandatory_remediation_items = [c for c in triggered_odt_options if c in st.session_state["expired_sciences_set"]]
         elective_support_items = [c for c in triggered_odt_options if c not in mandatory_remediation_items]
 
         if not triggered_odt_options:
@@ -794,7 +807,6 @@ with col_input_flow:
                 st.rerun()
         with b_continue_col:
             if st.button("Verify Entrance Exams ➡️", use_container_width=True, type="primary"):
-                st.session_step = 6
                 st.session_state["wizard_step"] = 6
                 st.rerun()
 
@@ -1131,3 +1143,11 @@ if col_ledger_flow is not None:
                 "classes_waived_count": st.session_state["modal_classes_waived"], "promo_tier_applied": promo_tier_name, "addons_active": bool(total_odt_fees > 0)
             }
             st.rerun()
+
+if is_finalized:
+    pkg = st.session_state["confirmed_package"]
+    st.balloons()
+    st.success(f"🎉 **Your Bridge Plan has been successfully finalized, {pkg['student_name']}!**")
+    st.markdown(f"### School Selection Locked: **{pkg['school_name']}**")
+    st.metric("Final Balance Due", f"${int(pkg['final_total']):,}")
+    with st.expander("📄 View Your Signed Enrollment Summary Manifest"): st.json(pkg)
