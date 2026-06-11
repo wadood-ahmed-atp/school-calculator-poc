@@ -74,7 +74,8 @@ def initialize_base_states(force_reset=False):
         "modal_include_nclex_prep": True,          
         "nclex_prep_manually_toggled": False,
         "science_credits_expired": False,
-        "exam_age_input_cache": 0 # Safe tracking vault for dynamic entrance timeline values
+        "exam_age_input_cache": 0,
+        "expired_sciences_set": [] # Explicit register to store specific items failing timeline audits
     }
     for key, value in defaults.items():
         if force_reset or key not in st.session_state:
@@ -504,7 +505,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: GUIDED COURSE SUPPORT & ITEMIZED SCIENCE TIMEFRAME VALIDATION
+    # STEP 5: GUIDED COURSE SUPPORT & ALTERNATIVE ODT RECOMMENDATION GATING
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -530,6 +531,7 @@ with col_input_flow:
         
         is_force_locked, is_pre_checked_only, rule_threshold_years, rule_display_message = False, False, 99, ""
         any_course_expired = False
+        expired_sciences_this_run = []
         
         if user_completed_sciences and odt_notes_string and ":" in odt_notes_string:
             try:
@@ -548,8 +550,9 @@ with col_input_flow:
                     if state_lookup_key not in st.session_state:
                         st.session_state[state_lookup_key] = 1
                         
+                    # 🔄 COO CRITICAL REQUIREMENT B: Collect timeline utilizing exact specified layout statement
                     course_age_input = st.slider(
-                        f"How many years ago did you complete {friendly_name}?", 
+                        f"How many years ago did you complete your {friendly_name} course?", 
                         min_value=0, max_value=25, 
                         value=st.session_state[state_lookup_key], 
                         key=f"slider_act_{science_key}"
@@ -558,25 +561,33 @@ with col_input_flow:
                     
                     if course_age_input > rule_threshold_years:
                         any_course_expired = True
+                        expired_sciences_this_run.append(science_key)
                         if policy_type == "mandatory":
                             is_force_locked = True
                         elif policy_type == "recommended":
                             is_pre_checked_only = True
                             
-                        st.error(f"🛑 Your {friendly_name} course was completed more than {rule_threshold_years} years ago. This may not meet the prerequisite recency requirements for this school and may require review by admissions or completion of a newer course.")
+                        # 🛑 EXPLICIT COO CON-CURRENT REDIRECT INFRASTRUCTURE: Notifies that CBE is invalid and redirects toward ODT alternate channels
+                        st.error(f"🛑 Based on this school's requirements, your {friendly_name} course falls outside the accepted timeframe. This school does not accept a CBE for {friendly_name}, but you may be able to take an ODT instead.")
                     else:
                         st.success(f"✅ Verified: Your {friendly_name} foundation safely falls within the approved window matrix bounds.")
                         
                 st.session_state["science_credits_expired"] = any_course_expired
+                st.session_state["expired_sciences_set"] = expired_sciences_this_run
             except Exception:
                 if odt_notes_string: st.info(odt_notes_string)
         else:
             st.session_state["science_credits_expired"] = False
+            st.session_state["expired_sciences_set"] = []
             if odt_notes_string and user_completed_sciences:
                 st.info(odt_notes_string)
 
+        # Re-build ODT collection options dynamically, mapping any expired test-out capabilities straight into the support bundles loop
         triggered_odt_options = [c.strip() for c in odt_rules_string.split(",")] if odt_rules_string and str(odt_rules_string).lower() not in ["", "nan", "--"] else []
-        triggered_odt_options = [c for c in triggered_odt_options if c in needed_deficiencies]
+        
+        # Explicit loop compilation unions true deficiencies with newly invalidated expired structures
+        active_odt_pool = set(needed_deficiencies).union(set(st.session_state["expired_sciences_set"]))
+        triggered_odt_options = [c for c in triggered_odt_options if c in active_odt_pool]
 
         if not triggered_odt_options:
             st.success("✅ Clean Path: No mandatory Guided Course Support tracks are required for this configuration.")
@@ -592,7 +603,8 @@ with col_input_flow:
             current_selections_set = set(st.session_state["selected_odts"])
             
             for formal_course in triggered_odt_options:
-                if is_force_locked:
+                # Force lock the support selection into the checkout layout if policy cutoff thresholds are violated
+                if is_force_locked or formal_course in st.session_state["expired_sciences_set"]:
                     st.checkbox(formal_course, value=True, disabled=True, key=f"odt_fz_{formal_course}")
                     chosen_odts.append(formal_course)
                 else:
@@ -614,7 +626,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE (DYNAMIC MULTI-RULE AGE GATING FIXED)
+    # STEP 6: STANDALONE ENTRANCE EXAM WORKSPACE
     # --------------------------------------------------------------------------
     elif current_step == 6:
         card = st.session_state["active_school_view"]
@@ -658,20 +670,17 @@ with col_input_flow:
                     on_change=sync_exam_prep_state_callback
                 )
             else:
-                # 🛠️ GENERIC DETERMINISTIC RULES ENGINE: Tokenizes metadata blocks seamlessly from schools.csv arrays
                 has_age_restriction = False
                 age_threshold_years = 99
                 age_question_string = "How many years ago did you sit for this entrance examination?"
                 fail_remediation_label = f"{school_exam_type} Prep Course"
                 
-                # Split raw definitions by pipeline character boundaries
                 if raw_exam_rules and raw_exam_rules != "nan":
                     rule_tokens = raw_exam_rules.split("|")
                     for token in rule_tokens:
                         token = token.strip()
                         if token.lower().startswith("age:"):
                             try:
-                                # Parsing pattern maps directly to age:Threshold:Question layout
                                 age_segments = token.split(":")
                                 age_threshold_years = int(age_segments[1].strip())
                                 age_question_string = age_segments[2].strip()
@@ -679,7 +688,6 @@ with col_input_flow:
                             except (ValueError, IndexError):
                                 pass
                 
-                # Render continuous parameters sequentially to guarantee zero logic bypassing
                 st.text_input(
                     f"Enter your official **{school_exam_type}** numerical score percentage:", 
                     value=st.session_state["modal_score_logged"], 
@@ -696,7 +704,6 @@ with col_input_flow:
                         is_score_passing = True
                         matched_action_text = ""
                         
-                        # Dynamic boundary parsing determines if score triggers failure remediation
                         if raw_exam_rules and raw_exam_rules != "nan":
                             rule_tokens = raw_exam_rules.split("|")
                             for token in rule_tokens:
@@ -722,7 +729,6 @@ with col_input_flow:
                                             if status_part == "fail":
                                                 is_score_passing = False
                         
-                        # Process cascading criteria sequentially without giving bypassing authority to high scores
                         if not is_score_passing:
                             st.session_state["modal_include_exam_prep"] = True
                             st.error(f"🛑 **Exam Remediation Mandatory:** Your score falls below the required threshold bracket. We have attached the recommended **{matched_action_text or fail_remediation_label}** to your plan layout.")
@@ -730,7 +736,6 @@ with col_input_flow:
                             st.session_state["modal_include_exam_prep"] = False
                             st.success(f"✅ Pass Threshold Met: Score criteria verified successfully.")
                             
-                        # Evaluate age rules, ensuring passing scores do not bypass or override validation logic
                         if has_age_restriction:
                             st.markdown("---")
                             st.markdown("##### ⏳ Testing Currency Guardrail")
@@ -834,9 +839,11 @@ with col_input_flow:
             col_cbe, col_odt = st.columns(2, gap="large")
             
             with col_cbe:
-                st.markdown(f"##### 🔹 Prerequisites via Credit-by-Exam ({len(card['accepted_courses'])})")
-                if card["accepted_courses"]:
-                    for course_item in card["accepted_courses"]: st.markdown(f"✅ &nbsp; {course_item}")
+                # Filter final list to remove items that expired on Step 5
+                final_cbe_clean_list = [c for c in card["accepted_courses"] if c not in st.session_state.get("expired_sciences_set", [])]
+                st.markdown(f"##### 🔹 Prerequisites via Credit-by-Exam ({len(final_cbe_clean_list)})")
+                if final_cbe_clean_list:
+                    for course_item in final_cbe_clean_list: st.markdown(f"✅ &nbsp; {course_item}")
                 else: st.markdown("*No prerequisites selected for testing out.*")
                     
             with col_odt:
@@ -859,11 +866,14 @@ if col_ledger_flow is not None:
         st.subheader("🛒 Final Checkout Receipt")
         
         active_school = st.session_state["active_school_view"]
-        needed_courses = active_school["accepted_courses"]
+        
+        # Pull clean final count minus newly invalidated items to generate accurate Model 8 prices
+        final_cbe_clean_list = [c for c in active_school["accepted_courses"] if c not in st.session_state.get("expired_sciences_set", [])]
         school_name = active_school["name"]
         
         triggered_odt_options = [c.strip() for c in str(active_school.get("odt_rules", "")).split(",")] if active_school.get("odt_rules") else []
-        triggered_odt_options = [c for c in triggered_odt_options if c in needed_courses]
+        active_odt_pool = set(needed_deficiencies).union(set(st.session_state["expired_sciences_set"]))
+        triggered_odt_options = [c for c in triggered_odt_options if c in active_odt_pool]
         
         if st.session_state.get("science_credits_expired") and triggered_odt_options:
             active_odts = list(set(triggered_odt_options))
@@ -874,7 +884,7 @@ if col_ledger_flow is not None:
         extra_exam_count = 1 if st.session_state["modal_include_exam_prep"] else 0
         extra_nclex_count = 1 if st.session_state["modal_include_nclex_prep"] else 0
         
-        total_products = len(needed_courses) + extra_exam_count + extra_nclex_count + len(active_odts)
+        total_products = len(final_cbe_clean_list) + extra_exam_count + extra_nclex_count + len(active_odts)
         
         if total_products >= 10:
             prep_rate, odt_rate = 1179.0, 749.0
@@ -883,7 +893,7 @@ if col_ledger_flow is not None:
         else:
             prep_rate, odt_rate = 1289.0, 859.0
             
-        gened_subtotal = len(needed_courses) * prep_rate
+        gened_subtotal = len(final_cbe_clean_list) * prep_rate
         entrance_subtotal = extra_exam_count * prep_rate
         nclex_subtotal = extra_nclex_count * prep_rate
         base_total = int(gened_subtotal + entrance_subtotal + nclex_subtotal)
@@ -895,7 +905,7 @@ if col_ledger_flow is not None:
         q_ref, q_mil = st.session_state["val_ref"], st.session_state["val_mil"]
         calc_free_course, promo_tier_name = 0, ""
         
-        if len(needed_courses) >= 3:
+        if len(final_cbe_clean_list) >= 3:
             q_promo = st.radio("Do you possess a promotional code?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, disabled=is_finalized)
             st.session_state["val_promo"] = q_promo
             
@@ -918,7 +928,7 @@ if col_ledger_flow is not None:
 
         st.divider()
         st.markdown(f"**Gross Base Tuition:** `${base_total:,}`")
-        st.caption(f"({len(needed_courses)} Gen-Eds, {extra_exam_count} Entrance Prep, & {extra_nclex_count} Exit Prep at ${int(prep_rate):,} each)")
+        st.caption(f"({len(final_cbe_clean_list)} Gen-Eds, {extra_exam_count} Entrance Prep, & {extra_nclex_count} Exit Prep at ${int(prep_rate):,} each)")
         
         if total_odt_fees > 0:
             st.markdown(f"➕ **Guided Course Support ({len(active_odts)}):** `${total_odt_fees:,}`")
@@ -938,7 +948,7 @@ if col_ledger_flow is not None:
             st.session_state["confirmed_package"] = {
                 "school_name": school_name, "student_name": st.session_state["val_name"],
                 "base_total": int(base_total), "odt_fees_added": int(total_odt_fees), "odt_courses_selected": active_odts,
-                "final_total": int(final_total), "courses_included": needed_courses, "entrance_exam_prep_added": bool(extra_exam_count),
+                "final_total": int(final_total), "courses_included": final_cbe_clean_list, "entrance_exam_prep_added": bool(extra_exam_count),
                 "exit_exam_prep_added": bool(extra_nclex_count), "entrance_exam_score_logged": st.session_state["modal_score_logged"], 
                 "classes_waived_count": st.session_state["modal_classes_waived"], "promo_tier_applied": promo_tier_name, "addons_active": bool(total_odt_fees > 0)
             }
