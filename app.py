@@ -232,7 +232,7 @@ st.markdown(
         <span style="color: {s_cols[1]}; font-weight: {s_whts[1]};">{'✅ ' if current_step>2 else ''}2. Licensing</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[2]}; font-weight: {s_whts[2]};">{'✅ ' if current_step>3 else ''}3. Transcript</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[3]}; font-weight: {s_whts[3]};">{'✅ ' if current_step>4 else ''}4. Schools</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: {s_cols[4]}; font-weight: {s_whts[4]};">{'✅ ' if current_step>5 else ''}5. Support</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: {s_cols[4]}; font-weight: {s_whts[4]};">{'✅ ' if current_step+1>5 else ''}5. Support</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[5]}; font-weight: {s_whts[5]};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[6]}; font-weight: {s_whts[6]};">{'✅ ' if current_step>7 else ''}7. Exit Exam</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[7]}; font-weight: {s_whts[7]};">{'✅ ' if is_finalized else ''}8. Summary Receipt</span>
@@ -354,7 +354,7 @@ with col_input_flow:
                         st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: REGIONAL ACCREDITATION & PRIOR TRANSCRIPT INGESTION PIPELINE
+    # STEP 3: REGIONAL ACCREDITATION & TRANSCRIPT INGESTION PIPELINE
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Academic History & Institutional Accreditation")
@@ -708,11 +708,7 @@ with col_input_flow:
         any_course_expired = False
         expired_sciences_this_run = []
         
-        if "CHAMBERLAIN" in str(school_name).upper():
-            rule_threshold_years = 5
-            policy_type = "mandatory"
-            odt_notes_string = "5:mandatory:Enforced baseline"
-        elif odt_notes_string and ":" in odt_notes_string:
+        if odt_notes_string and ":" in odt_notes_string:
             try:
                 parts = odt_notes_string.split(":")
                 rule_threshold_years = int(re.sub(r"[^\d]", "", parts[0].strip()))
@@ -1020,14 +1016,32 @@ with col_input_flow:
             if st.session_state.get("science_credits_expired"):
                 st.error("🛑 **Policy Expiration Enforced:** Science prerequisites fall outside the school-approved recency window. Guided Science ODT support tracks have been locked into this plan layout.")
             st.markdown("<br>", unsafe_allow_html=True)
-            col_cbe, col_odt = st.columns(2, gap="large")
+            
+            # Expanded layout: Three clean columns to capture everything symmetrically
+            col_cbe, col_exams, col_odt = st.columns(3, gap="medium")
             
             with col_cbe:
                 final_cbe_clean_list = [c for c in card["accepted_courses"] if c not in st.session_state.get("expired_sciences_set", [])]
-                st.markdown(f"##### 🔹 Prerequisites via Credit-by-Exam ({len(final_cbe_clean_list)})")
+                st.markdown(f"##### 🔹 Prerequisites via CBE ({len(final_cbe_clean_list)})")
                 if final_cbe_clean_list:
                     for course_item in final_cbe_clean_list: st.markdown(f"✅ &nbsp; {course_item}")
                 else: st.markdown("*No prerequisites selected for testing out.*")
+                
+            with col_exams:
+                st.markdown("##### 📝 Testing & Board Prep Modalities")
+                testing_entries_rendered = 0
+                if card['exam'] != "--":
+                    if st.session_state["modal_include_exam_prep"]:
+                        st.markdown(f"⚡ &nbsp; **{card['exam']} Entrance Prep**")
+                        testing_entries_rendered += 1
+                    else:
+                        st.markdown(f"✓ &nbsp; *{card['exam']} Benchmark Met*")
+                        testing_entries_rendered += 1
+                if st.session_state["modal_include_nclex_prep"]:
+                    st.markdown("🎓 &nbsp; **NCLEX-RN Board Exit Review**")
+                    testing_entries_rendered += 1
+                if testing_entries_rendered == 0:
+                    st.markdown("*No custom entrance or board testing reviews required.*")
                     
             with col_odt:
                 active_odts = st.session_state.get("selected_odts", [])
@@ -1115,12 +1129,11 @@ if col_ledger_flow is not None:
         credits_sum = calc_referral + calc_military + calc_free_course
         final_total = max(0, (base_total + total_odt_fees) - credits_sum)
 
-        st.divider()
+        st.markdown("---")
         st.markdown(f"**Gross Base Tuition Breakdown:**")
         
-        # 🎯 FIX IMPLEMENTED: Explicit receipt rendering loops print items natively on the bill text column
         if final_cbe_clean_list:
-            st.markdown(f"📝 *Prerequisite Prep ({len(final_cbe_clean_list)}):* `${int(len(final_cbe_clean_list) * prep_rate):,}`")
+            st.markdown(f" antisymmetric *Prerequisite Prep ({len(final_cbe_clean_list)}):* `${int(len(final_cbe_clean_list) * prep_rate):,}`")
         if extra_exam_count > 0:
             st.markdown(f"🔒 *{active_school['exam']} Entrance Prep (1):* `${int(prep_rate):,}`")
         if extra_nclex_count > 0:
@@ -1142,7 +1155,7 @@ if col_ledger_flow is not None:
         st.markdown(f"**Total Savings:** `-${credits_sum:,}`")
         st.markdown(f"## **Balance Due: ${0 if (base_total==0 and total_odt_fees==0) else final_total:,}**")
         
-        st.divider()
+        st.markdown("---")
         if st.button("🔒 Lock in Enrollment Package", key="lock_package_btn", use_container_width=True, type="primary", disabled=is_finalized):
             st.session_state["confirmed_package"] = {
                 "school_name": school_name, "student_name": st.session_state["val_name"],
