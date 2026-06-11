@@ -56,7 +56,7 @@ def initialize_base_states(force_reset=False):
         "val_gpa": 3.5, 
         "val_gpa_unknown": False,
         "val_lic": "None / Other",
-        "val_exp": None,                 # Clear integer defaults to map native placeholders safely
+        "val_exp": None,                 
         "val_dismiss": "No",
         "val_dismiss_mos": None, 
         "val_travel": "Yes",
@@ -83,7 +83,6 @@ def initialize_base_states(force_reset=False):
         "is_transfer_eligible": True,
         "course_grades_map": {},
         
-        # 🛡️ UPDATED CORE ATTRIBUTES FOR CONDITIONAL FREE-TEXT ROUTING
         "other_school_custom_name": ""
     }
     for key, value in defaults.items():
@@ -294,7 +293,6 @@ with col_input_flow:
         i_lic = st.selectbox("What is your current nursing license tier?", options=LICENSE_OPTIONS, index=LICENSE_OPTIONS.index(st.session_state["val_lic"]), disabled=is_finalized)
         i_exp = st.session_state["val_exp"]
         if i_lic == "LPN":
-            # 🛠️ FIXED UX BUG: Use native placeholder mapping with value=None to eliminate 0-padding cursors
             i_exp = st.number_input(
                 "Total months of active LPN Work Experience:", 
                 min_value=0, max_value=120, 
@@ -355,7 +353,7 @@ with col_input_flow:
                         st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 3: REGIONAL ACCREDITATION & CONDITIONAL FREE-TEXT INPUT WORKSPACE
+    # STEP 3: REGIONAL ACCREDITATION & TRANSCRIPT INGESTION PIPELINE
     # --------------------------------------------------------------------------
     elif current_step == 3:
         st.subheader("Step 3: Academic History & Institutional Accreditation")
@@ -385,7 +383,6 @@ with col_input_flow:
             )
             st.session_state["selected_prior_institutions"] = selected_schools
             
-            # 🛠️ ENHANCEMENT 1: Free-text fallback router triggers when 'Other' entry field token is appended
             custom_school_name = st.session_state["other_school_custom_name"]
             if "Other" in selected_schools:
                 custom_school_name = st.text_input(
@@ -397,7 +394,6 @@ with col_input_flow:
             else:
                 st.session_state["other_school_custom_name"] = ""
             
-            # Process institutional registry lines to filter out unaccredited records
             has_regional = False
             has_national = False
             accred_map = {}
@@ -420,7 +416,7 @@ with col_input_flow:
                             has_regional = True
                             regional_accredited_schools_found.append(school)
                         else:
-                            accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
+                            accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
                             has_national = True
                     else:
                         accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
@@ -428,7 +424,6 @@ with col_input_flow:
                         
             st.session_state["institutions_accreditation_map"] = accred_map
             
-            # Establish absolute binary baseline for course checklist exposure
             if selected_schools:
                 if has_regional:
                     st.session_state["is_transfer_eligible"] = True
@@ -437,7 +432,6 @@ with col_input_flow:
             else:
                 st.session_state["is_transfer_eligible"] = False
                 
-            # 🛠️ ENHANCEMENT 2: Dynamic validation routing displays checkboxes ONLY if a regional provider is logged
             if selected_schools and st.session_state["is_transfer_eligible"]:
                 st.divider()
                 st.markdown("#### 🧬 Completed Coursework & Grade Validation")
@@ -455,7 +449,7 @@ with col_input_flow:
                         st.session_state["course_grades_map"] = {}
                         st.rerun()
                         
-                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("")
                 current_selections = set(st.session_state["val_courses"])
                 cols_per_row = 4
                 
@@ -479,7 +473,8 @@ with col_input_flow:
                                 st.rerun()
                                 
                 if st.session_state["val_courses"]:
-                    st.markdown("<br>##### 🏅 Course Grade Assignments")
+                    st.markdown("")
+                    st.markdown("##### 🏅 Course Grade Assignments")
                     st.caption("A minimum grade of C is required for transfer credit consideration.")
                     for course in sorted(st.session_state["val_courses"]):
                         current_grade = st.session_state["course_grades_map"].get(course, "A")
