@@ -506,7 +506,7 @@ with col_input_flow:
         
         # 6. Required User Disclosure for non-regionally accredited schools
         if st.session_state["attended_college_before"] == "Yes" and not st.session_state["is_transfer_eligible"]:
-            st.error("The program(s) you attended are not regionally accredited. Based on current transfer policies, coursework from these institutions generally cannot be transferred toward the programs we evaluate. Because of this, we will not ask you additional questions about your completed coursework.")
+            st.error("The school(s) you attended are not regionally accredited. Based on current transfer policies, coursework from these institutions generally cannot be transferred toward the programs we evaluate. Because of this, we will not ask you additional questions about your completed coursework.")
             st.info("ℹ️ Proceeding with lead match profile layout using full base deficiencies parameters.")
         
         st.info(f"🎯 Current Selected Track: **{st.session_state['val_track']}** program options")
@@ -1012,8 +1012,17 @@ if col_ledger_flow is not None:
         st.subheader("🛒 Final Checkout Receipt")
         
         active_school = st.session_state["active_school_view"]
-        final_cbe_clean_list = [c for c in active_school["accepted_courses"] if c not in st.session_state.get("expired_sciences_set", [])]
         school_name = active_school["name"]
+        
+        # 🚀 FIX RESOLVED: Re-evaluate deficiency vectors inside local ledger scope
+        completed_courses = set()
+        if st.session_state["is_transfer_eligible"]:
+            for course in st.session_state["val_courses"]:
+                if st.session_state["course_grades_map"].get(course, "A") in ["A", "B", "C"]:
+                    completed_courses.add(course)
+        needed_deficiencies = [c for c in course_list if c not in completed_courses]
+        
+        final_cbe_clean_list = [c for c in active_school["accepted_courses"] if c not in st.session_state.get("expired_sciences_set", [])]
         
         triggered_odt_options = [c.strip() for c in str(active_school.get("odt_rules", "")).split(",")] if active_school.get("odt_rules") else []
         active_odt_pool = set(needed_deficiencies).union(set(st.session_state["expired_sciences_set"]))
