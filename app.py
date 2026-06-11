@@ -505,7 +505,7 @@ with col_input_flow:
                 st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 5: GUIDED COURSE SUPPORT & BIFURCATED MANDATORY REMEDIATION LAYOUT
+    # STEP 5: GUIDED COURSE SUPPORT (MESSAGING UPDATED)
     # --------------------------------------------------------------------------
     elif current_step == 5:
         card = st.session_state["active_school_view"]
@@ -571,12 +571,10 @@ with col_input_flow:
         st.session_state["science_credits_expired"] = any_course_expired
         st.session_state["expired_sciences_set"] = expired_sciences_this_run
 
-        # Map complete global database records into active pools
         triggered_odt_options = [c.strip() for c in odt_rules_string.split(",")] if odt_rules_string and str(odt_rules_string).lower() not in ["", "nan", "--"] else []
         active_odt_pool = set(needed_deficiencies).union(set(st.session_state["expired_sciences_set"]))
         triggered_odt_options = [c for c in triggered_odt_options if c in active_odt_pool]
 
-        # 🔮 BIFURCATION SPLIT ENGINE: Segregates true mandatory lock-ins from customizable electives
         mandatory_remediation_items = [c for c in triggered_odt_options if c in st.session_state["expired_sciences_set"] or is_force_locked]
         elective_support_items = [c for c in triggered_odt_options if c not in mandatory_remediation_items]
 
@@ -587,7 +585,7 @@ with col_input_flow:
             if st.session_state.get("odt_hydrated_for_school") != school_id:
                 st.session_state.update({"selected_odts": list(triggered_odt_options), "odt_hydrated_for_school": school_id})
                 
-            # 📌 BLOCK A: Rendering text-based institutional requirements with absolute clarity
+            # 📌 BLOCK A: Updated phrase terminology from "balance ledger" to friendly student enrollment structures
             if mandatory_remediation_items:
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("### 📌 Required Institutional Track Modalities")
@@ -595,9 +593,9 @@ with col_input_flow:
                 
                 for formal_course in mandatory_remediation_items:
                     friendly_name = SCIENCE_COURSES_LABEL_MAPPING.get(formal_course, formal_course)
-                    st.error(f"🛑 **{friendly_name}:** Based on this school's requirements, your course credit falls outside the accepted timeframe. This school does not accept a CBE for {friendly_name}, meaning an On-Demand Tutoring (ODT) semester support module is required and has been automatically attached to your enrollment balance ledger.")
+                    st.error(f"🛑 **{friendly_name}:** Based on this school's requirements, your course credit falls outside the accepted timeframe. This school does not accept a CBE for {friendly_name}, meaning an On-Demand Tutoring (ODT) semester support module is required and has been automatically attached to your enrollment summary package.")
 
-            # 🎓 BLOCK B: Rendering interactive checkboxes ONLY for true electives
+            # 🎓 BLOCK B: Electives Block
             if elective_support_items:
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("### 🎓 Optional Enrichment Support Bundles")
@@ -835,7 +833,7 @@ with col_input_flow:
         with st.container(border=True):
             st.markdown("### 🧬 Academic Parameter Configurations")
             if st.session_state.get("science_credits_expired"):
-                st.error("🛑 **Policy Expiration Enforced:** Science prerequisites fall outside the school-approved recency window. Guided Science ODT support tracks have been locked into this bill.")
+                st.error("🛑 **Policy Expiration Enforced:** Science prerequisites fall outside the school-approved recency window. Guided Science ODT support tracks have been locked into this plan layout.")
             st.markdown("<br>", unsafe_allow_html=True)
             col_cbe, col_odt = st.columns(2, gap="large")
             
@@ -893,69 +891,3 @@ if col_ledger_flow is not None:
             
         gened_subtotal = len(final_cbe_clean_list) * prep_rate
         entrance_subtotal = extra_exam_count * prep_rate
-        nclex_subtotal = extra_nclex_count * prep_rate
-        base_total = int(gened_subtotal + entrance_subtotal + nclex_subtotal)
-        
-        total_odt_fees = int(len(active_odts) * odt_rate)
-        
-        st.markdown("#### Adjustments & Savings")
-        st.session_state["val_deposit"] = 0
-        q_ref, q_mil = st.session_state["val_ref"], st.session_state["val_mil"]
-        calc_free_course, promo_tier_name = 0, ""
-        
-        if len(final_cbe_clean_list) >= 3:
-            q_promo = st.radio("Do you possess a promotional code?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, disabled=is_finalized)
-            st.session_state["val_promo"] = q_promo
-            
-            if q_promo == "Yes":
-                promo_input = st.text_input("Enter promotional code:", value=st.session_state["val_promo_code_input"], placeholder="Enter code here", disabled=is_finalized)
-                st.session_state["val_promo_code_input"] = promo_input
-                if str(promo_input).strip().upper() in ["FREECOURSE", "FREE COURSE"]:
-                    calc_free_course = int(prep_rate)
-                    promo_tier_name = f"FreeCourse_Model8_Tier_{total_products}"
-                    st.success(f"🎉 Code Approved! Discount (-${calc_free_course:,})")
-                elif str(promo_input).strip() != "":
-                    st.error("❌ Invalid promotional code.")
-        else:
-            st.session_state.update({"val_promo": "No", "val_promo_code_input": ""})
-
-        calc_referral = 50 if q_ref == "Yes" else 0
-        calc_military = 200 if q_mil == "Yes" else 0
-        credits_sum = calc_referral + calc_military + calc_free_course
-        final_total = max(0, (base_total + total_odt_fees) - credits_sum)
-
-        st.divider()
-        st.markdown(f"**Gross Base Tuition:** `${base_total:,}`")
-        st.caption(f"({len(final_cbe_clean_list)} Gen-Eds, {extra_exam_count} Entrance Prep, & {extra_nclex_count} Exit Prep at ${int(prep_rate):,} each)")
-        
-        if total_odt_fees > 0:
-            st.markdown(f"➕ **Guided Course Support ({len(active_odts)}):** `${total_odt_fees:,}`")
-            st.caption(f"({len(active_odts)} ODT Bundles at ${int(odt_rate):,} each)")
-        
-        st.markdown("##### 🎖️ Levant Discounts Applied:")
-        if calc_referral: st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,}`")
-        if calc_military: st.markdown(f"🏷️ *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
-        if calc_free_course: st.markdown(f"🏷️ *Complimentary Course Code:* `-${calc_free_course:,}`")
-        if not credits_sum: st.markdown("🏷️ *No additional discounts applied.*")
-            
-        st.markdown(f"**Total Savings:** `-${credits_sum:,}`")
-        st.markdown(f"## **Balance Due: ${0 if (base_total==0 and total_odt_fees==0) else final_total:,}**")
-        
-        st.divider()
-        if st.button("🔒 Lock in Enrollment Package", key="lock_package_btn", use_container_width=True, type="primary", disabled=is_finalized):
-            st.session_state["confirmed_package"] = {
-                "school_name": school_name, "student_name": st.session_state["val_name"],
-                "base_total": int(base_total), "odt_fees_added": int(total_odt_fees), "odt_courses_selected": active_odts,
-                "final_total": int(final_total), "courses_included": final_cbe_clean_list, "entrance_exam_prep_added": bool(extra_exam_count),
-                "exit_exam_prep_added": bool(extra_nclex_count), "entrance_exam_score_logged": st.session_state["modal_score_logged"], 
-                "classes_waived_count": st.session_state["modal_classes_waived"], "promo_tier_applied": promo_tier_name, "addons_active": bool(total_odt_fees > 0)
-            }
-            st.rerun()
-
-if is_finalized:
-    pkg = st.session_state["confirmed_package"]
-    st.balloons()
-    st.success(f"🎉 **Your Bridge Plan has been successfully finalized, {pkg['student_name']}!**")
-    st.markdown(f"### School Selection Locked: **{pkg['school_name']}**")
-    st.metric("Final Balance Due", f"${int(pkg['final_total']):,}")
-    with st.expander("📄 View Your Signed Enrollment Summary Manifest"): st.json(pkg)
