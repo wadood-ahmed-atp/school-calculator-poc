@@ -232,7 +232,7 @@ st.markdown(
         <span style="color: {s_cols[1]}; font-weight: {s_whts[1]};">{'✅ ' if current_step>2 else ''}2. Licensing</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[2]}; font-weight: {s_whts[2]};">{'✅ ' if current_step>3 else ''}3. Transcript</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[3]}; font-weight: {s_whts[3]};">{'✅ ' if current_step>4 else ''}4. Schools</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: {s_cols[4]}; font-weight: {s_whts[4]};">{'✅ ' if current_step>5 else ''}5. Support</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #cbd5e1;">➔</span> <span style="color: {s_cols[4]}; font-weight: {s_whts[4]};">{'✅ ' if current_step>5 else ''}5. Support</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[5]}; font-weight: {s_whts[5]};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[6]}; font-weight: {s_whts[6]};">{'✅ ' if current_step>7 else ''}7. Exit Exam</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[7]}; font-weight: {s_whts[7]};">{'✅ ' if is_finalized else ''}8. Summary Receipt</span>
@@ -423,48 +423,42 @@ with col_input_flow:
                         agency = str(match_rows['ACCREDAGENCY'].values[0]).strip()
                         if agency in ["", "nan", "NA", "Blank", "EXEMPT", "Unknown"]:
                             accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
-                            national_unaccredited_schools_found.append(school)
+                            has_national = True
                         elif agency in REGIONAL_AGENCIES:
                             accred_map[school] = {"agency": agency, "type": "Regionally Accredited"}
+                            has_regional = True
                             regional_accredited_schools_found.append(school)
                         else:
                             accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
-                            national_unaccredited_schools_found.append(school)
+                            has_national = True
                     else:
                         accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
-                        national_unaccredited_schools_found.append(school)
+                        has_national = True
                         
             st.session_state["institutions_accreditation_map"] = accred_map
             
-            # Determine overall route permissions based on structural whitelist matrix arrays
             if selected_schools:
-                if regional_accredited_schools_found:
+                if has_regional:
                     st.session_state["is_transfer_eligible"] = True
                 else:
                     st.session_state["is_transfer_eligible"] = False
             else:
                 st.session_state["is_transfer_eligible"] = True
 
-            # 🛠️ MULTI-TIER ACCREDITATION CONTENT ROUTER
             if selected_schools:
                 st.divider()
                 
-                # ROUTE 1: Only Regional Selections Active
                 if regional_accredited_schools_found and not national_unaccredited_schools_found:
                     st.info(f"🎓 **Transfer Credit Guidance:** Please select the courses you completed at {', '.join(regional_accredited_schools_found)}. These credits are used to generate the most accurate transfer and testing recommendations for participating school programs.")
                 
-                # ROUTE 2: Mixed Combo Layout Checked (Both Regional and National entries discovered)
                 elif regional_accredited_schools_found and national_unaccredited_schools_found:
                     st.info(f"🎓 **Transfer Credit Guidance:** We identified coursework from both nationally and regionally accredited institutions. For recommendation purposes, please select only the courses completed at {', '.join(regional_accredited_schools_found)}, as these credits are the basis for the transfer and testing recommendations provided by this tool.")
                 
-                # ROUTE 3: Only National/Unaccredited Selections Active
                 elif national_unaccredited_schools_found and not regional_accredited_schools_found:
                     st.warning("🎓 **Transfer Credit Notice:** The institution(s) you selected are not regionally accredited. Because credits from these schools are not commonly accepted by nursing programs, we cannot use them to generate transfer and testing recommendations within this tool.")
-                    # Automatically wipe selections to prevent contaminated parameter loops
                     st.session_state["val_courses"] = []
                     st.session_state["course_grades_map"] = {}
 
-                # Render checklist inputs ONLY if there is at least one regional school available
                 if regional_accredited_schools_found:
                     st.markdown("Select any general education or prerequisite courses you have already completed:")
                     
@@ -547,7 +541,7 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL SCHOOL MATCHES
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (CLINT'S WIREFRAME REFIT EXECUTED)
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
@@ -649,7 +643,8 @@ with col_input_flow:
                     "id": unique_hash_id, "idx": idx, "name": raw_name, "exam": s_exam, "notes": s_notes,
                     "blanket": s_blanket, "odt_rules": s_odt_rules, "odt_notes": s_odt_notes,
                     "track": school_row["ASN/BSN"], "status": s_status, "accepted_courses": school_accepted_list,
-                    "cost_metric": base_cost_metric, "odt_count_weight": len(raw_odt_options)
+                    "cost_metric": base_cost_metric, "odt_count_weight": len(raw_odt_options),
+                    "raw_state_val": s_state.upper()
                 })
             
             card_rows = sorted(card_rows, key=lambda x: (-len(x["accepted_courses"]), x["cost_metric"]))
@@ -657,22 +652,50 @@ with col_input_flow:
         if card_rows:
             for card in card_rows:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
-                courses_str = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
                 
+                # 🛠️ CLINT'S DESIGN REFIT BLOCK: Converts text column rows into an interactive dual-axis grid architecture
                 with st.container(border=True):
-                    st.markdown(f"### 🏫 {card['name']}")
-                    st.markdown(f"**Degree Track Program:** `{card['track']}`")
-                    st.markdown(f"🧬 *Prerequisites Fulfilled via Credit-by-Exam ({len(card['accepted_courses'])}):* **{courses_str}**")
+                    col_info_side, col_metrics_side = st.columns([1.1, 1.4], gap="medium")
                     
-                    btn_lbl = "✓ Active Selection Unlocked" if is_selected else "Select School & Fulfill Prerequisites"
-                    if st.button(btn_lbl, key=f"bc_{card['id']}", use_container_width=True, type="secondary" if is_selected else "primary"):
-                        st.session_state.update({
-                            "active_school_view": card, 
-                            "selected_school_id": card["id"], 
-                            "wizard_step": 5,
-                            "exam_prep_manually_toggled": False 
-                        })
-                        st.rerun()
+                    with col_info_side:
+                        st.markdown(f"<h3 style='margin-bottom:2px; font-size:22px; color:#1E3A8A;'>🏫 {card['name']}</h3>", unsafe_allow_html=True)
+                        st.markdown(f"**Location footprint:** `{card['raw_state_val']}` &nbsp;|&nbsp; **Program Option:** `{card['track']}`")
+                        st.markdown(f"<h4 style='margin-top:8px; margin-bottom:12px; color:#10B981; font-size:18px;'>Estimated Cost: ${card['cost_metric']:,}</h4>", unsafe_allow_html=True)
+                        
+                        btn_lbl = "✓ Selection Unlocked" if is_selected else "Select Institution"
+                        if st.button(btn_lbl, key=f"bc_{card['id']}", use_container_width=True, type="secondary" if is_selected else "primary"):
+                            st.session_state.update({
+                                "active_school_view": card, 
+                                "selected_school_id": card["id"], 
+                                "wizard_step": 5,
+                                "exam_prep_manually_toggled": False 
+                            })
+                            st.rerun()
+                            
+                    with col_metrics_side:
+                        st.markdown("<p style='font-size:12px; color:#64748B; font-weight:600; text-transform:uppercase; margin-bottom:8px;'>Plan Optimization Metrics</p>", unsafe_allow_html=True)
+                        
+                        # Generate structured info cards horizontally across layout columns
+                        m_col1, m_col2, m_col3 = st.columns(3)
+                        
+                        with m_col1:
+                            with st.container(border=True):
+                                st.markdown("<p style='font-size:11px; color:#64748B; margin:0;'>🎯 Program Match</p>", unsafe_allow_html=True)
+                                st.markdown("<p style='font-size:14px; color:#1E3A8A; font-weight:700; margin:0;'>Compatible</p>", unsafe_allow_html=True)
+                                
+                        with m_col2:
+                            with st.container(border=True):
+                                display_exam = card['exam'] if card['exam'] not in ["", "nan", "--"] else "Exempt / None"
+                                st.markdown("<p style='font-size:11px; color:#64748B; margin:0;'>📋 Entrance Exam</p>", unsafe_allow_html=True)
+                                st.markdown(f"<p style='font-size:14px; color:#1E3A8A; font-weight:700; margin:0;'>{display_exam}</p>", unsafe_allow_html=True)
+                                
+                        with m_col3:
+                            with st.container(border=True):
+                                st.markdown("<p style='font-size:11px; color:#64748B; margin:0;'>🧬 Credits via CBE</p>", unsafe_allow_html=True)
+                                st.markdown(f"<p style='font-size:14px; color:#10B981; font-weight:700; margin:0;'>{len(card['accepted_courses'])} Courses</p>", unsafe_allow_html=True)
+                                
+                        if card['accepted_courses']:
+                            st.caption(f"**Eligible Transfer Tests:** {', '.join(card['accepted_courses'][:5])}{'...' if len(card['accepted_courses'])>5 else ''}")
         else:
             st.warning("No online options match your filters at this time in your state location context.")
         
