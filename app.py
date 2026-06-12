@@ -417,7 +417,6 @@ with col_input_flow:
                     accred_map[reported_display_key] = {"agency": "Other Provider", "type": "Nationally Accredited / Not Regionally Accredited"}
                     has_national = True
                 else:
-                    # 🎯 MASTER REFACTOR FIX: Use case-insensitive sub-string containment mapping to resolve all capital registries flawlessly
                     school_clean_upper = str(school).strip().upper()
                     match_rows = regional_accreditation_df[regional_accreditation_df['INSTNM'].str.upper().str.contains(school_clean_upper, regex=False, na=False)]
                     
@@ -1143,7 +1142,7 @@ if col_ledger_flow is not None:
         st.markdown(f"**Gross Base Tuition Breakdown:**")
         
         if final_cbe_clean_list:
-            st.markdown(f" antisymmetric *Prerequisite Prep ({len(final_cbe_clean_list)}):* `${int(len(final_cbe_clean_list) * prep_rate):,}`")
+            st.markdown(f"📝 *Prerequisite Prep ({len(final_cbe_clean_list)}):* `${int(len(final_cbe_clean_list) * prep_rate):,}`")
         if extra_exam_count > 0:
             st.markdown(f"🔒 *{active_school['exam']} Entrance Prep (1):* `${int(prep_rate):,}`")
         if extra_nclex_count > 0:
@@ -1156,13 +1155,14 @@ if col_ledger_flow is not None:
             st.markdown(f"➕ **Guided Course Support ({len(active_odts)}):** `${total_odt_fees:,}`")
             st.caption(f"({len(active_odts)} ODT Bundles at ${int(odt_rate):,} each)")
         
-        st.markdown("##### 🎖️ Levant Discounts Applied:")
-        if calc_referral: st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,}`")
-        if calc_military: st.markdown(f"🏷️ *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
-        if calc_free_course: st.markdown(f"🏷️ *Complimentary Course Code:* `-${calc_free_course:,}`")
-        if not credits_sum: st.markdown("🏷️ *No additional discounts applied.*")
+        # 🎯 FIX EXECUTED: If total active credits calculate out to zero, surgically omit the line entirely from view block
+        if credits_sum > 0:
+            st.markdown("##### 🎖️ Levant Discounts Applied:")
+            if calc_referral: st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,}`")
+            if calc_military: st.markdown(f"🏷️ *Active Duty / Veteran Waiver:* `-${calc_military:,}`")
+            if calc_free_course: st.markdown(f"🏷️ *Complimentary Course Code:* `-${calc_free_course:,}`")
+            st.markdown(f"**Total Savings:** `-${credits_sum:,}`")
             
-        st.markdown(f"**Total Savings:** `-${credits_sum:,}`")
         st.markdown(f"## **Balance Due: ${0 if (base_total==0 and total_odt_fees==0) else final_total:,}**")
         
         st.divider()
@@ -1175,3 +1175,11 @@ if col_ledger_flow is not None:
                 "classes_waived_count": st.session_state["modal_classes_waived"], "promo_tier_applied": promo_tier_name, "addons_active": bool(total_odt_fees > 0)
             }
             st.rerun()
+
+if is_finalized:
+    pkg = st.session_state["confirmed_package"]
+    st.balloons()
+    st.success(f"🎉 **Your Bridge Plan has been successfully finalized, {pkg['student_name']}!**")
+    st.markdown(f"### School Selection Locked: **{pkg['school_name']}**")
+    st.metric("Final Balance Due", f"${int(pkg['final_total']):,}")
+    with st.expander("📄 View Your Signed Enrollment Summary Manifest"): st.json(pkg)
