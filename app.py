@@ -232,7 +232,7 @@ st.markdown(
         <span style="color: {s_cols[1]}; font-weight: {s_whts[1]};">{'✅ ' if current_step>2 else ''}2. Licensing</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[2]}; font-weight: {s_whts[2]};">{'✅ ' if current_step>3 else ''}3. Transcript</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[3]}; font-weight: {s_whts[3]};">{'✅ ' if current_step>4 else ''}4. Schools</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: #cbd5e1;">➔</span> <span style="color: {s_cols[4]}; font-weight: {s_whts[4]};">{'✅ ' if current_step>5 else ''}5. Support</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: {s_cols[4]}; font-weight: {s_whts[4]};">{'✅ ' if current_step>5 else ''}5. Support</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[5]}; font-weight: {s_whts[5]};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[6]}; font-weight: {s_whts[6]};">{'✅ ' if current_step>7 else ''}7. Exit Exam</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[7]}; font-weight: {s_whts[7]};">{'✅ ' if is_finalized else ''}8. Summary Receipt</span>
@@ -423,22 +423,21 @@ with col_input_flow:
                         agency = str(match_rows['ACCREDAGENCY'].values[0]).strip()
                         if agency in ["", "nan", "NA", "Blank", "EXEMPT", "Unknown"]:
                             accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
-                            has_national = True
+                            national_unaccredited_schools_found.append(school)
                         elif agency in REGIONAL_AGENCIES:
                             accred_map[school] = {"agency": agency, "type": "Regionally Accredited"}
-                            has_regional = True
                             regional_accredited_schools_found.append(school)
                         else:
                             accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
-                            has_national = True
+                            national_unaccredited_schools_found.append(school)
                     else:
                         accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
-                        has_national = True
+                        national_unaccredited_schools_found.append(school)
                         
             st.session_state["institutions_accreditation_map"] = accred_map
             
             if selected_schools:
-                if has_regional:
+                if regional_accredited_schools_found:
                     st.session_state["is_transfer_eligible"] = True
                 else:
                     st.session_state["is_transfer_eligible"] = False
@@ -541,7 +540,7 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (CLINT'S WIREFRAME REFIT EXECUTED)
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (CLINT'S LAYOUT-LOCKED CARD REFIT)
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
@@ -652,16 +651,51 @@ with col_input_flow:
         if card_rows:
             for card in card_rows:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
+                display_exam = card['exam'] if card['exam'] not in ["", "nan", "--"] else "Exempt / None"
                 
-                # 🛠️ CLINT'S DESIGN REFIT BLOCK: Converts text column rows into an interactive dual-axis grid architecture
+                # 🛠️ THE FIXED RAW CONTAINER OVERRIDE: Employs absolute HTML/CSS flexbox matrices to lock components horizontally
                 with st.container(border=True):
-                    col_info_side, col_metrics_side = st.columns([1.1, 1.4], gap="medium")
-                    
-                    with col_info_side:
-                        st.markdown(f"<h3 style='margin-bottom:2px; font-size:22px; color:#1E3A8A;'>🏫 {card['name']}</h3>", unsafe_allow_html=True)
-                        st.markdown(f"**Location footprint:** `{card['raw_state_val']}` &nbsp;|&nbsp; **Program Option:** `{card['track']}`")
-                        st.markdown(f"<h4 style='margin-top:8px; margin-bottom:12px; color:#10B981; font-size:18px;'>Estimated Cost: ${card['cost_metric']:,}</h4>", unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; width: 100%; font-family: sans-serif; padding: 5px 0px;">
                         
+                        <div style="flex: 1.1; min-width: 280px; padding-right: 20px;">
+                            <h3 style="margin: 0px 0px 4px 0px; font-size: 22px; font-weight: 700; color: #1E3A8A;">🏫 {card['name']}</h3>
+                            <p style="margin: 0px 0px 8px 0px; font-size: 13px; color: #475569;">
+                                <b>Location footprint:</b> {card['raw_state_val']} &nbsp;|&nbsp; <b>Program Option:</b> {card['track']}
+                            </p>
+                            <h4 style="margin: 0px; color: #10B981; font-size: 19px; font-weight: 700;">Estimated Cost: ${card['cost_metric']:,}</h4>
+                        </div>
+                        
+                        <div style="flex: 1.4; min-width: 420px;">
+                            <p style="font-size: 11px; color: #64748B; font-weight: 700; text-transform: uppercase; margin: 0px 0px 8px 0px; letter-spacing: 0.5px;">
+                                Plan Optimization Metrics
+                            </p>
+                            <div style="display: flex; flex-direction: row; gap: 12px; width: 100%;">
+                                
+                                <div style="flex: 1; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px; text-align: left;">
+                                    <span style="display: block; font-size: 11px; color: #64748B; font-weight: 500; margin-bottom: 2px;">🎯 Program Match</span>
+                                    <span style="display: block; font-size: 14px; color: #1E3A8A; font-weight: 700;">Compatible</span>
+                                </div>
+                                
+                                <div style="flex: 1; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px; text-align: left;">
+                                    <span style="display: block; font-size: 11px; color: #64748B; font-weight: 500; margin-bottom: 2px;">📋 Entrance Exam</span>
+                                    <span style="display: block; font-size: 14px; color: #1E3A8A; font-weight: 700;">{display_exam}</span>
+                                </div>
+                                
+                                <div style="flex: 1; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px; text-align: left;">
+                                    <span style="display: block; font-size: 11px; color: #64748B; font-weight: 500; margin-bottom: 2px;">🧬 Credits via CBE</span>
+                                    <span style="display: block; font-size: 14px; color: #10B981; font-weight: 700;">{len(card['accepted_courses'])} Courses</span>
+                                </div>
+                                
+                            </div>
+                        </div>
+                        
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Inject select buttons right underneath cleanly via the runtime pipeline
+                    b_side1, b_side2 = st.columns([1.1, 1.4])
+                    with b_side1:
                         btn_lbl = "✓ Selection Unlocked" if is_selected else "Select Institution"
                         if st.button(btn_lbl, key=f"bc_{card['id']}", use_container_width=True, type="secondary" if is_selected else "primary"):
                             st.session_state.update({
@@ -671,31 +705,9 @@ with col_input_flow:
                                 "exam_prep_manually_toggled": False 
                             })
                             st.rerun()
-                            
-                    with col_metrics_side:
-                        st.markdown("<p style='font-size:12px; color:#64748B; font-weight:600; text-transform:uppercase; margin-bottom:8px;'>Plan Optimization Metrics</p>", unsafe_allow_html=True)
-                        
-                        # Generate structured info cards horizontally across layout columns
-                        m_col1, m_col2, m_col3 = st.columns(3)
-                        
-                        with m_col1:
-                            with st.container(border=True):
-                                st.markdown("<p style='font-size:11px; color:#64748B; margin:0;'>🎯 Program Match</p>", unsafe_allow_html=True)
-                                st.markdown("<p style='font-size:14px; color:#1E3A8A; font-weight:700; margin:0;'>Compatible</p>", unsafe_allow_html=True)
-                                
-                        with m_col2:
-                            with st.container(border=True):
-                                display_exam = card['exam'] if card['exam'] not in ["", "nan", "--"] else "Exempt / None"
-                                st.markdown("<p style='font-size:11px; color:#64748B; margin:0;'>📋 Entrance Exam</p>", unsafe_allow_html=True)
-                                st.markdown(f"<p style='font-size:14px; color:#1E3A8A; font-weight:700; margin:0;'>{display_exam}</p>", unsafe_allow_html=True)
-                                
-                        with m_col3:
-                            with st.container(border=True):
-                                st.markdown("<p style='font-size:11px; color:#64748B; margin:0;'>🧬 Credits via CBE</p>", unsafe_allow_html=True)
-                                st.markdown(f"<p style='font-size:14px; color:#10B981; font-weight:700; margin:0;'>{len(card['accepted_courses'])} Courses</p>", unsafe_allow_html=True)
-                                
+                    with b_side2:
                         if card['accepted_courses']:
-                            st.caption(f"**Eligible Transfer Tests:** {', '.join(card['accepted_courses'][:5])}{'...' if len(card['accepted_courses'])>5 else ''}")
+                            st.markdown(f"<div style='padding-top:6px; font-size:12px; color:#475569;'><b>Eligible Transfer Tests:</b> {', '.join(card['accepted_courses'][:5])}{'...' if len(card['accepted_courses'])>5 else ''}</div>", unsafe_allow_html=True)
         else:
             st.warning("No online options match your filters at this time in your state location context.")
         
@@ -1206,3 +1218,11 @@ if col_ledger_flow is not None:
                 "classes_waived_count": st.session_state["modal_classes_waived"], "promo_tier_applied": promo_tier_name, "addons_active": bool(total_odt_fees > 0)
             }
             st.rerun()
+
+if is_finalized:
+    pkg = st.session_state["confirmed_package"]
+    st.balloons()
+    st.success(f"🎉 **Your Bridge Plan has been successfully finalized, {pkg['student_name']}!**")
+    st.markdown(f"### School Selection Locked: **{pkg['school_name']}**")
+    st.metric("Final Balance Due", f"${int(pkg['final_total']):,}")
+    with st.expander("📄 View Your Signed Enrollment Summary Manifest"): st.json(pkg)
