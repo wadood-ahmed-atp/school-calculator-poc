@@ -424,10 +424,6 @@ with col_input_flow:
                             accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
                             has_national = True
                         elif agency in REGIONAL_AGENCIES:
-                            accred_map[school] = {"agency": agency, "type": "Regionally Accredited"}
-                            has_regional = True
-                            regional_accredited_schools_found.append(school)
-                        else:
                             accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
                             has_national = True
                     else:
@@ -494,7 +490,6 @@ with col_input_flow:
                         chosen_g = st.selectbox(f"Letter Grade earned for {course}:", GRADE_OPTIONS, index=idx_g, key=f"grade_{course.replace(' ', '_')}")
                         st.session_state["course_grades_map"][course] = chosen_g
                         
-                        # 🎯 FIX INJECTED: "may not" is now updated to a definitive "will not" constraint override string message
                         if chosen_g in ["D", "F"]:
                             st.error(f"❌ To receive transfer credit consideration for this course, a minimum grade of C is required. Based on the information provided, this course will not be eligible for transfer.")
             
@@ -1019,6 +1014,14 @@ with col_input_flow:
             if st.session_state.get("science_credits_expired"):
                 st.error("🛑 **Policy Expiration Enforced:** Science prerequisites fall outside the school-approved recency window. Guided Science ODT support tracks have been locked into this plan layout.")
             st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Pre-calculate active testing items count to insert into the title string cleanly
+            count_testing_modalities = 0
+            if card['exam'] != "--":
+                count_testing_modalities += 1
+            if st.session_state["modal_include_nclex_prep"]:
+                count_testing_modalities += 1
+
             col_cbe, col_exams, col_odt = st.columns(3, gap="medium")
             
             with col_cbe:
@@ -1029,7 +1032,8 @@ with col_input_flow:
                 else: st.markdown("*No prerequisites selected for testing out.*")
                 
             with col_exams:
-                st.markdown("##### 📝 Testing & Board Prep Modalities")
+                # 🎯 CORE VISUAL BUG FIX: The dynamic item index count is now written directly into the summary card header
+                st.markdown(f"##### 📝 Testing & Board Prep Modalities ({count_testing_modalities})")
                 testing_entries_rendered = 0
                 if card['exam'] != "--":
                     if st.session_state["modal_include_exam_prep"]:
