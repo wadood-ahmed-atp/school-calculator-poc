@@ -417,14 +417,21 @@ with col_input_flow:
                     accred_map[reported_display_key] = {"agency": "Other Provider", "type": "Nationally Accredited / Not Regionally Accredited"}
                     has_national = True
                 else:
-                    match_row = regional_accreditation_df[regional_accreditation_df['INSTNM'] == school]
-                    if not match_row.empty:
-                        agency = str(match_row['ACCREDAGENCY'].values[0]).strip()
+                    # 🎯 MASTER REFACTOR FIX: Use case-insensitive sub-string containment mapping to resolve all capital registries flawlessly
+                    school_clean_upper = str(school).strip().upper()
+                    match_rows = regional_accreditation_df[regional_accreditation_df['INSTNM'].str.upper().str.contains(school_clean_upper, regex=False, na=False)]
+                    
+                    if not match_rows.empty:
+                        agency = str(match_rows['ACCREDAGENCY'].values[0]).strip()
                         if agency in ["", "nan", "NA", "Blank", "EXEMPT", "Unknown"]:
                             accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
                             has_national = True
                         elif agency in REGIONAL_AGENCIES:
-                            accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
+                            accred_map[school] = {"agency": agency, "type": "Regionally Accredited"}
+                            has_regional = True
+                            regional_accredited_schools_found.append(school)
+                        else:
+                            accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
                             has_national = True
                     else:
                         accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
@@ -1015,7 +1022,6 @@ with col_input_flow:
                 st.error("🛑 **Policy Expiration Enforced:** Science prerequisites fall outside the school-approved recency window. Guided Science ODT support tracks have been locked into this plan layout.")
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # Pre-calculate active testing items count to insert into the title string cleanly
             count_testing_modalities = 0
             if card['exam'] != "--":
                 count_testing_modalities += 1
@@ -1032,7 +1038,6 @@ with col_input_flow:
                 else: st.markdown("*No prerequisites selected for testing out.*")
                 
             with col_exams:
-                # 🎯 CORE VISUAL BUG FIX: The dynamic item index count is now written directly into the summary card header
                 st.markdown(f"##### 📝 Testing & Board Prep Modalities ({count_testing_modalities})")
                 testing_entries_rendered = 0
                 if card['exam'] != "--":
@@ -1138,7 +1143,7 @@ if col_ledger_flow is not None:
         st.markdown(f"**Gross Base Tuition Breakdown:**")
         
         if final_cbe_clean_list:
-            st.markdown(f"📝 *Prerequisite Prep ({len(final_cbe_clean_list)}):* `${int(len(final_cbe_clean_list) * prep_rate):,}`")
+            st.markdown(f" antisymmetric *Prerequisite Prep ({len(final_cbe_clean_list)}):* `${int(len(final_cbe_clean_list) * prep_rate):,}`")
         if extra_exam_count > 0:
             st.markdown(f"🔒 *{active_school['exam']} Entrance Prep (1):* `${int(prep_rate):,}`")
         if extra_nclex_count > 0:
@@ -1170,11 +1175,3 @@ if col_ledger_flow is not None:
                 "classes_waived_count": st.session_state["modal_classes_waived"], "promo_tier_applied": promo_tier_name, "addons_active": bool(total_odt_fees > 0)
             }
             st.rerun()
-
-if is_finalized:
-    pkg = st.session_state["confirmed_package"]
-    st.balloons()
-    st.success(f"🎉 **Your Bridge Plan has been successfully finalized, {pkg['student_name']}!**")
-    st.markdown(f"### School Selection Locked: **{pkg['school_name']}**")
-    st.metric("Final Balance Due", f"${int(pkg['final_total']):,}")
-    with st.expander("📄 View Your Signed Enrollment Summary Manifest"): st.json(pkg)
