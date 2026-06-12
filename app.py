@@ -432,7 +432,7 @@ with col_input_flow:
                             national_unaccredited_schools_found.append(school)
                     else:
                         accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
-                        national_unaccredited_schools_found.append(school)
+                        has_national = True
                         
             st.session_state["institutions_accreditation_map"] = accred_map
             
@@ -498,9 +498,10 @@ with col_input_flow:
                                     
                     if st.session_state["val_courses"]:
                         st.markdown("")
-                        # 🎯 MASTER FIX ALIGNED: Replaced old grade guidelines text with the new structural baseline lookup message
-                        st.markdown(f"🎓 **Transfer Eligibility Guidance:** The following courses should only be selected if they were completed at {', '.join(regional_accredited_schools_found)} and you earned a grade of C or better, as this is the minimum grade most nursing programs require for transfer consideration.")
+                        # 🎯 MASTER PLACEMENT FIX: Injected the new Transfer Eligibility Guidance block directly right under the Assignments header section
                         st.markdown("##### 🏅 Course Grade Assignments")
+                        st.info(f"🎓 **Transfer Eligibility Guidance:** The following courses should only be selected if they were completed at {', '.join(regional_accredited_schools_found)} and you earned a grade of C or better, as this is the minimum grade most nursing programs require for transfer consideration.")
+                        
                         for course in sorted(st.session_state["val_courses"]):
                             current_grade = st.session_state["course_grades_map"].get(course, "A")
                             idx_g = GRADE_OPTIONS.index(current_grade)
