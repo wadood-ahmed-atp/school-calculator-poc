@@ -447,19 +447,23 @@ with col_input_flow:
             if selected_schools:
                 st.divider()
                 
+                # ROUTE 1: Only Regional Selections Active
                 if regional_accredited_schools_found and not national_unaccredited_schools_found:
                     st.info(f"🎓 **Transfer Credit Guidance:** Please select the courses you completed at {', '.join(regional_accredited_schools_found)}. These credits are used to generate the most accurate transfer and testing recommendations for participating school programs.")
                 
+                # ROUTE 2: Mixed Combo Layout Checked
                 elif regional_accredited_schools_found and national_unaccredited_schools_found:
                     st.info(f"🎓 **Transfer Credit Guidance:** We identified coursework from both nationally and regionally accredited institutions. For recommendation purposes, please select only the courses completed at {', '.join(regional_accredited_schools_found)}, as these credits are the basis for the transfer and testing recommendations provided by this tool.")
                 
+                # ROUTE 3: Only National Selections Active
                 elif national_unaccredited_schools_found and not regional_accredited_schools_found:
                     st.warning("🎓 **Transfer Credit Notice:** The institution(s) you selected are not regionally accredited. Because credits from these schools are not commonly accepted by nursing programs, we cannot use them to generate transfer and testing recommendations within this tool.")
                     st.session_state["val_courses"] = []
                     st.session_state["course_grades_map"] = {}
 
                 if regional_accredited_schools_found:
-                    st.markdown("Select any general education or prerequisite courses you have already completed:")
+                    # 🛠️ FIX APPLIED: Dropped redundant placeholder instruction lines and injected your clean regional reference guide header block
+                    st.markdown(f"🎓 **Transfer Eligibility Guidance:** The following courses should only be selected if they were completed at {', '.join(regional_accredited_schools_found)} and you earned a grade of C or better, as this is the minimum grade most nursing programs require for transfer consideration.")
                     
                     btn_all_col, btn_clear_col, btn_spacer = st.columns([1.2, 1.2, 3.0])
                     with btn_all_col:
@@ -498,7 +502,6 @@ with col_input_flow:
                     if st.session_state["val_courses"]:
                         st.markdown("")
                         st.markdown("##### 🏅 Course Grade Assignments")
-                        st.caption("A minimum grade of C is required for transfer credit consideration.")
                         for course in sorted(st.session_state["val_courses"]):
                             current_grade = st.session_state["course_grades_map"].get(course, "A")
                             idx_g = GRADE_OPTIONS.index(current_grade)
@@ -540,7 +543,7 @@ with col_input_flow:
                     st.rerun()
 
     # --------------------------------------------------------------------------
-    # STEP 4: INSTITUTIONAL SCHOOL MATCHES (CLINT'S LAYOUT-LOCKED CARD REFIT)
+    # STEP 4: INSTITUTIONAL SCHOOL MATCHES
     # --------------------------------------------------------------------------
     elif current_step == 4:
         st.subheader("Step 4: Your Eligible Matches")
@@ -653,7 +656,6 @@ with col_input_flow:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
                 display_exam = card['exam'] if card['exam'] not in ["", "nan", "--"] else "Exempt / None"
                 
-                # 🛠️ THE FIXED RAW CONTAINER OVERRIDE: Employs absolute HTML/CSS flexbox matrices to lock components horizontally
                 with st.container(border=True):
                     st.markdown(f"""
                     <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; width: 100%; font-family: sans-serif; padding: 5px 0px;">
@@ -693,7 +695,6 @@ with col_input_flow:
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    # Inject select buttons right underneath cleanly via the runtime pipeline
                     b_side1, b_side2 = st.columns([1.1, 1.4])
                     with b_side1:
                         btn_lbl = "✓ Selection Unlocked" if is_selected else "Select Institution"
