@@ -311,7 +311,6 @@ with col_input_flow:
         i_travel = st.selectbox("Are you willing to travel regionally for clinical rotations?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]), disabled=is_finalized)
         i_track = st.selectbox("Which degree program track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]), disabled=is_finalized)
 
-        # 🎯 CORE REFACTOR FIX: Use safe tokenized array lookup matrices to pull school availability maps dynamically
         user_target_state_token = str(st.session_state["val_state"]).strip().upper()
         
         has_state_bsn = False
@@ -495,8 +494,9 @@ with col_input_flow:
                         chosen_g = st.selectbox(f"Letter Grade earned for {course}:", GRADE_OPTIONS, index=idx_g, key=f"grade_{course.replace(' ', '_')}")
                         st.session_state["course_grades_map"][course] = chosen_g
                         
+                        # 🎯 FIX INJECTED: "may not" is now updated to a definitive "will not" constraint override string message
                         if chosen_g in ["D", "F"]:
-                            st.error(f"❌ To receive transfer credit consideration for this course, a minimum grade of C is required. Based on the information provided, {course} may not be eligible for transfer.")
+                            st.error(f"❌ To receive transfer credit consideration for this course, a minimum grade of C is required. Based on the information provided, this course will not be eligible for transfer.")
             
             elif selected_schools and not st.session_state["is_transfer_eligible"]:
                 st.divider()
@@ -568,14 +568,12 @@ with col_input_flow:
                     
         needed_deficiencies = [c for c in course_list if c not in completed_courses]
 
-        # Ingest, scan, and parse the data matching state sets explicitly to capture raw records safely
         card_rows = []
         if not master_schools_df.empty:
             for idx, school_row in master_schools_df.iterrows():
                 raw_accepted_string = str(school_row.get("States Accepted", "")).strip().upper()
                 allowed_permission_set = {t.strip() for t in raw_accepted_string.split(",") if t.strip()}
                 
-                # Verify row parameters
                 if user_state_token not in allowed_permission_set:
                     continue
                 if str(school_row.get("ASN/BSN", "")).strip().lower() != selected_track:
@@ -1168,3 +1166,11 @@ if col_ledger_flow is not None:
                 "classes_waived_count": st.session_state["modal_classes_waived"], "promo_tier_applied": promo_tier_name, "addons_active": bool(total_odt_fees > 0)
             }
             st.rerun()
+
+if is_finalized:
+    pkg = st.session_state["confirmed_package"]
+    st.balloons()
+    st.success(f"🎉 **Your Bridge Plan has been successfully finalized, {pkg['student_name']}!**")
+    st.markdown(f"### School Selection Locked: **{pkg['school_name']}**")
+    st.metric("Final Balance Due", f"${int(pkg['final_total']):,}")
+    with st.expander("📄 View Your Signed Enrollment Summary Manifest"): st.json(pkg)
