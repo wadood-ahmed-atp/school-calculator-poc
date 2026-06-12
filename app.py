@@ -232,7 +232,7 @@ st.markdown(
         <span style="color: {s_cols[1]}; font-weight: {s_whts[1]};">{'✅ ' if current_step>2 else ''}2. Licensing</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[2]}; font-weight: {s_whts[2]};">{'✅ ' if current_step>3 else ''}3. Transcript</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[3]}; font-weight: {s_whts[3]};">{'✅ ' if current_step>4 else ''}4. Schools</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: {s_cols[4]}; font-weight: {s_whts[4]};">{'✅ ' if current_step+1>5 else ''}5. Support</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: {s_cols[4]}; font-weight: {s_whts[4]};">{'✅ ' if current_step>5 else ''}5. Support</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[5]}; font-weight: {s_whts[5]};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[6]}; font-weight: {s_whts[6]};">{'✅ ' if current_step>7 else ''}7. Exit Exam</span> <span style="color: #cbd5e1;">➔</span>
         <span style="color: {s_cols[7]}; font-weight: {s_whts[7]};">{'✅ ' if is_finalized else ''}8. Summary Receipt</span>
@@ -311,10 +311,22 @@ with col_input_flow:
         i_travel = st.selectbox("Are you willing to travel regionally for clinical rotations?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_travel"]), disabled=is_finalized)
         i_track = st.selectbox("Which degree program track are you targeting?", options=TRACK_OPTIONS, index=TRACK_OPTIONS.index(st.session_state["val_track"]), disabled=is_finalized)
 
-        cust_state = str(st.session_state["val_state"]).strip().lower()
-        state_schools = master_schools_df[master_schools_df["States Accepted"].str.lower().str.contains(cust_state, na=False)]
-        has_state_bsn = not state_schools[state_schools["ASN/BSN"].str.upper() == "BSN"].empty
-        has_state_asn = not state_schools[state_schools["ASN/BSN"].str.upper() == "ASN"].empty
+        # 🎯 CORE REFACTOR FIX: Use safe tokenized array lookup matrices to pull school availability maps dynamically
+        user_target_state_token = str(st.session_state["val_state"]).strip().upper()
+        
+        has_state_bsn = False
+        has_state_asn = False
+        
+        for idx, row in master_schools_df.iterrows():
+            raw_accepted_string = str(row.get("States Accepted", "")).strip().upper()
+            allowed_permission_set = {t.strip() for t in raw_accepted_string.split(",") if t.strip()}
+            
+            if user_target_state_token in allowed_permission_set:
+                school_tier_track = str(row.get("ASN/BSN", "")).strip().upper()
+                if "BSN" in school_tier_track:
+                    has_state_bsn = True
+                if "ASN" in school_tier_track:
+                    has_state_asn = True
 
         st.divider()
         
@@ -537,7 +549,7 @@ with col_input_flow:
         st.info(f"🎯 Current Selected Track: **{st.session_state['val_track']}** program options")
         st.divider()
         
-        user_state = str(st.session_state["val_state"]).strip().lower()
+        user_state_token = str(st.session_state["val_state"]).strip().upper()
         selected_track = str(st.session_state["val_track"]).strip().lower()
         license_type = st.session_state["val_lic"]
         lpn_exp = st.session_state["val_exp"]
@@ -556,30 +568,22 @@ with col_input_flow:
                     
         needed_deficiencies = [c for c in course_list if c not in completed_courses]
 
-        working_schools_df = master_schools_df.copy()
-        
-        if "ASN/BSN" in working_schools_df.columns:
-            working_schools_df = working_schools_df[working_schools_df["ASN/BSN"].str.lower().str.strip() == selected_track]
-        if "States Accepted" in working_schools_df.columns:
-            working_schools_df = working_schools_df[working_schools_df["States Accepted"].str.lower().str.contains(user_state, na=False)]
-        if "LPN Required?" in working_schools_df.columns and license_type in ["None", "None / Other"]:
-            working_schools_df = working_schools_df[working_schools_df["LPN Required?"].astype(str).str.lower().str.strip() != "y"]
-        if "Min Work Experience Required (mos)" in working_schools_df.columns:
-            working_schools_df["Min Work Experience Required (mos)"] = pd.to_numeric(working_schools_df["Min Work Experience Required (mos)"], errors='coerce').fillna(0)
-            working_schools_df = working_schools_df[working_schools_df["Min Work Experience Required (mos)"] <= lpn_exp_val]
-        if "Min GPA" in working_schools_df.columns:
-            working_schools_df["Min GPA"] = pd.to_numeric(working_schools_df["Min GPA"], errors='coerce').fillna(0.0)
-            working_schools_df = working_schools_df[working_schools_df["Min GPA"] <= gpa_val]
-        if "Clinical Travel?" in working_schools_df.columns and travel_ok == "No":
-            travel_clean = working_schools_df["Clinical Travel?"].astype(str).str.lower().str.strip()
-            working_schools_df = working_schools_df[travel_clean.isin(["no", "n", "none", "0"])]
-        if "Prior Nursing Dismissal Policy" in working_schools_df.columns and dismissal_y:
-            if dismissal_months <= 60:
-                working_schools_df = working_schools_df[working_schools_df["Prior Nursing Dismissal Policy"].astype(str).str.lower().str.strip() != "does not accept"]
-
-        if not working_schools_df.empty:
-            card_rows = []
-            for idx, school_row in working_schools_df.iterrows():
+        # Ingest, scan, and parse the data matching state sets explicitly to capture raw records safely
+        card_rows = []
+        if not master_schools_df.empty:
+            for idx, school_row in master_schools_df.iterrows():
+                raw_accepted_string = str(school_row.get("States Accepted", "")).strip().upper()
+                allowed_permission_set = {t.strip() for t in raw_accepted_string.split(",") if t.strip()}
+                
+                # Verify row parameters
+                if user_state_token not in allowed_permission_set:
+                    continue
+                if str(school_row.get("ASN/BSN", "")).strip().lower() != selected_track:
+                    continue
+                if "LPN Required?" in school_row and license_type in ["None", "None / Other"]:
+                    if str(school_row["LPN Required?"]).strip().lower() == "y":
+                        continue
+                        
                 raw_name = str(school_row["School Name"]).strip()
                 s_exam = str(school_row.get("Entrance Exam", "--")).strip()
                 s_notes = str(school_row.get("Entrance Exam Notes", "")).strip()
@@ -624,7 +628,7 @@ with col_input_flow:
                 
                 if s_county and s_county in str(st.session_state["val_zip"]).strip().lower():
                     base_cost_metric = inc_fee
-                elif s_state == user_state:
+                elif s_state.upper() == user_state_token:
                     base_cost_metric = ins_fee
                 else:
                     base_cost_metric = out_fee
@@ -642,6 +646,7 @@ with col_input_flow:
             
             card_rows = sorted(card_rows, key=lambda x: (-len(x["accepted_courses"]), x["cost_metric"]))
             
+        if card_rows:
             for card in card_rows:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
                 courses_str = ", ".join(card["accepted_courses"]) if card["accepted_courses"] else "None Required"
@@ -661,7 +666,7 @@ with col_input_flow:
                         })
                         st.rerun()
         else:
-            st.warning("No online options match your filters at this time.")
+            st.warning("No online options match your filters at this time in your state location context.")
         
         st.divider()
         b_reset_col, b_spacer, b_back_col = st.columns([1.0, 1.5, 1.0])
@@ -1016,8 +1021,6 @@ with col_input_flow:
             if st.session_state.get("science_credits_expired"):
                 st.error("🛑 **Policy Expiration Enforced:** Science prerequisites fall outside the school-approved recency window. Guided Science ODT support tracks have been locked into this plan layout.")
             st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Expanded layout: Three clean columns to capture everything symmetrically
             col_cbe, col_exams, col_odt = st.columns(3, gap="medium")
             
             with col_cbe:
@@ -1129,11 +1132,11 @@ if col_ledger_flow is not None:
         credits_sum = calc_referral + calc_military + calc_free_course
         final_total = max(0, (base_total + total_odt_fees) - credits_sum)
 
-        st.markdown("---")
+        st.divider()
         st.markdown(f"**Gross Base Tuition Breakdown:**")
         
         if final_cbe_clean_list:
-            st.markdown(f" antisymmetric *Prerequisite Prep ({len(final_cbe_clean_list)}):* `${int(len(final_cbe_clean_list) * prep_rate):,}`")
+            st.markdown(f"📝 *Prerequisite Prep ({len(final_cbe_clean_list)}):* `${int(len(final_cbe_clean_list) * prep_rate):,}`")
         if extra_exam_count > 0:
             st.markdown(f"🔒 *{active_school['exam']} Entrance Prep (1):* `${int(prep_rate):,}`")
         if extra_nclex_count > 0:
@@ -1155,7 +1158,7 @@ if col_ledger_flow is not None:
         st.markdown(f"**Total Savings:** `-${credits_sum:,}`")
         st.markdown(f"## **Balance Due: ${0 if (base_total==0 and total_odt_fees==0) else final_total:,}**")
         
-        st.markdown("---")
+        st.divider()
         if st.button("🔒 Lock in Enrollment Package", key="lock_package_btn", use_container_width=True, type="primary", disabled=is_finalized):
             st.session_state["confirmed_package"] = {
                 "school_name": school_name, "student_name": st.session_state["val_name"],
@@ -1165,11 +1168,3 @@ if col_ledger_flow is not None:
                 "classes_waived_count": st.session_state["modal_classes_waived"], "promo_tier_applied": promo_tier_name, "addons_active": bool(total_odt_fees > 0)
             }
             st.rerun()
-
-if is_finalized:
-    pkg = st.session_state["confirmed_package"]
-    st.balloons()
-    st.success(f"🎉 **Your Bridge Plan has been successfully finalized, {pkg['student_name']}!**")
-    st.markdown(f"### School Selection Locked: **{pkg['school_name']}**")
-    st.metric("Final Balance Due", f"${int(pkg['final_total']):,}")
-    with st.expander("📄 View Your Signed Enrollment Summary Manifest"): st.json(pkg)
