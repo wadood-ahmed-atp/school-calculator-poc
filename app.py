@@ -449,7 +449,9 @@ with col_input_flow:
             if selected_schools and st.session_state["is_transfer_eligible"]:
                 st.divider()
                 st.markdown("#### 🧬 Completed Coursework & Grade Validation")
-                st.info(f"🎓 **Accreditation Filter Enabled:** Evaluation mapping grids are unlocked **only** for coursework completed at your Regionally Accredited selection(s): `{', '.join(regional_accredited_schools_found)}`.")
+                
+                # 🎯 FIX EXECUTED: Replaced the old label configuration with your exact Transfer Credit Guidance message block
+                st.info(f"🎓 **Transfer Credit Guidance:** Please select only the courses you completed at {', '.join(regional_accredited_schools_found)}. These credits are used to generate the most accurate transfer and testing recommendations for participating nursing programs.")
                 st.markdown("Select any general education or prerequisite courses you have already completed:")
                 
                 btn_all_col, btn_clear_col, btn_spacer = st.columns([1.2, 1.2, 3.0])
@@ -1155,7 +1157,6 @@ if col_ledger_flow is not None:
             st.markdown(f"➕ **Guided Course Support ({len(active_odts)}):** `${total_odt_fees:,}`")
             st.caption(f"({len(active_odts)} ODT Bundles at ${int(odt_rate):,} each)")
         
-        # 🎯 FIX EXECUTED: If total active credits calculate out to zero, surgically omit the line entirely from view block
         if credits_sum > 0:
             st.markdown("##### 🎖️ Levant Discounts Applied:")
             if calc_referral: st.markdown(f"🏷️ *Student Referral Credit:* `-${calc_referral:,}`")
