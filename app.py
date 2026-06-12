@@ -462,9 +462,6 @@ with col_input_flow:
                     st.session_state["course_grades_map"] = {}
 
                 if regional_accredited_schools_found:
-                    # 🛠️ FIX APPLIED: Dropped redundant placeholder instruction lines and injected your clean regional reference guide header block
-                    st.markdown(f"🎓 **Transfer Eligibility Guidance:** The following courses should only be selected if they were completed at {', '.join(regional_accredited_schools_found)} and you earned a grade of C or better, as this is the minimum grade most nursing programs require for transfer consideration.")
-                    
                     btn_all_col, btn_clear_col, btn_spacer = st.columns([1.2, 1.2, 3.0])
                     with btn_all_col:
                         if st.button("Select All Completed", use_container_width=True):
@@ -501,6 +498,8 @@ with col_input_flow:
                                     
                     if st.session_state["val_courses"]:
                         st.markdown("")
+                        # 🎯 MASTER FIX ALIGNED: Replaced old grade guidelines text with the new structural baseline lookup message
+                        st.markdown(f"🎓 **Transfer Eligibility Guidance:** The following courses should only be selected if they were completed at {', '.join(regional_accredited_schools_found)} and you earned a grade of C or better, as this is the minimum grade most nursing programs require for transfer consideration.")
                         st.markdown("##### 🏅 Course Grade Assignments")
                         for course in sorted(st.session_state["val_courses"]):
                             current_grade = st.session_state["course_grades_map"].get(course, "A")
