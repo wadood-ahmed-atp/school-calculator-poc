@@ -492,8 +492,8 @@ with col_input_flow:
                                     
                     if st.session_state["val_courses"]:
                         st.markdown("")
+                        st.markdown(f"🎓 **Transfer Eligibility Guidance:** The following courses should only be selected if they were completed at {', '.join(regional_accredited_schools_found)} and you earned a grade of C or better, as this is the minimum grade most nursing programs require for transfer consideration.")
                         st.markdown("##### 🏅 Course Grade Assignments")
-                        st.info(f"🎓 **Transfer Eligibility Guidance:** The following courses should only be selected if they were completed at {', '.join(regional_accredited_schools_found)} and you earned a grade of C or better, as this is the minimum grade most nursing programs require for transfer consideration.")
                         for course in sorted(st.session_state["val_courses"]):
                             current_grade = st.session_state["course_grades_map"].get(course, "A")
                             idx_g = GRADE_OPTIONS.index(current_grade)
@@ -646,6 +646,7 @@ with col_input_flow:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
                 display_exam = card['exam'] if card['exam'] not in ["", "nan", "--"] else "Exempt / None"
                 
+                # 🎯 GLASS MATRIX BOX FIX EXECUTED: Stripped white backgrounds and crisp solid borders entirely from metrics chips
                 html_template_string = f"""
                 <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin-bottom: 16px; font-family: sans-serif;">
                     <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; width: 100%;">
@@ -664,17 +665,17 @@ with col_input_flow:
                             </p>
                             <div style="display: flex; flex-direction: row; gap: 12px; width: 100%;">
                                 
-                                <div style="flex: 1; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px; text-align: left;">
+                                <div style="flex: 1; border-left: 2px solid #1E3A8A; padding-left: 10px; text-align: left;">
                                     <span style="display: block; font-size: 11px; color: #64748B; font-weight: 500; margin-bottom: 2px;">🎯 Program Match</span>
                                     <span style="display: block; font-size: 14px; color: #1E3A8A; font-weight: 700;">Compatible</span>
                                 </div>
                                 
-                                <div style="flex: 1; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px; text-align: left;">
+                                <div style="flex: 1; border-left: 2px solid #1E3A8A; padding-left: 10px; text-align: left;">
                                     <span style="display: block; font-size: 11px; color: #64748B; font-weight: 500; margin-bottom: 2px;">📋 Entrance Exam</span>
                                     <span style="display: block; font-size: 14px; color: #1E3A8A; font-weight: 700;">{display_exam}</span>
                                 </div>
                                 
-                                <div style="flex: 1; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px; text-align: left;">
+                                <div style="flex: 1; border-left: 2px solid #10B981; padding-left: 10px; text-align: left;">
                                     <span style="display: block; font-size: 11px; color: #64748B; font-weight: 500; margin-bottom: 2px;">🧬 Credits via CBE</span>
                                     <span style="display: block; font-size: 14px; color: #10B981; font-weight: 700;">{len(card['accepted_courses'])} Courses</span>
                                 </div>
@@ -766,7 +767,6 @@ with col_input_flow:
         if odt_rules_string and str(odt_rules_string).lower() not in ["", "nan", "--"]:
             allowed_recency_sciences_whitelist = {c.strip().upper() for c in odt_rules_string.split(",")}
 
-        # 🎯 CRITICAL SYNTAX ERROR RESOLVED: Converted standard compilation logic back to plain text conditions
         if not is_skipping_evaluation and user_completed_sciences and rule_threshold_years < 99:
             st.markdown("##### ⏳ Credit Recency Verification")
             st.caption(f"University Registry Policy Cutoff Enforced: Core prerequisites cannot be older than {rule_threshold_years} years.")
@@ -1044,8 +1044,7 @@ with col_input_flow:
                 
                 if card['exam'] != "--" and st.session_state["modal_score_logged"]:
                     exam_status_txt = f"✓ Analytics Score Logged: {st.session_state['modal_score_logged']}%"
-                else:
-                    exam_status_txt = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
+                else = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
                     
                 st.markdown(f"**Entrance Benchmark Requirement:** `{exam_status_txt if card['exam'] != '--' else 'Exempt / None'}`")
                 nclex_status_txt = "⚠️ NCLEX Prep Course Included" if st.session_state["modal_include_nclex_prep"] else "❌ Excluded from Plan"
