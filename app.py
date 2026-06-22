@@ -228,16 +228,16 @@ s_whts = ["bold" if current_step == i else "normal" for i in range(1, 9)]
 st.markdown(
     f"""
     <div style="font-family: sans-serif; font-size: 12px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 5px;">
-        <span style="color: {s_cols[0]}; font-weight: {s_whts[0]};">{'✅ ' if current_step>1 else ''}1. Profile</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: {s_cols[1]}; font-weight: {s_whts[1]};">{'✅ ' if current_step>2 else ''}2. Licensing</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: {s_cols[2]}; font-weight: {s_whts[2]};">{'✅ ' if current_step>3 else ''}3. Transcript</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: {s_cols[3]}; font-weight: {s_whts[3]};">{'✅ ' if current_step>4 else ''}4. Schools</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: {s_cols[4]}; font-weight: {s_whts[4]};">{'✅ ' if current_step>5 else ''}5. Support</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: {s_cols[5]}; font-weight: {s_whts[5]};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: {s_cols[6]}; font-weight: {s_whts[6]};">{'✅ ' if current_step>7 else ''}7. Exit Exam</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: {s_cols[7]}; font-weight: {s_whts[7]};">{'✅ ' if is_finalized else ''}8. Summary Receipt</span>
+        <span style="color: #get_s_cols(1); font-weight: {s_whts[0]};">{'✅ ' if current_step>1 else ''}1. Profile</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(2); font-weight: {s_whts[1]};">{'✅ ' if current_step>2 else ''}2. Licensing</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(3); font-weight: {s_whts[2]};">{'✅ ' if current_step>3 else ''}3. Transcript</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(4); font-weight: {s_whts[3]};">{'✅ ' if current_step>4 else ''}4. Schools</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(5); font-weight: {s_whts[4]};">{'✅ ' if current_step>5 else ''}5. Support</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(6); font-weight: {s_whts[5]};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(7); font-weight: {s_whts[6]};">{'✅ ' if current_step>7 else ''}7. Exit Exam</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(8); font-weight: {s_whts[7]};">{'✅ ' if is_finalized else ''}8. Summary Receipt</span>
     </div>
-    """, 
+    """.replace("#get_s_cols(1)", s_cols[0]).replace("#get_s_cols(2)", s_cols[1]).replace("#get_s_cols(3)", s_cols[2]).replace("#get_s_cols(4)", s_cols[3]).replace("#get_s_cols(5)", s_cols[4]).replace("#get_s_cols(6)", s_cols[5]).replace("#get_s_cols(7)", s_cols[6]).replace("#get_s_cols(8)", s_cols[7]), 
     unsafe_allow_html=True
 )
 
@@ -419,7 +419,7 @@ with col_input_flow:
                     if not match_rows.empty:
                         agency = str(match_rows['ACCREDAGENCY'].values[0]).strip()
                         if agency in ["", "nan", "NA", "Blank", "EXEMPT", "Unknown"]:
-                            accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
+                            accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
                             national_unaccredited_schools_found.append(school)
                         elif agency in REGIONAL_AGENCIES:
                             accred_map[school] = {"agency": agency, "type": "Regionally Accredited"}
@@ -492,8 +492,8 @@ with col_input_flow:
                                     
                     if st.session_state["val_courses"]:
                         st.markdown("")
-                        st.markdown(f"🎓 **Transfer Eligibility Guidance:** The following courses should only be selected if they were completed at {', '.join(regional_accredited_schools_found)} and you earned a grade of C or better, as this is the minimum grade most nursing programs require for transfer consideration.")
                         st.markdown("##### 🏅 Course Grade Assignments")
+                        st.info(f"🎓 **Transfer Eligibility Guidance:** The following courses should only be selected if they were completed at {', '.join(regional_accredited_schools_found)} and you earned a grade of C or better, as this is the minimum grade most nursing programs require for transfer consideration.")
                         for course in sorted(st.session_state["val_courses"]):
                             current_grade = st.session_state["course_grades_map"].get(course, "A")
                             idx_g = GRADE_OPTIONS.index(current_grade)
@@ -646,7 +646,6 @@ with col_input_flow:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
                 display_exam = card['exam'] if card['exam'] not in ["", "nan", "--"] else "Exempt / None"
                 
-                # 🎯 BACKGROUND TRANSPARENCY FIX EXECUTED: Removed 'background-color: white;' layout specification rules completely
                 html_template_string = f"""
                 <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin-bottom: 16px; font-family: sans-serif;">
                     <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; width: 100%;">
@@ -767,7 +766,8 @@ with col_input_flow:
         if odt_rules_string and str(odt_rules_string).lower() not in ["", "nan", "--"]:
             allowed_recency_sciences_whitelist = {c.strip().upper() for c in odt_rules_string.split(",")}
 
-        if not is_skipping_evaluation && user_completed_sciences and rule_threshold_years < 99:
+        # 🎯 CRITICAL SYNTAX ERROR RESOLVED: Converted standard compilation logic back to plain text conditions
+        if not is_skipping_evaluation and user_completed_sciences and rule_threshold_years < 99:
             st.markdown("##### ⏳ Credit Recency Verification")
             st.caption(f"University Registry Policy Cutoff Enforced: Core prerequisites cannot be older than {rule_threshold_years} years.")
             
