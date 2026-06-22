@@ -228,14 +228,14 @@ s_whts = ["bold" if current_step == i else "normal" for i in range(1, 9)]
 st.markdown(
     f"""
     <div style="font-family: sans-serif; font-size: 12px; font-weight: 500; color: #475569; padding-bottom: 25px; padding-top: 5px;">
-        <span style="color: #get_s_cols(1); font-weight: {s_whts[0]};">{'✅ ' if current_step>1 else ''}1. Profile</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: #get_s_cols(2); font-weight: {s_whts[1]};">{'✅ ' if current_step>2 else ''}2. Licensing</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: #get_s_cols(3); font-weight: {s_whts[2]};">{'✅ ' if current_step>3 else ''}3. Transcript</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: #get_s_cols(4); font-weight: {s_whts[3]};">{'✅ ' if current_step>4 else ''}4. Schools</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: #get_s_cols(5); font-weight: {s_whts[4]};">{'✅ ' if current_step>5 else ''}5. Support</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: #get_s_cols(6); font-weight: {s_whts[5]};">{'✅ ' if current_step>6 else ''}6. Entrance Exam</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: #get_s_cols(7); font-weight: {s_whts[6]};">{'✅ ' if current_step>7 else ''}7. Exit Exam</span> <span style="color: #cbd5e1;">➔</span>
-        <span style="color: #get_s_cols(8); font-weight: {s_whts[7]};">{'✅ ' if is_finalized else ''}8. Summary Receipt</span>
+        <span style="color: #get_s_cols(1); font-weight: {s_whts[0]};">1. Profile</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(2); font-weight: {s_whts[1]};">2. Licensing</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(3); font-weight: {s_whts[2]};">3. Transcript</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(4); font-weight: {s_whts[3]};">4. Schools</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(5); font-weight: {s_whts[4]};">5. Support</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(6); font-weight: {s_whts[5]};">6. Entrance Exam</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(7); font-weight: {s_whts[6]};">7. Exit Exam</span> <span style="color: #cbd5e1;">➔</span>
+        <span style="color: #get_s_cols(8); font-weight: {s_whts[7]};">8. Summary Receipt</span>
     </div>
     """.replace("#get_s_cols(1)", s_cols[0]).replace("#get_s_cols(2)", s_cols[1]).replace("#get_s_cols(3)", s_cols[2]).replace("#get_s_cols(4)", s_cols[3]).replace("#get_s_cols(5)", s_cols[4]).replace("#get_s_cols(6)", s_cols[5]).replace("#get_s_cols(7)", s_cols[6]).replace("#get_s_cols(8)", s_cols[7]), 
     unsafe_allow_html=True
@@ -969,7 +969,7 @@ with col_input_flow:
                             st.session_state["exam_age_input_cache"] = user_exam_age
                             
                             if user_exam_age > age_threshold_years:
-                                index = st.session_state["modal_include_exam_prep"] = True
+                                st.session_state["modal_include_exam_prep"] = True
                                 st.error(f"⚠️ **Exam Age Requirement Exceeded:** Your exam certificate is older than the institution's accepted {age_threshold_years}-year cutoff limit. Testing criteria cannot be treated as valid, and an automated remediation track has been added to your checkout bill.")
                             else:
                                 if is_score_passing:
@@ -1044,7 +1044,6 @@ with col_input_flow:
                 if card['exam'] != "--" and st.session_state["modal_score_logged"]:
                     exam_status_txt = f"✓ Analytics Score Logged: {st.session_state['modal_score_logged']}%"
                 else:
-                    # 🎯 REPAIR CONFIRMED: Corrected syntax structure back to a pure python string validation
                     exam_status_txt = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
                     
                 st.markdown(f"**Entrance Benchmark Requirement:** `{exam_status_txt if card['exam'] != '--' else 'Exempt / None'}`")
@@ -1153,23 +1152,28 @@ if col_ledger_flow is not None:
         st.markdown("#### Adjustments & Savings")
         st.session_state["val_deposit"] = 0
         q_ref, q_mil = st.session_state["val_ref"], st.session_state["val_mil"]
-        calc_free_course, promo_tier_name = 0, ""
         
-        if len(final_cbe_clean_list) >= 3:
-            q_promo = st.radio("Do you possess a promotional code?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, disabled=is_finalized)
-            st.session_state["val_promo"] = q_promo
+        # 🛠️ ALWAYS ACCESSIBLE PROMO OVERHAUL WITH WIDGET-KEY MEMORY LOCKS
+        q_promo = st.radio("Do you possess a promotional code?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, disabled=is_finalized)
+        st.session_state["val_promo"] = q_promo
+        
+        calc_free_course, promo_tier_name = 0, ""
+        if q_promo == "Yes":
+            promo_input = st.text_input(
+                "Enter promotional code:", 
+                value=st.session_state["val_promo_code_input"], 
+                placeholder="Enter code here", 
+                disabled=is_finalized,
+                key="live_promo_input_vault_key"
+            ).strip()
+            st.session_state["val_promo_code_input"] = promo_input
             
-            if q_promo == "Yes":
-                promo_input = st.text_input("Enter promotional code:", value=st.session_state["val_promo_code_input"], placeholder="Enter code here", disabled=is_finalized)
-                st.session_state["val_promo_code_input"] = promo_input
-                if str(promo_input).strip().upper() in ["FREECOURSE", "FREE COURSE"]:
-                    calc_free_course = int(prep_rate)
-                    promo_tier_name = f"FreeCourse_Model8_Tier_{total_products}"
-                    st.success(f"🎉 Code Approved! Discount (-${calc_free_course:,})")
-                elif str(promo_input).strip() != "":
-                    st.error("❌ Invalid promotional code.")
-        else:
-            st.session_state.update({"val_promo": "No", "val_promo_code_input": ""})
+            if promo_input.upper() in ["FREECOURSE", "FREE COURSE"]:
+                calc_free_course = int(prep_rate)
+                promo_tier_name = f"FreeCourse_Model8_Tier_{total_products}"
+                st.success(f"🎉 Code Approved! Discount (-${calc_free_course:,})")
+            elif promo_input != "":
+                st.error("❌ Invalid promotional code.")
 
         calc_referral = 50 if q_ref == "Yes" else 0
         calc_military = 200 if q_mil == "Yes" else 0
