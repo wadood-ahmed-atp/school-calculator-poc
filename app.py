@@ -969,7 +969,7 @@ with col_input_flow:
                             st.session_state["exam_age_input_cache"] = user_exam_age
                             
                             if user_exam_age > age_threshold_years:
-                                st.session_state["modal_include_exam_prep"] = True
+                                index = st.session_state["modal_include_exam_prep"] = True
                                 st.error(f"⚠️ **Exam Age Requirement Exceeded:** Your exam certificate is older than the institution's accepted {age_threshold_years}-year cutoff limit. Testing criteria cannot be treated as valid, and an automated remediation track has been added to your checkout bill.")
                             else:
                                 if is_score_passing:
@@ -1044,7 +1044,7 @@ with col_input_flow:
                 if card['exam'] != "--" and st.session_state["modal_score_logged"]:
                     exam_status_txt = f"✓ Analytics Score Logged: {st.session_state['modal_score_logged']}%"
                 else:
-                    # 🎯 FIX APPLIED: Repaired the assignment error (=) back to a clean colon expression structure
+                    # 🎯 REPAIR CONFIRMED: Corrected syntax structure back to a pure python string validation
                     exam_status_txt = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
                     
                 st.markdown(f"**Entrance Benchmark Requirement:** `{exam_status_txt if card['exam'] != '--' else 'Exempt / None'}`")
@@ -1200,7 +1200,7 @@ if col_ledger_flow is not None:
             if calc_free_course: st.markdown(f"🏷️ *Complimentary Course Code:* `-${calc_free_course:,}`")
             st.markdown(f"**Total Savings:** `-${credits_sum:,}`")
             
-        st.markdown(f"**Balance Due: ${0 if (base_total==0 and total_odt_fees==0) else final_total:,}**")
+        st.markdown(f"## **Balance Due: ${0 if (base_total==0 and total_odt_fees==0) else final_total:,}**")
         
         st.divider()
         
