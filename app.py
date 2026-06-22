@@ -648,10 +648,10 @@ with col_input_flow:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
                 display_exam = card['exam'] if card['exam'] not in ["", "nan", "--"] else "Exempt / None"
                 
-                # 🛠️ PARSING SAFE LAYOUT WRAPPER PATCHED: Uses raw inline markdown execution rules to guarantee crisp HTML dashboard outputs
-                st.markdown(f"""
-                <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: white;">
-                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; width: 100%; font-family: sans-serif;">
+                # 🎯 COMPILER FIXED: Dynamic card structures are now passed directly to standard st.html parsing fields to eradicate layout bugs
+                html_template_string = f"""
+                <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: white; font-family: sans-serif;">
+                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; width: 100%;">
                         
                         <div style="flex: 1.1; min-width: 280px; padding-right: 20px;">
                             <h3 style="margin: 0px 0px 4px 0px; font-size: 22px; font-weight: 700; color: #1E3A8A;">🏫 {card['name']}</h3>
@@ -687,7 +687,8 @@ with col_input_flow:
                         
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
+                """
+                st.html(html_template_string)
                     
                 b_side1, b_side2 = st.columns([1.1, 1.4])
                 with b_side1:
