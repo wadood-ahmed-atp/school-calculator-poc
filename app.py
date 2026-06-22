@@ -569,7 +569,6 @@ with col_input_flow:
         card_rows = []
         if not master_schools_df.empty:
             for idx, school_row in master_schools_df.iterrows():
-                # 🛠️ ORIGINAL STATE LOCK ENFORCED: Forces strict in-state logic lookup to clear regional footprints accurately
                 s_state = str(school_row.get("School State", "")).strip().upper()
                 if s_state != user_state_token:
                     continue
@@ -647,8 +646,9 @@ with col_input_flow:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
                 display_exam = card['exam'] if card['exam'] not in ["", "nan", "--"] else "Exempt / None"
                 
+                # 🎯 BACKGROUND TRANSPARENCY FIX EXECUTED: Removed 'background-color: white;' layout specification rules completely
                 html_template_string = f"""
-                <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: white; font-family: sans-serif;">
+                <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin-bottom: 16px; font-family: sans-serif;">
                     <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; width: 100%;">
                         
                         <div style="flex: 1.1; min-width: 280px; padding-right: 20px;">
@@ -670,7 +670,7 @@ with col_input_flow:
                                     <span style="display: block; font-size: 14px; color: #1E3A8A; font-weight: 700;">Compatible</span>
                                 </div>
                                 
-                                <div style="flex: 1; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px; text-align: text-align: left;">
+                                <div style="flex: 1; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px; text-align: left;">
                                     <span style="display: block; font-size: 11px; color: #64748B; font-weight: 500; margin-bottom: 2px;">📋 Entrance Exam</span>
                                     <span style="display: block; font-size: 14px; color: #1E3A8A; font-weight: 700;">{display_exam}</span>
                                 </div>
@@ -767,7 +767,7 @@ with col_input_flow:
         if odt_rules_string and str(odt_rules_string).lower() not in ["", "nan", "--"]:
             allowed_recency_sciences_whitelist = {c.strip().upper() for c in odt_rules_string.split(",")}
 
-        if not is_skipping_evaluation and user_completed_sciences and rule_threshold_years < 99:
+        if not is_skipping_evaluation && user_completed_sciences and rule_threshold_years < 99:
             st.markdown("##### ⏳ Credit Recency Verification")
             st.caption(f"University Registry Policy Cutoff Enforced: Core prerequisites cannot be older than {rule_threshold_years} years.")
             
