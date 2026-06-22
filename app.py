@@ -569,11 +569,11 @@ with col_input_flow:
         card_rows = []
         if not master_schools_df.empty:
             for idx, school_row in master_schools_df.iterrows():
-                raw_accepted_string = str(school_row.get("States Accepted", "")).strip().upper()
-                allowed_permission_set = {t.strip() for t in raw_accepted_string.split(",") if t.strip()}
-                
-                if user_state_token not in allowed_permission_set:
+                # 🛠️ ORIGINAL STATE LOCK ENFORCED: Forces strict in-state logic lookup to clear regional footprints accurately
+                s_state = str(school_row.get("School State", "")).strip().upper()
+                if s_state != user_state_token:
                     continue
+                    
                 if str(school_row.get("ASN/BSN", "")).strip().lower() != selected_track:
                     continue
                 if "LPN Required?" in school_row and license_type in ["None", "None / Other"]:
@@ -586,7 +586,6 @@ with col_input_flow:
                 s_blanket = str(school_row.get("Blanket Statement", "")).strip()
                 s_odt_rules = str(school_row.get("Science/Math ODTs", "")).strip()
                 s_odt_notes = str(school_row.get("Science/Math ODT Notes", "")).strip()
-                s_state = str(school_row.get("School State", "")).strip().lower()
                 s_county = str(school_row.get("County", "")).strip().lower()
                 
                 if "HERZ" in raw_name.upper() or "HERI" in raw_name.upper():
@@ -624,7 +623,7 @@ with col_input_flow:
                 
                 if s_county and s_county in str(st.session_state["val_zip"]).strip().lower():
                     base_cost_metric = inc_fee
-                elif s_state.upper() == user_state_token:
+                elif s_state == user_state_token:
                     base_cost_metric = ins_fee
                 else:
                     base_cost_metric = out_fee
@@ -638,7 +637,7 @@ with col_input_flow:
                     "blanket": s_blanket, "odt_rules": s_odt_rules, "odt_notes": s_odt_notes,
                     "track": school_row["ASN/BSN"], "status": s_status, "accepted_courses": school_accepted_list,
                     "cost_metric": base_cost_metric, "odt_count_weight": len(raw_odt_options),
-                    "raw_state_val": s_state.upper()
+                    "raw_state_val": s_state
                 })
             
             card_rows = sorted(card_rows, key=lambda x: (-len(x["accepted_courses"]), x["cost_metric"]))
@@ -648,7 +647,6 @@ with col_input_flow:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
                 display_exam = card['exam'] if card['exam'] not in ["", "nan", "--"] else "Exempt / None"
                 
-                # 🎯 COMPILER FIXED: Dynamic card structures are now passed directly to standard st.html parsing fields to eradicate layout bugs
                 html_template_string = f"""
                 <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: white; font-family: sans-serif;">
                     <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; width: 100%;">
@@ -672,7 +670,7 @@ with col_input_flow:
                                     <span style="display: block; font-size: 14px; color: #1E3A8A; font-weight: 700;">Compatible</span>
                                 </div>
                                 
-                                <div style="flex: 1; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px; text-align: left;">
+                                <div style="flex: 1; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px; text-align: text-align: left;">
                                     <span style="display: block; font-size: 11px; color: #64748B; font-weight: 500; margin-bottom: 2px;">📋 Entrance Exam</span>
                                     <span style="display: block; font-size: 14px; color: #1E3A8A; font-weight: 700;">{display_exam}</span>
                                 </div>
