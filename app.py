@@ -425,7 +425,7 @@ with col_input_flow:
                             accred_map[school] = {"agency": agency, "type": "Regionally Accredited"}
                             regional_accredited_schools_found.append(school)
                         else:
-                            accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
+                            accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
                             national_unaccredited_schools_found.append(school)
                     else:
                         accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
@@ -646,6 +646,9 @@ with col_input_flow:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
                 display_exam = card['exam'] if card['exam'] not in ["", "nan", "--"] else "Exempt / None"
                 
+                # 🎯 FOOTER REFACTOR FIX EXECUTED: Maps all dynamic courses cleanly to an explicit horizontal grid footer block row
+                tests_list_html = "".join([f"<li style='margin-bottom: 2px;'>✓ {test_item}</li>" for test_item in card['accepted_courses']]) if card['accepted_courses'] else "<li>No tests required</li>"
+                
                 html_template_string = f"""
                 <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin-bottom: 16px; font-family: sans-serif;">
                     <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; width: 100%;">
@@ -662,7 +665,7 @@ with col_input_flow:
                             <p style="font-size: 11px; color: #64748B; font-weight: 700; text-transform: uppercase; margin: 0px 0px 8px 0px; letter-spacing: 0.5px;">
                                 Plan Optimization Metrics
                             </p>
-                            <div style="display: flex; flex-direction: row; gap: 12px; width: 100%;">
+                            <div style="display: flex; flex-direction: row; gap: 12px; width: 100%; margin-bottom: 12px;">
                                 
                                 <div style="flex: 1; border-left: 2px solid #1E3A8A; padding-left: 10px; text-align: left;">
                                     <span style="display: block; font-size: 11px; color: #64748B; font-weight: 500; margin-bottom: 2px;">🎯 Program Match</span>
@@ -683,10 +686,19 @@ with col_input_flow:
                         </div>
                         
                     </div>
+                    
+                    <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #F1F5F9; width: 100%;">
+                        <span style="display: block; font-size: 11px; color: #64748B; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">🎓 Eligible Transfer Tests</span>
+                        <ul style="margin: 0px; padding-left: 0px; list-style-type: none; font-size: 13px; color: #334155; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px;">
+                            {tests_list_html}
+                        </ul>
+                    </div>
+                    
                 </div>
                 """
                 st.html(html_template_string)
                     
+                # Action rows clean render pass updates
                 b_side1, b_side2 = st.columns([1.1, 1.4])
                 with b_side1:
                     btn_lbl = "✓ Selection Unlocked" if is_selected else "Select Institution"
@@ -699,8 +711,7 @@ with col_input_flow:
                         })
                         st.rerun()
                 with b_side2:
-                    if card['accepted_courses']:
-                        st.markdown(f"<div style='padding-top:6px; font-size:12px; color:#475569;'><b>Eligible Transfer Tests:</b> {', '.join(card['accepted_courses'][:5])}{'...' if len(card['accepted_courses'])>5 else ''}</div>", unsafe_allow_html=True)
+                    st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
         else:
             st.warning("No online options match your filters at this time in your state location context.")
         
@@ -1153,7 +1164,6 @@ if col_ledger_flow is not None:
         st.session_state["val_deposit"] = 0
         q_ref, q_mil = st.session_state["val_ref"], st.session_state["val_mil"]
         
-        # 🛠️ ALWAYS ACCESSIBLE PROMO OVERHAUL WITH WIDGET-KEY MEMORY LOCKS
         q_promo = st.radio("Do you possess a promotional code?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, disabled=is_finalized)
         st.session_state["val_promo"] = q_promo
         
