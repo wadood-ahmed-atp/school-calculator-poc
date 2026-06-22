@@ -52,7 +52,7 @@ def initialize_base_states(force_reset=False):
         "val_name": "",
         "val_state": "Select state",
         "val_zip": "",
-        "val_adult": "Yes",
+        "val_adult": "No Selection", # Updated anchor tracking state for step 8 gating passes
         "val_gpa": 3.5, 
         "val_gpa_unknown": False,
         "val_lic": "None / Other",
@@ -259,7 +259,8 @@ with col_input_flow:
         i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name", disabled=is_finalized)
         i_state = st.selectbox("Select your home state:", options=STATE_OPTIONS, index=STATE_OPTIONS.index(st.session_state["val_state"]), disabled=is_finalized)
         i_zip = st.text_input("What is your zip code?", value=st.session_state["val_zip"], placeholder="e.g. 19013", max_chars=14, disabled=is_finalized)
-        i_adult = st.selectbox("Are you 18 years of age or older?", options=BINARY_OPTIONS, index=BINARY_OPTIONS.index(st.session_state["val_adult"]), disabled=is_finalized)
+        
+        # 💡 DYNAMIC REMOVAL EXECUTED: The "Are you 18 or older" parameter has been removed from Step 1 per Clint's request.
         
         i_gpa_unknown = st.checkbox("I don't know my cumulative GPA", value=st.session_state["val_gpa_unknown"], disabled=is_finalized)
         i_gpa = 4.0 if i_gpa_unknown else st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=float(st.session_state["val_gpa"]), step=0.1, format="%.1f", disabled=is_finalized or i_gpa_unknown)
@@ -277,10 +278,8 @@ with col_input_flow:
                 if st.button("Continue ➡️", use_container_width=True, type="primary", disabled=is_finalized):
                     if i_state == "Select state":
                         st.warning("⚠️ Please select your home state before continuing.")
-                    elif i_adult == "No":
-                        st.error("🛑 Registration Blocked: Applicants under 18 require admissions review.")
                     else:
-                        st.session_state.update({"val_name": i_name, "val_state": i_state, "val_zip": i_zip, "val_adult": i_adult, "val_gpa": i_gpa, "val_gpa_unknown": i_gpa_unknown, "wizard_step": 2})
+                        st.session_state.update({"val_name": i_name, "val_state": i_state, "val_zip": i_zip, "val_gpa": i_gpa, "val_gpa_unknown": i_gpa_unknown, "wizard_step": 2})
                         st.rerun()
 
     # --------------------------------------------------------------------------
@@ -432,7 +431,7 @@ with col_input_flow:
                             national_unaccredited_schools_found.append(school)
                     else:
                         accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
-                        has_national = True
+                        national_unaccredited_schools_found.append(school)
                         
             st.session_state["institutions_accreditation_map"] = accred_map
             
@@ -447,15 +446,12 @@ with col_input_flow:
             if selected_schools:
                 st.divider()
                 
-                # ROUTE 1: Only Regional Selections Active
                 if regional_accredited_schools_found and not national_unaccredited_schools_found:
                     st.info(f"🎓 **Transfer Credit Guidance:** Please select the courses you completed at {', '.join(regional_accredited_schools_found)}. These credits are used to generate the most accurate transfer and testing recommendations for participating school programs.")
                 
-                # ROUTE 2: Mixed Combo Layout Checked
                 elif regional_accredited_schools_found and national_unaccredited_schools_found:
                     st.info(f"🎓 **Transfer Credit Guidance:** We identified coursework from both nationally and regionally accredited institutions. For recommendation purposes, please select only the courses completed at {', '.join(regional_accredited_schools_found)}, as these credits are the basis for the transfer and testing recommendations provided by this tool.")
                 
-                # ROUTE 3: Only National Selections Active
                 elif national_unaccredited_schools_found and not regional_accredited_schools_found:
                     st.warning("🎓 **Transfer Credit Notice:** The institution(s) you selected are not regionally accredited. Because credits from these schools are not commonly accepted by nursing programs, we cannot use them to generate transfer and testing recommendations within this tool.")
                     st.session_state["val_courses"] = []
@@ -498,10 +494,8 @@ with col_input_flow:
                                     
                     if st.session_state["val_courses"]:
                         st.markdown("")
-                        # 🎯 MASTER PLACEMENT FIX: Injected the new Transfer Eligibility Guidance block directly right under the Assignments header section
+                        st.markdown(f"🎓 **Transfer Eligibility Guidance:** The following courses should only be selected if they were completed at {', '.join(regional_accredited_schools_found)} and you earned a grade of C or better, as this is the minimum grade most nursing programs require for transfer consideration.")
                         st.markdown("##### 🏅 Course Grade Assignments")
-                        st.info(f"🎓 **Transfer Eligibility Guidance:** The following courses should only be selected if they were completed at {', '.join(regional_accredited_schools_found)} and you earned a grade of C or better, as this is the minimum grade most nursing programs require for transfer consideration.")
-                        
                         for course in sorted(st.session_state["val_courses"]):
                             current_grade = st.session_state["course_grades_map"].get(course, "A")
                             idx_g = GRADE_OPTIONS.index(current_grade)
@@ -1210,15 +1204,28 @@ if col_ledger_flow is not None:
         st.markdown(f"## **Balance Due: ${0 if (base_total==0 and total_odt_fees==0) else final_total:,}**")
         
         st.divider()
+        
+        # 💡 NEW ADULT GATING INTERCEPT MATRIX: Formulates legal age validation parameters before executing checkout locks
+        st.markdown("##### 📄 Terms & Agreement")
+        i_adult_check = st.checkbox(
+            "I explicitly confirm that I am 18 years of age or older and legally eligible to sign this program registration agreement.",
+            value=(st.session_state["val_adult"] == "Yes"),
+            disabled=is_finalized
+        )
+        st.session_state["val_adult"] = "Yes" if i_adult_check else "No"
+        
         if st.button("🔒 Lock in Enrollment Package", key="lock_package_btn", use_container_width=True, type="primary", disabled=is_finalized):
-            st.session_state["confirmed_package"] = {
-                "school_name": school_name, "student_name": st.session_state["val_name"],
-                "base_total": int(base_total), "odt_fees_added": int(total_odt_fees), "odt_courses_selected": active_odts,
-                "final_total": int(final_total), "courses_included": final_cbe_clean_list, "entrance_exam_prep_added": bool(extra_exam_count),
-                "exit_exam_prep_added": bool(extra_nclex_count), "entrance_exam_score_logged": st.session_state["modal_score_logged"], 
-                "classes_waived_count": st.session_state["modal_classes_waived"], "promo_tier_applied": promo_tier_name, "addons_active": bool(total_odt_fees > 0)
-            }
-            st.rerun()
+            if st.session_state["val_adult"] != "Yes":
+                st.error("🛑 **Registration Gate Enforced:** You must explicitly confirm that you are 18 years of age or older to finalize this bridge plan contract purchase summary.")
+            else:
+                st.session_state["confirmed_package"] = {
+                    "school_name": school_name, "student_name": st.session_state["val_name"],
+                    "base_total": int(base_total), "odt_fees_added": int(total_odt_fees), "odt_courses_selected": active_odts,
+                    "final_total": int(final_total), "courses_included": final_cbe_clean_list, "entrance_exam_prep_added": bool(extra_exam_count),
+                    "exit_exam_prep_added": bool(extra_nclex_count), "entrance_exam_score_logged": st.session_state["modal_score_logged"], 
+                    "classes_waived_count": st.session_state["modal_classes_waived"], "promo_tier_applied": promo_tier_name, "addons_active": bool(total_odt_fees > 0)
+                }
+                st.rerun()
 
 if is_finalized:
     pkg = st.session_state["confirmed_package"]
