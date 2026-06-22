@@ -646,7 +646,6 @@ with col_input_flow:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
                 display_exam = card['exam'] if card['exam'] not in ["", "nan", "--"] else "Exempt / None"
                 
-                # 🎯 GLASS MATRIX BOX FIX EXECUTED: Stripped white backgrounds and crisp solid borders entirely from metrics chips
                 html_template_string = f"""
                 <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin-bottom: 16px; font-family: sans-serif;">
                     <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; width: 100%;">
@@ -1044,7 +1043,9 @@ with col_input_flow:
                 
                 if card['exam'] != "--" and st.session_state["modal_score_logged"]:
                     exam_status_txt = f"✓ Analytics Score Logged: {st.session_state['modal_score_logged']}%"
-                else = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
+                else:
+                    # 🎯 FIX APPLIED: Repaired the assignment error (=) back to a clean colon expression structure
+                    exam_status_txt = "✓ Pass/Exempt Verified" if not st.session_state["modal_include_exam_prep"] else "⚠️ Prep Course Attached"
                     
                 st.markdown(f"**Entrance Benchmark Requirement:** `{exam_status_txt if card['exam'] != '--' else 'Exempt / None'}`")
                 nclex_status_txt = "⚠️ NCLEX Prep Course Included" if st.session_state["modal_include_nclex_prep"] else "❌ Excluded from Plan"
@@ -1199,7 +1200,7 @@ if col_ledger_flow is not None:
             if calc_free_course: st.markdown(f"🏷️ *Complimentary Course Code:* `-${calc_free_course:,}`")
             st.markdown(f"**Total Savings:** `-${credits_sum:,}`")
             
-        st.markdown(f"## **Balance Due: ${0 if (base_total==0 and total_odt_fees==0) else final_total:,}**")
+        st.markdown(f"**Balance Due: ${0 if (base_total==0 and total_odt_fees==0) else final_total:,}**")
         
         st.divider()
         
