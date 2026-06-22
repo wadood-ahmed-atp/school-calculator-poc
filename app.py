@@ -52,7 +52,7 @@ def initialize_base_states(force_reset=False):
         "val_name": "",
         "val_state": "Select state",
         "val_zip": "",
-        "val_adult": "No Selection", # Updated anchor tracking state for step 8 gating passes
+        "val_adult": "No Selection",
         "val_gpa": 3.5, 
         "val_gpa_unknown": False,
         "val_lic": "None / Other",
@@ -259,8 +259,6 @@ with col_input_flow:
         i_name = st.text_input("What is your name?", value=st.session_state["val_name"], placeholder="Enter full name", disabled=is_finalized)
         i_state = st.selectbox("Select your home state:", options=STATE_OPTIONS, index=STATE_OPTIONS.index(st.session_state["val_state"]), disabled=is_finalized)
         i_zip = st.text_input("What is your zip code?", value=st.session_state["val_zip"], placeholder="e.g. 19013", max_chars=14, disabled=is_finalized)
-        
-        # 💡 DYNAMIC REMOVAL EXECUTED: The "Are you 18 or older" parameter has been removed from Step 1 per Clint's request.
         
         i_gpa_unknown = st.checkbox("I don't know my cumulative GPA", value=st.session_state["val_gpa_unknown"], disabled=is_finalized)
         i_gpa = 4.0 if i_gpa_unknown else st.number_input("What is your current cumulative GPA Score?.", min_value=0.0, max_value=4.0, value=float(st.session_state["val_gpa"]), step=0.1, format="%.1f", disabled=is_finalized or i_gpa_unknown)
@@ -650,9 +648,10 @@ with col_input_flow:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
                 display_exam = card['exam'] if card['exam'] not in ["", "nan", "--"] else "Exempt / None"
                 
-                with st.container(border=True):
-                    st.markdown(f"""
-                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; width: 100%; font-family: sans-serif; padding: 5px 0px;">
+                # 🛠️ PARSING SAFE LAYOUT WRAPPER PATCHED: Uses raw inline markdown execution rules to guarantee crisp HTML dashboard outputs
+                st.markdown(f"""
+                <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: white;">
+                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; width: 100%; font-family: sans-serif;">
                         
                         <div style="flex: 1.1; min-width: 280px; padding-right: 20px;">
                             <h3 style="margin: 0px 0px 4px 0px; font-size: 22px; font-weight: 700; color: #1E3A8A;">🏫 {card['name']}</h3>
@@ -687,22 +686,23 @@ with col_input_flow:
                         </div>
                         
                     </div>
-                    """, unsafe_allow_html=True)
+                </div>
+                """, unsafe_allow_html=True)
                     
-                    b_side1, b_side2 = st.columns([1.1, 1.4])
-                    with b_side1:
-                        btn_lbl = "✓ Selection Unlocked" if is_selected else "Select Institution"
-                        if st.button(btn_lbl, key=f"bc_{card['id']}", use_container_width=True, type="secondary" if is_selected else "primary"):
-                            st.session_state.update({
-                                "active_school_view": card, 
-                                "selected_school_id": card["id"], 
-                                "wizard_step": 5,
-                                "exam_prep_manually_toggled": False 
-                            })
-                            st.rerun()
-                    with b_side2:
-                        if card['accepted_courses']:
-                            st.markdown(f"<div style='padding-top:6px; font-size:12px; color:#475569;'><b>Eligible Transfer Tests:</b> {', '.join(card['accepted_courses'][:5])}{'...' if len(card['accepted_courses'])>5 else ''}</div>", unsafe_allow_html=True)
+                b_side1, b_side2 = st.columns([1.1, 1.4])
+                with b_side1:
+                    btn_lbl = "✓ Selection Unlocked" if is_selected else "Select Institution"
+                    if st.button(btn_lbl, key=f"bc_{card['id']}", use_container_width=True, type="secondary" if is_selected else "primary"):
+                        st.session_state.update({
+                            "active_school_view": card, 
+                            "selected_school_id": card["id"], 
+                            "wizard_step": 5,
+                            "exam_prep_manually_toggled": False 
+                        })
+                        st.rerun()
+                with b_side2:
+                    if card['accepted_courses']:
+                        st.markdown(f"<div style='padding-top:6px; font-size:12px; color:#475569;'><b>Eligible Transfer Tests:</b> {', '.join(card['accepted_courses'][:5])}{'...' if len(card['accepted_courses'])>5 else ''}</div>", unsafe_allow_html=True)
         else:
             st.warning("No online options match your filters at this time in your state location context.")
         
@@ -1205,7 +1205,6 @@ if col_ledger_flow is not None:
         
         st.divider()
         
-        # 💡 NEW ADULT GATING INTERCEPT MATRIX: Formulates legal age validation parameters before executing checkout locks
         st.markdown("##### 📄 Terms & Agreement")
         i_adult_check = st.checkbox(
             "I explicitly confirm that I am 18 years of age or older and legally eligible to sign this program registration agreement.",
