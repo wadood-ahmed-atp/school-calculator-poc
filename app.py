@@ -431,7 +431,7 @@ with col_input_flow:
                             accred_map[school] = {"agency": agency, "type": "Regionally Accredited"}
                             regional_accredited_schools_found.append(school)
                         else:
-                            accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
+                            accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
                             national_unaccredited_schools_found.append(school)
                     else:
                         accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
@@ -706,7 +706,7 @@ with col_input_flow:
                     
                 </div>
                 """
-                st.html(html_template_string)
+                st.markdown(html_template_string, unsafe_allow_html=True)
                     
                 b_side1, b_side2 = st.columns([1.1, 1.4])
                 with b_side1:
@@ -1111,8 +1111,8 @@ with col_input_flow:
                     
             with col_odt:
                 active_odts = st.session_state.get("selected_odts", [])
-                # 🎯 UX INTERFACE TERMINOLOGY ALIGNED SEAMLESSLY
-                st.markdown(f"##### 🎓 Enrichment Support Bundles Added ({len(active_odts)})")
+                # 🎯 FIXED: Fully aligned layout specification rules to explicitly project the word "Optional" inside the summary block
+                st.markdown(f"##### 🎓 Optional Enrichment Support Bundles Added ({len(active_odts)})")
                 if active_odts:
                     for odt_item in active_odts: st.markdown(f"🚀 &nbsp; {odt_item}")
                 else: st.markdown("*No enrichment support tracks selected.*")
@@ -1214,8 +1214,8 @@ if col_ledger_flow is not None:
         st.caption(f"(Calculated flat item tier rate of ${int(prep_rate):,} each across {total_products - len(active_odts)} core modules)")
         
         if total_odt_fees > 0:
-            # 🎯 UX FINANCES TERMINOLOGY UNIFIED TO PREVENT MENTAL FRICTION
-            st.markdown(f"➕ **Enrichment Support Bundles ({len(active_odts)}):** `${total_odt_fees:,}`")
+            # 🎯 FIXED: Repaired the raw subtotal breakdown row to match exact string definitions cleanly
+            st.markdown(f"➕ **Optional Enrichment Support Bundles ({len(active_odts)}):** `${total_odt_fees:,}`")
             st.caption(f"({len(active_odts)} Support Modules at ${int(odt_rate):,} each)")
         
         if credits_sum > 0:
