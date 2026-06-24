@@ -575,7 +575,6 @@ with col_input_flow:
         card_rows = []
         if not master_schools_df.empty:
             for idx, school_row in master_schools_df.iterrows():
-                # 🛠️ REGIONAL RECRUITMENT LOGIC EXPANDED: Checks if it matches the current user footprint OR accepts their state
                 s_state = str(school_row.get("School State", "")).strip().upper()
                 raw_accepted_string = str(school_row.get("States Accepted", "")).strip().upper()
                 allowed_permission_set = {t.strip() for t in raw_accepted_string.split(",") if t.strip()}
@@ -651,7 +650,6 @@ with col_input_flow:
                     "raw_state_val": s_state
                 })
             
-            # 🛠️ SORTING MODEL FIXED: Prioritizes local footprint state schools first, then scales remaining options by overall pricing metrics
             card_rows = sorted(card_rows, key=lambda x: (0 if x["raw_state_val"] == user_state_token else 1, x["cost_metric"]))
             
         if card_rows:
@@ -830,7 +828,7 @@ with col_input_flow:
         elective_support_items = [c for c in triggered_odt_options if c not in mandatory_remediation_items]
 
         if not triggered_odt_options:
-            st.success("✅ Clean Path: No mandatory Guided Course Support tracks are required for this configuration.")
+            st.success("✅ Clean Path: No mandatory Optional Enrichment Support Bundles are required for this configuration.")
             st.session_state.update({"selected_odts": [], "odt_hydrated_for_school": school_id})
         else:
             if st.session_state.get("odt_hydrated_for_school") != school_id:
@@ -841,7 +839,7 @@ with col_input_flow:
                 st.markdown("### 📌 Required Institutional Track Modalities")
                 for formal_course in mandatory_remediation_items:
                     friendly_name = SCIENCE_COURSES_LABEL_MAPPING.get(formal_course, formal_course)
-                    st.error(f"🛑 **{friendly_name}:** Based on this school's requirements, your course credit falls outside the accepted timeframe. This school does not accept a CBE for {friendly_name}, meaning an On-Demand Tutoring (ODT) semester support module is required and has been automatically attached to your enrollment summary package.")
+                    st.error(f"🛑 **{friendly_name}:** Based on this school's requirements, your course credit falls outside the accepted timeframe. This school does not accept a CBE for {friendly_name}, meaning a mandatory support module is required and has been automatically attached to your enrollment summary package.")
 
             if elective_support_items:
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -1077,7 +1075,7 @@ with col_input_flow:
         with st.container(border=True):
             st.markdown("### 🧬 Academic Parameter Configurations")
             if st.session_state.get("science_credits_expired"):
-                st.error("🛑 **Policy Expiration Enforced:** Science prerequisites fall outside the school-approved recency window. Guided Science ODT support tracks have been locked into this plan layout.")
+                st.error("🛑 **Policy Expiration Enforced:** Science prerequisites fall outside the school-approved recency window. Required track remediation modules have been locked into this plan layout.")
             st.markdown("<br>", unsafe_allow_html=True)
             
             count_testing_modalities = 0
@@ -1113,10 +1111,11 @@ with col_input_flow:
                     
             with col_odt:
                 active_odts = st.session_state.get("selected_odts", [])
-                st.markdown(f"##### 🎓 Guided Course Support Added ({len(active_odts)})")
+                # 🎯 UX INTERFACE TERMINOLOGY ALIGNED SEAMLESSLY
+                st.markdown(f"##### 🎓 Enrichment Support Bundles Added ({len(active_odts)})")
                 if active_odts:
                     for odt_item in active_odts: st.markdown(f"🚀 &nbsp; {odt_item}")
-                else: st.markdown("*No custom tutoring support tracks selected.*")
+                else: st.markdown("*No enrichment support tracks selected.*")
 
         st.divider()
         if st.button("⬅   Adjust Parameters", use_container_width=True, disabled=is_finalized):
@@ -1215,8 +1214,9 @@ if col_ledger_flow is not None:
         st.caption(f"(Calculated flat item tier rate of ${int(prep_rate):,} each across {total_products - len(active_odts)} core modules)")
         
         if total_odt_fees > 0:
-            st.markdown(f"➕ **Guided Course Support ({len(active_odts)}):** `${total_odt_fees:,}`")
-            st.caption(f"({len(active_odts)} ODT Bundles at ${int(odt_rate):,} each)")
+            # 🎯 UX FINANCES TERMINOLOGY UNIFIED TO PREVENT MENTAL FRICTION
+            st.markdown(f"➕ **Enrichment Support Bundles ({len(active_odts)}):** `${total_odt_fees:,}`")
+            st.caption(f"({len(active_odts)} Support Modules at ${int(odt_rate):,} each)")
         
         if credits_sum > 0:
             st.markdown("##### 🎖️ Levant Discounts Applied:")
