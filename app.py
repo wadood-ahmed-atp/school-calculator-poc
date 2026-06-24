@@ -185,7 +185,7 @@ STATE_OPTIONS = [
 ]
 BINARY_OPTIONS = ["Yes", "No"]
 DISMISSAL_OPTIONS = ["No", "Yes"]
-LICENSE_OPTIONS = ["None / Other", "LPN", "ASN"] # Synchronized layout type categories cleanly
+LICENSE_OPTIONS = ["None / Other", "LPN", "ASN"]
 TRACK_OPTIONS = ["BSN", "ASN"]
 GRADE_OPTIONS = ["A", "B", "C", "D", "F"]
 
@@ -575,14 +575,17 @@ with col_input_flow:
         card_rows = []
         if not master_schools_df.empty:
             for idx, school_row in master_schools_df.iterrows():
+                # 🛠️ REGIONAL RECRUITMENT LOGIC EXPANDED: Checks if it matches the current user footprint OR accepts their state
                 s_state = str(school_row.get("School State", "")).strip().upper()
-                if s_state != user_state_token:
+                raw_accepted_string = str(school_row.get("States Accepted", "")).strip().upper()
+                allowed_permission_set = {t.strip() for t in raw_accepted_string.split(",") if t.strip()}
+                
+                if s_state != user_state_token and user_state_token not in allowed_permission_set:
                     continue
                     
                 if str(school_row.get("ASN/BSN", "")).strip().lower() != selected_track:
                     continue
                     
-                # 🛠️ FIXED THE GATING LOGIC: Allows program variants to map flawlessly whether the user holds an LPN or ASN license tier
                 if "LPN Required?" in school_row:
                     is_lpn_only_school = str(school_row["LPN Required?"]).strip().lower() == "y"
                     if is_lpn_only_school and license_type == "None / Other":
@@ -648,7 +651,8 @@ with col_input_flow:
                     "raw_state_val": s_state
                 })
             
-            card_rows = sorted(card_rows, key=lambda x: (-len(x["accepted_courses"]), x["cost_metric"]))
+            # 🛠️ SORTING MODEL FIXED: Prioritizes local footprint state schools first, then scales remaining options by overall pricing metrics
+            card_rows = sorted(card_rows, key=lambda x: (0 if x["raw_state_val"] == user_state_token else 1, x["cost_metric"]))
             
         if card_rows:
             for card in card_rows:
