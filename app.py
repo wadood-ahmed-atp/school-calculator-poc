@@ -185,7 +185,7 @@ STATE_OPTIONS = [
 ]
 BINARY_OPTIONS = ["Yes", "No"]
 DISMISSAL_OPTIONS = ["No", "Yes"]
-LICENSE_OPTIONS = ["None / Other", "LPN", "CNA/CMA"]
+LICENSE_OPTIONS = ["None / Other", "LPN", "ASN"] # Synchronized layout type categories cleanly
 TRACK_OPTIONS = ["BSN", "ASN"]
 GRADE_OPTIONS = ["A", "B", "C", "D", "F"]
 
@@ -294,7 +294,16 @@ with col_input_flow:
             i_exp = st.number_input(
                 "Total months of active LPN Work Experience:", 
                 min_value=0, max_value=120, 
-                value=st.session_state["val_exp"], 
+                value=st.session_state["val_exp"] if st.session_state["val_exp"] is not None else 0, 
+                step=1, 
+                placeholder="Enter experience in months",
+                disabled=is_finalized
+            )
+        elif i_lic == "ASN":
+            i_exp = st.number_input(
+                "Total months of active RN Work Experience:", 
+                min_value=0, max_value=120, 
+                value=st.session_state["val_exp"] if st.session_state["val_exp"] is not None else 0, 
                 step=1, 
                 placeholder="Enter experience in months",
                 disabled=is_finalized
@@ -355,11 +364,8 @@ with col_input_flow:
                     st.rerun()
             with b_continue_col:
                 if st.button("Continue ➡️", use_container_width=True, type="primary"):
-                    if i_lic == "LPN" and i_exp is None:
-                        st.error("⚠️ Work experience is required. Please populate your active experience in months to confirm track configurations.")
-                    else:
-                        st.session_state.update({"val_lic": i_lic, "val_exp": i_exp, "val_dismiss": i_dismiss, "val_dismiss_mos": int(i_dismiss_mos) if i_dismiss_mos else 0, "val_travel": i_travel, "val_track": i_track, "wizard_step": 3})
-                        st.rerun()
+                    st.session_state.update({"val_lic": i_lic, "val_exp": i_exp, "val_dismiss": i_dismiss, "val_dismiss_mos": int(i_dismiss_mos) if i_dismiss_mos else 0, "val_travel": i_travel, "val_track": i_track, "wizard_step": 3})
+                    st.rerun()
 
     # --------------------------------------------------------------------------
     # STEP 3: REGIONAL ACCREDITATION & TRANSCRIPT INGESTION PIPELINE
@@ -425,7 +431,7 @@ with col_input_flow:
                             accred_map[school] = {"agency": agency, "type": "Regionally Accredited"}
                             regional_accredited_schools_found.append(school)
                         else:
-                            accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
+                            accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
                             national_unaccredited_schools_found.append(school)
                     else:
                         accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
@@ -575,8 +581,11 @@ with col_input_flow:
                     
                 if str(school_row.get("ASN/BSN", "")).strip().lower() != selected_track:
                     continue
-                if "LPN Required?" in school_row and license_type in ["None", "None / Other"]:
-                    if str(school_row["LPN Required?"]).strip().lower() == "y":
+                    
+                # 🛠️ FIXED THE GATING LOGIC: Allows program variants to map flawlessly whether the user holds an LPN or ASN license tier
+                if "LPN Required?" in school_row:
+                    is_lpn_only_school = str(school_row["LPN Required?"]).strip().lower() == "y"
+                    if is_lpn_only_school and license_type == "None / Other":
                         continue
                         
                 raw_name = str(school_row["School Name"]).strip()
@@ -646,7 +655,6 @@ with col_input_flow:
                 is_selected = (st.session_state["selected_school_id"] == card["id"])
                 display_exam = card['exam'] if card['exam'] not in ["", "nan", "--"] else "Exempt / None"
                 
-                # 🎯 FOOTER REFACTOR FIX EXECUTED: Maps all dynamic courses cleanly to an explicit horizontal grid footer block row
                 tests_list_html = "".join([f"<li style='margin-bottom: 2px;'>✓ {test_item}</li>" for test_item in card['accepted_courses']]) if card['accepted_courses'] else "<li>No tests required</li>"
                 
                 html_template_string = f"""
@@ -698,7 +706,6 @@ with col_input_flow:
                 """
                 st.html(html_template_string)
                     
-                # Action rows clean render pass updates
                 b_side1, b_side2 = st.columns([1.1, 1.4])
                 with b_side1:
                     btn_lbl = "✓ Selection Unlocked" if is_selected else "Select Institution"
@@ -1164,11 +1171,11 @@ if col_ledger_flow is not None:
         st.session_state["val_deposit"] = 0
         q_ref, q_mil = st.session_state["val_ref"], st.session_state["val_mil"]
         
-        q_promo = st.radio("Do you possess a promotional code?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, disabled=is_finalized)
-        st.session_state["val_promo"] = q_promo
+        st.radio("Do you possess a promotional code?", ["No", "Yes"], index=["No", "Yes"].index(st.session_state["val_promo"]), horizontal=True, disabled=is_finalized, key="val_promo_radio_step8")
+        st.session_state["val_promo"] = st.session_state["val_promo_radio_step8"]
         
         calc_free_course, promo_tier_name = 0, ""
-        if q_promo == "Yes":
+        if st.session_state["val_promo"] == "Yes":
             promo_input = st.text_input(
                 "Enter promotional code:", 
                 value=st.session_state["val_promo_code_input"], 
