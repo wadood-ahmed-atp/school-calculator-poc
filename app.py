@@ -431,7 +431,7 @@ with col_input_flow:
                             accred_map[school] = {"agency": agency, "type": "Regionally Accredited"}
                             regional_accredited_schools_found.append(school)
                         else:
-                            accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
+                            accred_map[school] = {"agency": agency, "type": "Nationally Accredited / Not Regionally Accredited"}
                             national_unaccredited_schools_found.append(school)
                     else:
                         accred_map[school] = {"agency": "Unknown", "type": "Nationally Accredited / Not Regionally Accredited"}
@@ -706,7 +706,8 @@ with col_input_flow:
                     
                 </div>
                 """
-                st.markdown(html_template_string, unsafe_allow_html=True)
+                # 🎯 FIXED RAW STRING BLEED: Swapped back to pure .html representation parsing logic
+                st.html(html_template_string)
                     
                 b_side1, b_side2 = st.columns([1.1, 1.4])
                 with b_side1:
@@ -828,7 +829,6 @@ with col_input_flow:
         elective_support_items = [c for c in triggered_odt_options if c not in mandatory_remediation_items]
 
         if not triggered_odt_options:
-            # 🎯 UI POLISH PASS: Terminology synchronized to "On-Demand Tutoring"
             st.success("✅ Clean Path: No mandatory On-Demand Tutoring tracks are required for this configuration.")
             st.session_state.update({"selected_odts": [], "odt_hydrated_for_school": school_id})
         else:
@@ -843,7 +843,6 @@ with col_input_flow:
                     st.error(f"🛑 **{friendly_name}:** Based on this school's requirements, your course credit falls outside the accepted timeframe. This school does not accept a CBE for {friendly_name}, meaning a mandatory support module is required and has been automatically attached to your enrollment summary package.")
 
             if elective_support_items:
-                # 🎯 UI HEADER PASS: Terminology updated to "On-Demand Tutoring"
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("### 🎓 On-Demand Tutoring")
                 chosen_odts = list(mandatory_remediation_items)
@@ -1113,7 +1112,6 @@ with col_input_flow:
                     
             with col_odt:
                 active_odts = st.session_state.get("selected_odts", [])
-                # 🎯 TERMINOLOGY REALIGNED: Updated to "On-Demand Tutoring"
                 st.markdown(f"##### 🎓 On-Demand Tutoring Added ({len(active_odts)})")
                 if active_odts:
                     for odt_item in active_odts: st.markdown(f"🚀 &nbsp; {odt_item}")
@@ -1216,7 +1214,6 @@ if col_ledger_flow is not None:
         st.caption(f"(Calculated flat item tier rate of ${int(prep_rate):,} each across {total_products - len(active_odts)} core modules)")
         
         if total_odt_fees > 0:
-            # 🎯 TERMINOLOGY REALIGNED: Updated to "On-Demand Tutoring" inside checkout row items
             st.markdown(f"➕ **On-Demand Tutoring ({len(active_odts)}):** `${total_odt_fees:,}`")
             st.caption(f"({len(active_odts)} Support Modules at ${int(odt_rate):,} each)")
         
