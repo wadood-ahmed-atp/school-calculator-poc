@@ -828,7 +828,7 @@ with col_input_flow:
         elective_support_items = [c for c in triggered_odt_options if c not in mandatory_remediation_items]
 
         if not triggered_odt_options:
-            st.success("✅ Clean Path: No mandatory Optional Enrichment Support Bundles are required for this configuration.")
+            st.success("✅ Clean Path: No mandatory Optional Enrichment Support Bundles (On-Demand Tutoring / ODT) are required for this configuration.")
             st.session_state.update({"selected_odts": [], "odt_hydrated_for_school": school_id})
         else:
             if st.session_state.get("odt_hydrated_for_school") != school_id:
@@ -842,8 +842,9 @@ with col_input_flow:
                     st.error(f"🛑 **{friendly_name}:** Based on this school's requirements, your course credit falls outside the accepted timeframe. This school does not accept a CBE for {friendly_name}, meaning a mandatory support module is required and has been automatically attached to your enrollment summary package.")
 
             if elective_support_items:
+                # 🎯 TERMINOLOGY REALIGNMENT EXECUTED ACROSS STEP 5 WIDGET LABELS
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown("### 🎓 Optional Enrichment Support Bundles")
+                st.markdown("### 🎓 Optional Enrichment Support Bundles (On-Demand Tutoring / ODT)")
                 chosen_odts = list(mandatory_remediation_items)
                 current_selections_set = set(st.session_state["selected_odts"])
                 
@@ -1111,11 +1112,11 @@ with col_input_flow:
                     
             with col_odt:
                 active_odts = st.session_state.get("selected_odts", [])
-                # 🎯 FIXED: Fully aligned layout specification rules to explicitly project the word "Optional" inside the summary block
-                st.markdown(f"##### 🎓 Optional Enrichment Support Bundles Added ({len(active_odts)})")
+                # 🎯 COHESIVE TERMINOLOGY REALIGNMENT (SUMMARY ROW BLOCK)
+                st.markdown(f"##### 🎓 Optional Enrichment Support Bundles (On-Demand Tutoring / ODT) Added ({len(active_odts)})")
                 if active_odts:
                     for odt_item in active_odts: st.markdown(f"🚀 &nbsp; {odt_item}")
-                else: st.markdown("*No enrichment support tracks selected.*")
+                else: st.markdown("*No enrichment support bundles selected.*")
 
         st.divider()
         if st.button("⬅   Adjust Parameters", use_container_width=True, disabled=is_finalized):
@@ -1214,8 +1215,8 @@ if col_ledger_flow is not None:
         st.caption(f"(Calculated flat item tier rate of ${int(prep_rate):,} each across {total_products - len(active_odts)} core modules)")
         
         if total_odt_fees > 0:
-            # 🎯 FIXED: Repaired the raw subtotal breakdown row to match exact string definitions cleanly
-            st.markdown(f"➕ **Optional Enrichment Support Bundles ({len(active_odts)}):** `${total_odt_fees:,}`")
+            # 🎯 COHESIVE TERMINOLOGY REALIGNMENT (ITEMIZED BILLING LINE ROW)
+            st.markdown(f"➕ **Optional Enrichment Support Bundles (On-Demand Tutoring / ODT) ({len(active_odts)}):** `${total_odt_fees:,}`")
             st.caption(f"({len(active_odts)} Support Modules at ${int(odt_rate):,} each)")
         
         if credits_sum > 0:
